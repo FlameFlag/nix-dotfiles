@@ -107,7 +107,7 @@ in
     })
     (lib.mkIf config.nixOS.dconf.enable {
       environment.systemPackages = builtins.attrValues {
-        inherit (pkgs.gnomeExtensions) appindicator clipboard-indicator;
+        inherit (pkgs.gnomeExtensions) appindicator clipboard-indicator pip-on-top;
       };
       programs.dconf.profiles.user.databases = [
         {
@@ -157,6 +157,7 @@ in
               enabled-extensions = mkArray [
                 "appindicatorsupport@rgcjonas.gmail.com"
                 "clipboard-indicator@tudmotu.com"
+                "pip-on-top@rafostar.github.com"
               ];
             };
           };
