@@ -6,7 +6,7 @@
       (
         { config, ... }:
         {
-          _module.args.pkgsUnstable = import inputs.nixpkgs-unstable {
+          _module.args.pkgsUnstable = import inputs.nixpkgs-unstable-small {
             system = "aarch64-darwin";
             config = config.nixpkgs.config;
           };
