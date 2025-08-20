@@ -19,6 +19,8 @@
 
     "security.workspace.trust.enabled" = false;
 
+    "chat.agent.enabled" = false; # Remove AI Bullshit (Copilot)
+
     # Catppuccin
     ## Make semantic highlighting look good
     "editor.semanticHighlighting.enabled" = true;
