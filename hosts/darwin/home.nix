@@ -47,14 +47,10 @@
               catppuccin-userstyles = pkgs.callPackage ../../pkgs/catppuccin-userstyles.nix {
                 inherit (config.catppuccin) accent flavor;
               };
-              warp-terminal-catppuccin = pkgs.callPackage ../../pkgs/warp-terminal-catppuccin.nix {
-                inherit (config.catppuccin) accent;
-              };
             in
             [
               {
                 home = {
-                  file.".warp/themes".source = "${warp-terminal-catppuccin.outPath}/share/warp/themes";
                   file."Documents/catppuccin-userstyles.json".source =
                     "${catppuccin-userstyles.outPath}/dist/import.json";
                 };
@@ -79,6 +75,7 @@
                 ssh.enable = true;
                 starship.enable = true;
                 vscode.enable = true;
+                warp-terminal.enable = true;
                 yazi.enable = true;
                 zed-editor.enable = true;
                 zellij.enable = true;
