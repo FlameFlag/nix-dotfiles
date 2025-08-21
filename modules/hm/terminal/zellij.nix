@@ -22,15 +22,7 @@ let
 
   copy_command = if isDarwin then "pbcopy" else "wl-copy";
 
-  # Direction mappings
   directions = {
-    Up = "Up";
-    Down = "Down";
-    Left = "Left";
-    Right = "Right";
-  };
-
-  directionKeys = {
     "Up" = "Up";
     "Down" = "Down";
     "Left" = "Left";
@@ -44,7 +36,7 @@ let
         NewPane = v;
         SwitchToMode = "Normal";
       }
-    ) directionKeys
+    ) directions
   );
 
   mkDirectionalResize = lib.mkMerge (
@@ -54,7 +46,7 @@ let
         Resize = "Increase ${v}";
         SwitchToMode = "Normal";
       }
-    ) directionKeys
+    ) directions
   );
 in
 {
