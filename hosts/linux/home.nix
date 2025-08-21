@@ -24,7 +24,6 @@
                 enable = true;
                 flavor = "frappe";
                 accent = "blue";
-                vscode.profiles.default.enable = false;
               };
             }
           ];
