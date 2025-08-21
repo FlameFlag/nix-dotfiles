@@ -4,9 +4,7 @@
 
 This repo contains my personal dotfiles for NixOS and macOS (Darwin)
 
-If you somehow randomly stumbled upon this repo through a GitHub search or from
-my profile and want to find something interesting, here are some files worth
-looking at:
+It has some interesting stuff in [lib](/lib/) and [modules](/modules/)
 
 ## Modules
 
@@ -21,21 +19,15 @@ nicer
 
 ## Catppuccin
 
-I quite like the Catppuccin theme; it's pretty nice. I would imagine there are
-probably "better" themes *(for me)* out there, but I'm not aware of them yet, so
-Catppuccin it is!
-
-Unfortunately, individual themes for programs or projects don't have a flake
-file *(except for vscode)*, so I made my own custom modules to automate the
-creation of the themes. This way, it also allows me to specify the exact theme
-and accents I want, and for it to be downstreamd from the catppuccin module
+Unfortunately, some programs (and projects) don't have a linter, so I made my
+own little solutions for this
 
 [catppuccin-userstyles.nix](/pkgs/catppuccin-userstyles.nix) -
 Conveniently enough, Catppuccin has their theme for a bunch of sites. I love
 consistency, so I think it's a must-have, tbh
 
 [warp-terminal-catppuccin.nix](/pkgs/warp-terminal-catppuccin.nix) -
-Warp Terminal, not much else to say
+Warp Terminal
 
 ## Scripts
 
