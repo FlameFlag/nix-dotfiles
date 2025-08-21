@@ -30,13 +30,6 @@ let
       WORD_FORWARD = "${x}66"; # f
     };
 
-  directions = {
-    up = "top";
-    down = "bottom";
-    left = "left";
-    right = "right";
-  };
-
   mkKeybindings = {
     cursor = [
       (mkSuper superKey "left" "text:${ctrl.SOH}")
