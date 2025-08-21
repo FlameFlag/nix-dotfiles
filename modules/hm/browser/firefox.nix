@@ -19,7 +19,6 @@
               ublock-origin
               sponsorblock
               dearrow
-              return-youtube-dislikes
               violentmonkey
               clearurls
               ;

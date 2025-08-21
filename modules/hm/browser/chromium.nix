@@ -16,7 +16,6 @@ let
       { id = "cjpalhdlnbpafiamejdnhcphjbkeiagm"; } # Ublock Origin
       { id = "mnjggcdmjocbbbhaepdhchncahnbgone"; } # Sponsor Block
       { id = "enamippconapkdmgfgjchkhakpfinmaj"; } # Dearrow
-      { id = "gebbhagfogifgggkldgodflihgfeippi"; } # Return YT Dislikes
       { id = "pobhoodpcipjmedfenaigbeloiidbflp"; } # Minimal Twitter/X Theme
     ];
   };
