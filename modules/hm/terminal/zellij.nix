@@ -18,7 +18,7 @@ let
     mkQuit
     ;
 
-  modKey = if isDarwin then "Super" else "Ctrl";
+  modKey = if isDarwin then "Super" else "Alt";
 
   copy_command = if isDarwin then "pbcopy" else "wl-copy";
 
