@@ -20,8 +20,7 @@ in
   inherit mkBind mkShiftBind mkSimpleBind;
 
   mkDirectionalNav =
-    modKey:
-    mkMerge (mapAttrsToList (k: v: (mkShiftBind modKey k { MoveFocus = v; })) directions);
+    modKey: mkMerge (mapAttrsToList (k: v: (mkShiftBind modKey k { MoveFocus = v; })) directions);
 
   mkDirectionalNewPane = mkMerge (
     mapAttrsToList (
