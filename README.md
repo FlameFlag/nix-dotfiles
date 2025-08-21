@@ -6,6 +6,28 @@ This repo contains my personal dotfiles for NixOS and macOS (Darwin)
 
 It has some interesting stuff in [lib](/lib/) and [modules](/modules/)
 
+## myLib
+
+`myLib`, as the name suggests, is a `lib` that has functions I made for my own
+purposes and use. It mainly has functions for modules where, without custom
+functions, creating configurations would be too verbose
+
+A few highlights from `myLib` include:
+
+[kanata.nix](/lib/kanata.nix): This is the most impressive part of `myLib`.
+It contains _a bunch_ of functions for generating LISP Schema code for Kanata.
+Somewhat ironically, this requires more code than raw LISP, but it's easier to
+reason about if you're used to the Nix language and not LISP
+
+[zellij.nix](/lib/zellij.nix): Although less impressive, it actually uses less
+code (unlike [kanata.nix](/lib/kanata.nix)). Its main purpose is not only to
+make Zellij configuration easier but also to make it much less verbose
+
+[ghostty.nix](/lib/ghostty.nix): It's basically for the same reasons as Zellij,
+but here the idea is more about keeping the code in Nix. The generated code is
+about the same as the Nix one (perhaps even less), but again, I want to keep
+things in the Nix language
+
 ## Modules
 
 [system.nix](/hosts/darwin/system.nix) - Here I keep all my macOS system
