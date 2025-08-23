@@ -6,7 +6,6 @@
   ...
 }:
 let
-  writeKeybindings = list: (builtins.concatStringsSep "\n" (map (key: ''"${key}": none'') list));
 
   no_ai_bullshit = [
     "ai_assistant_panel:focus_terminal_input"
@@ -46,6 +45,8 @@ let
     "workspace:toggle_warp_drive"
   ];
 
+  writeKeybindings = list: (builtins.concatStringsSep "\n" (map (key: ''"${key}": none'') list));
+
   keybindgs = ''
     ---
     ${writeKeybindings no_ai_bullshit}
@@ -58,6 +59,86 @@ let
 
   warpConfigDir =
     if osConfig.nixpkgs.hostPlatform.isDarwin then ".warp" else ".local/share/warp-terminal";
+
+  catppuccinThemeConfig =
+    let
+      capitalize =
+        str:
+        lib.strings.toUpper (lib.strings.substring 0 1 str)
+        + lib.strings.substring 1 (lib.strings.stringLength str) str;
+      darkFlavor = config.catppuccin.flavor;
+      lightFlavor = "latte";
+    in
+    {
+      themeJson = ''
+        {"light":{"Custom":{"name":"Catppuccin ${capitalize lightFlavor}","path":"${config.home.homeDirectory}/${warpConfigDir}/themes/catppuccin_${lightFlavor}.yml"}},"dark":{"Custom":{"name":"Catppuccin ${capitalize darkFlavor}","path":"${config.home.homeDirectory}/${warpConfigDir}/themes/catppuccin_${darkFlavor}.yml"}}}
+      '';
+      # The preference key is different on Linux and macOS
+      darwinKey = "themesConfig";
+      linuxKey = "SelectedSystemThemes";
+    };
+
+  settings =
+    let
+      common = {
+        bools = {
+          # Disable AI
+          IsAnyAIEnabled = false;
+          DidShowADELaunchModal = true;
+          ShouldAddAgentModeChip = false;
+          # Disable Telemetry
+          TelemetryEnabled = false;
+          CrashReportingEnabled = false;
+          TelemetryBannerDismissed = true;
+          # Other
+          IsSettingsSyncEnabled = false;
+        };
+        # Nothing for now
+        jsons = { };
+      };
+
+      darwin = {
+        bools = {
+          AIAutoDetectionEnabled = false;
+          AgentModeOnboardingBlockShown = true;
+          AgentModeHomepage = false;
+        };
+        strings = {
+          AgentModeSuggestionsBlockState = "";
+        };
+      };
+
+      linux = {
+        # Nothing for now
+        bools = { };
+        jsons = { };
+      };
+    in
+    if osConfig.nixpkgs.hostPlatform.isDarwin then
+      lib.recursiveUpdate common darwin
+    else
+      lib.recursiveUpdate common linux;
+
+  darwinCommandGenerator = {
+    bool =
+      name: value:
+      "/usr/bin/defaults write dev.warp.Warp-Stable ${name} -bool ${if value then "true" else "false"}";
+    string = name: value: "/usr/bin/defaults write dev.warp.Warp-Stable ${name} -string \"${value}\"";
+    json = name: value: "/usr/bin/defaults write dev.warp.Warp-Stable ${name} -string '${value}'";
+  };
+
+  linuxCommandGenerator =
+    let
+      prefsFile = "${config.home.homeDirectory}/.config/warp-terminal/user_preferences.json";
+    in
+    {
+      bool =
+        name: value:
+        "jq '.prefs.${name} = \"${toString value}\"' ${prefsFile} | tee ${prefsFile} > /dev/null";
+      string =
+        name: value: "jq '.prefs.${name} = \"${value}\"' ${prefsFile} | tee ${prefsFile} > /dev/null";
+      json = name: value: "jq '.prefs.${name} = ${value}' ${prefsFile} | tee ${prefsFile} > /dev/null";
+    };
 in
 {
   options.hm.warp-terminal.enable = lib.mkEnableOption "Warp Terminal";
@@ -67,5 +148,43 @@ in
     home.file."${warpConfigDir}/themes".source =
       "${warp-terminal-catppuccin.outPath}/share/warp/themes";
     home.file."${warpConfigDir}/keybindings.yaml".text = keybindgs;
+    home.activation.warpSettings =
+      let
+        setupScript =
+          let
+            prefsFile = "${config.home.homeDirectory}/.config/warp-terminal/user_preferences.json";
+          in
+          lib.optionalString osConfig.nixpkgs.hostPlatform.isLinux ''
+            if [ ! -f "${prefsFile}" ]; then
+              echo '{"prefs":{}}' > "${prefsFile}"
+              chmod 600 "${prefsFile}"
+            fi
+          '';
+
+        generator =
+          if osConfig.nixpkgs.hostPlatform.isDarwin then darwinCommandGenerator else linuxCommandGenerator;
+
+        boolCommands = lib.mapAttrsToList generator.bool settings.bools;
+        stringCommands = lib.mapAttrsToList generator.string (settings.strings or { });
+        jsonCommands = lib.mapAttrsToList generator.json (settings.jsons or { });
+
+        themeCommand =
+          if osConfig.nixpkgs.hostPlatform.isDarwin then
+            generator.json catppuccinThemeConfig.darwinKey catppuccinThemeConfig.themeJson
+          else
+            let
+              prefsFile = "${config.home.homeDirectory}/.config/warp-terminal/user_preferences.json";
+            in
+            "jq --argjson theme_config '${catppuccinThemeConfig.themeJson}' '.prefs.${catppuccinThemeConfig.linuxKey} = \$theme_config' ${prefsFile} | tee ${prefsFile} > /dev/null";
+      in
+      lib.strings.concatStringsSep "\n" (
+        [
+          setupScript
+        ]
+        ++ boolCommands
+        ++ stringCommands
+        ++ jsonCommands
+        ++ (lib.optionals config.catppuccin.enable [ themeCommand ])
+      );
   };
 }
