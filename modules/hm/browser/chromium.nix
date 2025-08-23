@@ -9,15 +9,14 @@ let
   inherit (osConfig.nixpkgs.hostPlatform) isLinux;
 
   chromiumConfig = {
-    dictionaries = builtins.attrValues {
-      inherit (pkgs.hunspellDictsChromium) en_US;
-    };
+    dictionaries = builtins.attrValues { inherit (pkgs.hunspellDictsChromium) en_US; };
     extensions = [
       { id = "cjpalhdlnbpafiamejdnhcphjbkeiagm"; } # Ublock Origin
       { id = "mnjggcdmjocbbbhaepdhchncahnbgone"; } # Sponsor Block
       { id = "enamippconapkdmgfgjchkhakpfinmaj"; } # Dearrow
       { id = "pobhoodpcipjmedfenaigbeloiidbflp"; } # Minimal Twitter/X Theme
-    ];
+    ]
+    ++ lib.optionals config.catppuccin.enable [ { id = "lnjaiaapbakfhlbjenjkhffcdpoompki"; } ];
   };
 in
 {
