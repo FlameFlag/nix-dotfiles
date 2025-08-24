@@ -1,6 +1,6 @@
-{ pkgs, myLib, ... }:
+{ myLib, osConfig, ... }:
 let
-  inherit (pkgs.stdenvNoCC.hostPlatform) isDarwin;
+  inherit (osConfig.nixpkgs.hostPlatform) isDarwin;
   inherit (myLib) genKeyBind;
 
   keymap = [
