@@ -50,10 +50,7 @@
             }
           ];
           myHmModules = [
-            ../../modules/hm/cli
-            ../../modules/hm/gui
-            ../../modules/hm/terminal
-            ../../modules/hm/tui
+            ../../modules/hm
             {
               hm = {
                 atuin.enable = true;
