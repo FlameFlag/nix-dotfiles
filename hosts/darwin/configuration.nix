@@ -12,9 +12,9 @@
 
   nixpkgs.hostPlatform.system = "aarch64-darwin";
 
-  users.users.anon = {
-    name = "anon";
-    home = "/Users/anon";
+  users.users.${config.system.primaryUser} = {
+    name = "${config.system.primaryUser}";
+    home = "/Users/${config.system.primaryUser}";
     shell = pkgs.zsh;
   };
 
