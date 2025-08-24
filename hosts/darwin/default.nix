@@ -1,17 +1,20 @@
 { inputs, myLib, ... }:
+let
+  pkgsUnstable = (
+    { config, ... }:
+    {
+      _module.args.pkgsUnstable = import inputs.nixpkgs-unstable-small {
+        system = "aarch64-darwin";
+        config = config.nixpkgs.config;
+      };
+    }
+  );
+in
 {
   anons-Mac-mini = inputs.nix-darwin.lib.darwinSystem {
     specialArgs = { inherit inputs myLib; };
     modules = [
-      (
-        { config, ... }:
-        {
-          _module.args.pkgsUnstable = import inputs.nixpkgs-unstable-small {
-            system = "aarch64-darwin";
-            config = config.nixpkgs.config;
-          };
-        }
-      )
+      pkgsUnstable
       ../../modules/common
       ./configuration.nix
       ./fonts.nix
