@@ -22,9 +22,9 @@
 
   launchd.user.agents."symlink-zsh-config" = {
     script = ''
-      ln -sfn "/etc/zprofile" "/Users/${config.system.primaryUser}/.zprofile"
-      ln -sfn "/etc/zshenv" "/Users/${config.system.primaryUser}/.zshenv"
-      ln -sfn "/etc/zshrc" "/Users/${config.system.primaryUser}/.zshrc"
+      for file in zprofile zshenv zshrc; do
+        ln -sfn "/etc/''${file}" "/Users/${config.system.primaryUser}/.''${file}"
+      done
     '';
     serviceConfig.RunAtLoad = true;
     serviceConfig.StartInterval = 0;
