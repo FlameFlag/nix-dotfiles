@@ -1,5 +1,5 @@
 {
-  pkgs,
+  pkgsUnstable,
   inputs,
   myLib,
   ...
@@ -10,10 +10,7 @@
   home-manager = {
     useGlobalPkgs = true;
     useUserPackages = true;
-    extraSpecialArgs = {
-      inherit inputs myLib;
-      pkgsUnstable = inputs.nixpkgs-unstable.legacyPackages.aarch64-darwin;
-    };
+    extraSpecialArgs = { inherit inputs myLib pkgsUnstable; };
   };
 
   home-manager.users.anon =
@@ -43,7 +40,7 @@
           ];
           homePkgs =
             let
-              catppuccin-userstyles = pkgs.callPackage ../../pkgs/catppuccin-userstyles.nix {
+              catppuccin-userstyles = pkgsUnstable.callPackage ../../pkgs/catppuccin-userstyles.nix {
                 inherit (config.catppuccin) accent flavor;
               };
             in
