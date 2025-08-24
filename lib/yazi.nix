@@ -1,4 +1,4 @@
-inputs: self: super: {
+_: _: _: {
   /**
     # Type: String -> String -> String -> AttrSet
 

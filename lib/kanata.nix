@@ -1,4 +1,4 @@
-inputs: self: super:
+_: _: super:
 let
   inherit (super)
     concatMapStringsSep

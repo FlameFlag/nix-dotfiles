@@ -1,4 +1,4 @@
-inputs: self: super:
+inputs: _: super:
 let
   /**
     # Type: Derivation -> Derivation
