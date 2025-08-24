@@ -5,7 +5,7 @@
   ...
 }:
 let
-  inherit (config.nixpkgs.hostPlatform) isLinux;
+  inherit (config.nixpkgs.hostPlatform) system isLinux;
 in
 {
   nixpkgs = {
@@ -21,8 +21,7 @@ in
       })
       (final: prev: {
         lix =
-          (inputs.lix.packages.${config.nixpkgs.hostPlatform.system}.default.override { aws-sdk-cpp = null; })
-          .overrideAttrs
+          (inputs.lix.packages.${system}.default.override { aws-sdk-cpp = null; }).overrideAttrs
             (args: {
               postPatch = (args.postPatch or "") + ''
                 substituteInPlace lix/libmain/shared.cc \
