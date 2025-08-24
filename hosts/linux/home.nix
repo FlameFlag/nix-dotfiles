@@ -18,7 +18,7 @@
     {
       imports =
         let
-          modulesImports = [ { home.stateVersion = "25.05"; } ];
+          core = [ { home.stateVersion = "25.05"; } ];
           catppuccin = [
             inputs.catppuccin.homeModules.catppuccin
             {
@@ -29,7 +29,7 @@
               };
             }
           ];
-          hm = [
+          myHmModules = [
             ../../modules/hm/browser
             ../../modules/hm/cli
             ../../modules/hm/gui
@@ -61,6 +61,6 @@
             }
           ];
         in
-        modulesImports ++ catppuccin ++ hm;
+        core ++ catppuccin ++ myHmModules;
     };
 }

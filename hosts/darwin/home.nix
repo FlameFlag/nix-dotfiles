@@ -18,7 +18,7 @@
     {
       imports =
         let
-          modulesImports = [ { home.stateVersion = "25.05"; } ];
+          core = [ { home.stateVersion = "25.05"; } ];
           catppuccin = [
             inputs.catppuccin.homeModules.catppuccin
             {
@@ -28,6 +28,17 @@
                 accent = "blue";
               };
             }
+            (
+              let
+                catppuccin-userstyles = pkgsUnstable.callPackage ../../pkgs/catppuccin-userstyles.nix {
+                  inherit (config.catppuccin) accent flavor;
+                };
+              in
+              {
+                home.file."Documents/catppuccin-userstyles.json".source =
+                  "${catppuccin-userstyles.outPath}/dist/import.json";
+              }
+            )
           ];
           macos-remap-keys = [
             {
@@ -38,21 +49,7 @@
               };
             }
           ];
-          homePkgs =
-            let
-              catppuccin-userstyles = pkgsUnstable.callPackage ../../pkgs/catppuccin-userstyles.nix {
-                inherit (config.catppuccin) accent flavor;
-              };
-            in
-            [
-              {
-                home = {
-                  file."Documents/catppuccin-userstyles.json".source =
-                    "${catppuccin-userstyles.outPath}/dist/import.json";
-                };
-              }
-            ];
-          hm = [
+          myHmModules = [
             ../../modules/hm/cli
             ../../modules/hm/gui
             ../../modules/hm/terminal
@@ -80,6 +77,6 @@
             }
           ];
         in
-        modulesImports ++ catppuccin ++ macos-remap-keys ++ homePkgs ++ hm;
+        core ++ catppuccin ++ macos-remap-keys ++ myHmModules;
     };
 }
