@@ -18,8 +18,6 @@
     shell = pkgs.zsh;
   };
 
-  nixOS.lix.enable = true;
-
   launchd.user.agents."symlink-zsh-config" = {
     script = ''
       for file in zprofile zshenv zshrc; do

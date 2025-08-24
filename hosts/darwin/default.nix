@@ -19,6 +19,8 @@
       ./system.nix
 
       ../../shared/packages.nix
+
+      { nixOS.lix.enable = true; }
     ];
   };
 }
