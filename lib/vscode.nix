@@ -30,8 +30,7 @@ in
     ```
   */
   mkExt =
-    { system }:
-    publisher: extension:
+    system: publisher: extension:
     resetLicense
       inputs.nix-vscode-extensions.extensions.${system}.vscode-marketplace.${publisher}.${extension};
 
@@ -46,7 +45,7 @@ in
     ```
   */
   vscode-marketplace =
-    { system }:
+    system:
     super.lib.mapAttrsRecursive (
       _: resetLicense
     ) inputs.nix-vscode-extensions.extensions.${system}.vscode-marketplace;
@@ -61,7 +60,7 @@ in
     ```
   */
   vscode-marketplace-release =
-    { system }:
+    system:
     super.lib.mapAttrsRecursive (
       _: resetLicense
     ) inputs.nix-vscode-extensions.extensions.${system}.vscode-marketplace-release;
@@ -75,7 +74,7 @@ in
     ```
   */
   open-vsx =
-    { system }:
+    system:
     super.lib.mapAttrsRecursive (_: resetLicense) inputs.nix-vscode-extensions.extensions.open-vsx;
 
   /**
@@ -87,7 +86,7 @@ in
     ```
   */
   open-vsx-release =
-    { system }:
+    system:
     super.lib.mapAttrsRecursive (
       _: resetLicense
     ) inputs.nix-vscode-extensions.extensions.open-vsx-release;

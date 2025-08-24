@@ -5,35 +5,36 @@
   ...
 }:
 let
-  s = { inherit (osConfig.nixpkgs.hostPlatform) system; };
   inherit (myLib) mkExt;
+  s = osConfig.nixpkgs.hostPlatform.system;
+  mkExtForSystem = owner: name: mkExt s owner name;
 in
 {
   programs.vscode.profiles.default.extensions = [
     # Utils
-    (mkExt s "esbenp" "prettier-vscode")
-    (mkExt s "mkhl" "direnv")
-    (mkExt s "oderwat" "indent-rainbow")
-    (mkExt s "visualstudioexptteam" "vscodeintellicode")
-    (mkExt s "editorconfig" "editorconfig")
+    (mkExtForSystem "esbenp" "prettier-vscode")
+    (mkExtForSystem "mkhl" "direnv")
+    (mkExtForSystem "oderwat" "indent-rainbow")
+    (mkExtForSystem "visualstudioexptteam" "vscodeintellicode")
+    (mkExtForSystem "editorconfig" "editorconfig")
 
     # Languages
     # Bash
-    (mkExt s "mads-hartmann" "bash-ide-vscode")
-    (mkExt s "timonwong" "shellcheck")
+    (mkExtForSystem "mads-hartmann" "bash-ide-vscode")
+    (mkExtForSystem "timonwong" "shellcheck")
 
     # JS & TS
-    (mkExt s "dbaeumer" "vscode-eslint")
-    (mkExt s "mgmcdermott" "vscode-language-babel")
+    (mkExtForSystem "dbaeumer" "vscode-eslint")
+    (mkExtForSystem "mgmcdermott" "vscode-language-babel")
 
     # Nix
-    (mkExt s "bbenoist" "nix")
-    (mkExt s "jnoortheen" "nix-ide")
-    (mkExt s "kamadorueda" "alejandra")
+    (mkExtForSystem "bbenoist" "nix")
+    (mkExtForSystem "jnoortheen" "nix-ide")
+    (mkExtForSystem "kamadorueda" "alejandra")
 
     # Markdown & Docs
-    (mkExt s "davidanson" "vscode-markdownlint")
-    (mkExt s "redhat" "vscode-xml")
+    (mkExtForSystem "davidanson" "vscode-markdownlint")
+    (mkExtForSystem "redhat" "vscode-xml")
   ];
 
   programs.vscode.profiles.default.userSettings = {
