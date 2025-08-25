@@ -1,5 +1,5 @@
 {
-  pkgs,
+  pkgsUnstable,
   lib,
   config,
   osConfig,
@@ -53,7 +53,7 @@ let
     ${writeKeybindings no_warp_bullshit}
   '';
 
-  warp-terminal-catppuccin = pkgs.callPackage ../../../pkgs/warp-terminal-catppuccin.nix {
+  warp-terminal-catppuccin = pkgsUnstable.callPackage ../../../pkgs/warp-terminal-catppuccin.nix {
     inherit (config.catppuccin) accent;
   };
 
@@ -144,7 +144,7 @@ in
   options.hm.warp-terminal.enable = lib.mkEnableOption "Warp Terminal";
 
   config = lib.mkIf config.hm.warp-terminal.enable {
-    home.packages = [ pkgs.warp-terminal ];
+    home.packages = builtins.attrValues { inherit (pkgsUnstable) warp-terminal; };
     home.file."${warpConfigDir}/themes".source =
       "${warp-terminal-catppuccin.outPath}/share/warp/themes";
     home.file."${warpConfigDir}/keybindings.yaml".text = keybindgs;
