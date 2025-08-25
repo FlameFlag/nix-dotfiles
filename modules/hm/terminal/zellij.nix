@@ -18,7 +18,7 @@ let
     mkQuit
     ;
 
-  modKey = if isDarwin then "Super" else "Alt";
+  modKey = if isDarwin then "Super" else "Ctrl";
   copy_command = if isDarwin then "pbcopy" else "wl-copy";
 
   useHelixKeys = config.programs.helix.enable;
@@ -98,7 +98,7 @@ in
           (mkBind modKey "t" { NewTab = { }; }) # New tab
           (mkBind modKey "k" { Clear = { }; }) # Clear pane text
           (mkShiftBind modKey "Backspace" { CloseFocus = { }; }) # Close pane
-          (mkBind modKey "c" { Copy = { }; })
+          (mkShiftBind modKey "c" { Copy = { }; })
 
           # Tab switching (1-9)
           (lib.mkMerge (map (n: mkBind modKey (toString n) { GoToTab = n; }) (lib.range 1 9)))

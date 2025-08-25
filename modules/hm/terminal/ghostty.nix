@@ -8,7 +8,7 @@
 }:
 let
   inherit (osConfig.nixpkgs.hostPlatform) isDarwin;
-  inherit (myLib) mkSuper mkSuperPerf;
+  inherit (myLib) mkSuper mkSuperShift;
 
   superKey = if isDarwin then "super" else "ctrl";
 
@@ -51,10 +51,7 @@ let
       "${superKey}+shift+minus=decrease_font_size:1"
     ];
 
-    clipboard = [
-      (mkSuperPerf superKey "c" "copy_to_clipboard")
-      (mkSuperPerf superKey "v" "paste_from_clipboard")
-    ];
+    clipboard = [ (mkSuperShift superKey "v" "paste_from_clipboard") ];
 
     misc = [
       (mkSuper superKey "a" "select_all")
