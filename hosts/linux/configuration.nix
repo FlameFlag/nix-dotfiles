@@ -51,7 +51,6 @@
 
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
-  boot.kernelPackages = pkgs.linuxPackages_latest; # Depends on NVIDIA 580 or higher
 
   time.timeZone = "Europe/Sofia";
 
