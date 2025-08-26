@@ -1,4 +1,9 @@
-{ lib, config, ... }:
+{
+  pkgsUnstable,
+  lib,
+  config,
+  ...
+}:
 {
   imports = [
     ./extensions.nix
@@ -10,6 +15,7 @@
   config = lib.mkIf config.hm.vscode.enable {
     programs.vscode = {
       enable = true;
+      package = pkgsUnstable.vscode;
       profiles.default.enableUpdateCheck = false;
       profiles.default.enableExtensionUpdateCheck = false;
       mutableExtensionsDir = false;
