@@ -1,6 +1,5 @@
 {
   inputs,
-  pkgs,
   pkgsUnstable,
   config,
   ...
@@ -15,7 +14,7 @@
   users.users.${config.system.primaryUser} = {
     name = "${config.system.primaryUser}";
     home = "/Users/${config.system.primaryUser}";
-    shell = pkgs.zsh;
+    shell = pkgsUnstable.zsh;
   };
 
   launchd.user.agents."symlink-zsh-config" = {
