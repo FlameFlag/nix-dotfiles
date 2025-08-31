@@ -110,6 +110,9 @@
         tldr
         which
         ;
+      inherit (pkgsUnstable)
+        prettier
+        ;
     }
     ++ lib.optionals config.nixpkgs.hostPlatform.isLinux (
       builtins.attrValues {
