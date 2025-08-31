@@ -46,74 +46,85 @@
         120
       ];
       helix_mode = true;
-    };
-
-    programs.zed-editor.userSettings.languages = {
-      "Nix" = {
-        language_servers = [ "nil" ];
-        formatter = {
-          external = {
-            command = "nixfmt-classic";
+      lsp = {
+        nil = {
+          initialization_options = {
+            formatting = {
+              command = [ "nixfmt" ];
+            };
           };
         };
-      };
-      "YAML" = {
-        formatter = "language_server";
-      };
-      "JSON" = {
-        formatter = {
-          external = {
-            command = "prettier";
-            arguments = [
-              "--parser"
-              "json"
-              "--stdin-filepath"
-              "{buffer_path}"
-            ];
+        languages = {
+          "Nix" = {
+            language_servers = [ "nil" ];
+            formatter = {
+              external = {
+                command = "nixfmt";
+              };
+            };
+          };
+          "YAML" = {
+            language_servers = [ "yaml-language-server" ];
+            formatter = "language_server";
+          };
+          "JSON" = {
+            language_servers = [ "json-language-server" ];
+            formatter = {
+              external = {
+                command = "prettier";
+                arguments = [
+                  "--parser"
+                  "json"
+                  "--stdin-filepath"
+                  "{buffer_path}"
+                ];
+              };
+            };
+          };
+          "HTML" = {
+            language_servers = [ "html-language-server" ];
+            formatter = {
+              external = {
+                command = "prettier";
+                arguments = [
+                  "--parser"
+                  "html"
+                  "--stdin-filepath"
+                  "{buffer_path}"
+                ];
+              };
+            };
+          };
+          "CSS" = {
+            formatter = {
+              external = {
+                command = "prettier";
+                arguments = [
+                  "--parser"
+                  "css"
+                  "--stdin-filepath"
+                  "{buffer_path}"
+                ];
+              };
+            };
+          };
+          "Bash" = {
+            language_servers = [ "bash-language-server" ];
+            formatter = {
+              external = {
+                command = "shfmt";
+                arguments = [
+                  "-i"
+                  "2"
+                ];
+              };
+            };
+          };
+          "Rust" = {
+            language_servers = [ "rust-analyzer" ];
+            formatter = "language_server";
           };
         };
-      };
-      "HTML" = {
-        formatter = {
-          external = {
-            command = "prettier";
-            arguments = [
-              "--parser"
-              "html"
-              "--stdin-filepath"
-              "{buffer_path}"
-            ];
-          };
-        };
-      };
-      "CSS" = {
-        formatter = {
-          external = {
-            command = "prettier";
-            arguments = [
-              "--parser"
-              "css"
-              "--stdin-filepath"
-              "{buffer_path}"
-            ];
-          };
-        };
-      };
-      "Bash" = {
-        language_servers = [ "bash-language-server" ];
-        formatter = {
-          external = {
-            command = "shfmt";
-            arguments = [
-              "-i"
-              "2"
-            ];
-          };
-        };
-      };
-      "Rust" = {
-        language_servers = [ "rust-analyzer" ];
-        formatter = "language_server";
       };
     };
   };
