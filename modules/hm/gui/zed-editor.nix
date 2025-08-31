@@ -16,7 +16,6 @@
       "json5"
       "xml"
       "typos"
-      "cspell"
       "biome"
       "unicode"
       "env"
