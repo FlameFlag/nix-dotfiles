@@ -56,7 +56,6 @@
                 atuin.enable = true;
                 direnv.enable = true;
                 fastfetch.enable = true;
-                fzf.enable = true;
                 ghostty.enable = true;
                 git.enable = true;
                 helix.enable = true;
