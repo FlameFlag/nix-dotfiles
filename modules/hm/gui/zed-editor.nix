@@ -1,8 +1,7 @@
 {
-  inputs,
+  pkgsUnstable,
   lib,
   config,
-  osConfig,
   ...
 }:
 {
@@ -10,8 +9,7 @@
 
   config = lib.mkIf config.hm.zed-editor.enable {
     programs.zed-editor.enable = true;
-    programs.zed-editor.package =
-      inputs.nixpkgs-unstable.legacyPackages.${osConfig.nixpkgs.hostPlatform.system}.zed-editor;
+    programs.zed-editor.package = pkgsUnstable.zed-editor;
 
     programs.zed-editor.extensions = [
       "nix"

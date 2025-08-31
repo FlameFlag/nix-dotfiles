@@ -14,13 +14,13 @@
 
 python3Packages.buildPythonApplication rec {
   pname = "yt-dlp";
-  version = "2025.08.22-unstable-2025-08-22";
+  version = "2025.08.27-unstable-2025-08-30";
   pyproject = true;
 
   src = fetchFromGitHub {
     owner = "yt-dlp";
     repo = "yt-dlp";
-    rev = "f1ba9f4ddb479ef3d0a19f926b62b0a2ce48505e";
+    rev = "d925e92b710153d0d51d030f115b3c87226bc0f0";
     hash = "sha256-58Qj+Bt4GEGgWpqAuMVemixm5AUcqS+e2Sajoeun8KY=";
   };
 
