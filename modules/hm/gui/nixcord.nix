@@ -25,8 +25,6 @@
         plugins = {
           alwaysExpandRoles.enable = true;
           betterGifPicker.enable = true;
-          betterNotesBox.enable = true;
-          betterSessions.enable = true;
           betterSettings.enable = true;
           betterUploadButton.enable = true;
           biggerStreamPreview.enable = true;
@@ -36,16 +34,12 @@
             format = "human";
           };
           clearURLs.enable = true;
-          colorSighted.enable = true;
-          consoleJanitor.disableNoisyLoggers = true;
-          consoleJanitor.enable = true;
           crashHandler.enable = true;
-          dearrow.enable = true;
           disableCallIdle.enable = true;
           dontRoundMyTimestamps.enable = true;
           favoriteEmojiFirst.enable = true;
           fixCodeblockGap.enable = true;
-          fixSpotifyEmbeds.enable = true;
+          fixImagesQuality.enable = true;
           fixYoutubeEmbeds.enable = true;
           forceOwnerCrown.enable = true;
           friendsSince.enable = true;
@@ -63,14 +57,12 @@
           imageZoom.enable = true;
           implicitRelationships.enable = true;
           memberCount.enable = true;
-          messageLinkEmbeds.enable = true;
           messageLogger = {
             enable = true;
             collapseDeleted = true;
             ignoreSelf = true;
             ignoreBots = true;
           };
-          moreUserTags.enable = true;
           mutualGroupDMs.enable = true;
           newGuildSettings.enable = true;
           noBlockedMessages.enable = true;
@@ -86,7 +78,6 @@
           noUnblockToJump.enable = true;
           onePingPerDM.enable = true;
           pauseInvitesForever.enable = true;
-          permissionsViewer.enable = true;
           pictureInPicture.enable = true;
           platformIndicators.enable = true;
           previewMessage.enable = true;
@@ -94,20 +85,13 @@
           relationshipNotifier.enable = true;
           replyTimestamp.enable = true;
           revealAllSpoilers.enable = true;
-          reverseImageSearch.enable = true;
-          roleColorEverywhere.enable = true;
           serverInfo.enable = true;
           serverListIndicators.enable = true;
-          shikiCodeblocks.enable = true;
           showConnections.enable = true;
           showHiddenThings.enable = true;
-          showMeYourName.enable = true;
-          showMeYourName.mode = "nick-user";
           showTimeoutDuration.enable = true;
           silentTyping.enable = true;
-          startupTimings.enable = true;
           streamerModeOnStream.enable = true;
-          superReactionTweaks.enable = true;
           textReplace.enable = true;
           textReplace.regexRules = [
             {
@@ -154,11 +138,8 @@
           validUser.enable = true;
           vencordToolbox.enable = true;
           viewIcons.enable = true;
-          viewRaw.enable = true;
           voiceChatDoubleClick.enable = true;
-          voiceMessages.enable = true;
           volumeBooster.enable = true;
-          webScreenShareFixes.enable = true;
           youtubeAdblock.enable = true;
         };
       };
