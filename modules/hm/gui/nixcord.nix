@@ -46,7 +46,7 @@
           fullSearchContext.enable = true;
           gifPaste.enable = true;
           greetStickerPicker.enable = true;
-          hideAttachments.enable = true;
+          hideMedia.enable = true;
           ignoreActivities = {
             enable = true;
             ignorePlaying = true;
