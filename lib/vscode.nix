@@ -1,15 +1,13 @@
-inputs: _: super:
+{
+  pkgs,
+  inputs,
+  config,
+  ...
+}:
+_: super:
 let
-  /**
-    # Type: Derivation -> Derivation
+  inherit (config.nixpkgs.hostPlatform) system;
 
-    # Example
-
-    ```nix
-    resetLicense (mkExt { system = "x86_64-linux"; } "ms-python" "python")
-    # Returns the extension with license = []
-    ```
-  */
   resetLicense =
     drv:
     drv.overrideAttrs (prev: {
@@ -17,77 +15,56 @@ let
         license = [ ];
       };
     });
+
+  extensionSets = inputs.nix-vscode-extensions.extensions.${system};
 in
 {
   /**
-    # Type: { system :: String } -> String -> String -> Derivation
+    # Type: String -> String -> String -> Derivation
 
     # Example
 
     ```nix
-    mkExt { system = "x86_64-linux"; } "ms-python" "python"
-    # Returns the Python extension for Linux x64 with license reset
+    (mkExt pkgs.vscode.version "ms-python" "python")
+    (mkExt "1.85.1" "rust-lang" "rust-analyzer")
     ```
   */
   mkExt =
-    system: publisher: extension:
-    resetLicense
-      inputs.nix-vscode-extensions.extensions.${system}.vscode-marketplace.${publisher}.${extension};
+    vscodeVersion: publisher: extension:
+    let
+      compatibleExtensions = extensionSets.forVSCodeVersion vscodeVersion;
+      marketplace = compatibleExtensions.vscode-marketplace;
+    in
+    resetLicense marketplace.${publisher}.${extension};
 
   /**
-    # Type: { system :: String } -> AttrSet
+    # Type: AttrSet { latest :: AttrSet, release :: AttrSet }
 
     # Example
 
     ```nix
-    (vscode-marketplace { system = "x86_64-linux"; }).ms-python.python
-    # Access Python extension from marketplace
+    (vscode-marketplace.latest).ms-python.python
+    (vscode-marketplace.release).ms-python.python
     ```
   */
-  vscode-marketplace =
-    system:
-    super.lib.mapAttrsRecursive (
-      _: resetLicense
-    ) inputs.nix-vscode-extensions.extensions.${system}.vscode-marketplace;
+  vscode-marketplace = {
+    latest = super.mapAttrsRecursive (_: resetLicense) extensionSets.vscode-marketplace;
+    release = super.mapAttrsRecursive (_: resetLicense) extensionSets.vscode-marketplace-release;
+  };
 
   /**
-    # Type: { system :: String } -> AttrSet
+    # Type: AttrSet { latest :: AttrSet, release :: AttrSet }
 
     # Example
 
     ```nix
-    (vscode-marketplace-release { system = "x86_64-linux"; }).ms-python.python
+    (open-vsx.latest).jnoortheen.nix-ide
     ```
   */
-  vscode-marketplace-release =
-    system:
-    super.lib.mapAttrsRecursive (
-      _: resetLicense
-    ) inputs.nix-vscode-extensions.extensions.${system}.vscode-marketplace-release;
-
-  /**
-    # Type: { system :: String } -> AttrSet
-
-    # Example
-    ```nix
-    (open-vsx { system = "x86_64-linux"; }).jnoortheen.nix-ide
-    ```
-  */
-  open-vsx =
-    system:
-    super.lib.mapAttrsRecursive (_: resetLicense) inputs.nix-vscode-extensions.extensions.open-vsx;
-
-  /**
-    # Type: { system :: String } -> AttrSet
-
-    # Example
-    ```nix
-    (open-vsx-release { system = "x86_64-linux"; }).jnoortheen.nix-ide
-    ```
-  */
-  open-vsx-release =
-    system:
-    super.lib.mapAttrsRecursive (
+  open-vsx = {
+    latest = super.mapAttrsRecursive (_: resetLicense) inputs.nix-vscode-extensions.extensions.open-vsx;
+    release = super.mapAttrsRecursive (
       _: resetLicense
     ) inputs.nix-vscode-extensions.extensions.open-vsx-release;
+  };
 }

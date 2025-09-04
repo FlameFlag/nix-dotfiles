@@ -1,8 +1,12 @@
-_: _: super:
+{ pkgs, config, ... }:
+_: super:
 let
   inherit (super) mkMerge mapAttrsToList;
-  mkBind = modKey: key: action: { "bind \"${modKey} ${key}\"" = action; };
-  mkShiftBind = modKey: key: action: { "bind \"${modKey} Shift ${key}\"" = action; };
+
+  modKey = if config.nixpkgs.hostPlatform.isDarwin then "Super" else "Ctrl";
+
+  mkBind = key: action: { "bind \"${modKey} ${key}\"" = action; };
+  mkShiftBind = key: action: { "bind \"${modKey} Shift ${key}\"" = action; };
   mkSimpleBind = key: action: { "bind \"${key}\"" = action; };
 
   directions = {
@@ -13,14 +17,14 @@ let
   };
 in
 {
-  # Export directions for use in other modules
-  inherit directions;
+  inherit
+    directions
+    mkBind
+    mkShiftBind
+    mkSimpleBind
+    ;
 
-  # Export binding helper functions
-  inherit mkBind mkShiftBind mkSimpleBind;
-
-  mkDirectionalNav =
-    modKey: mkMerge (mapAttrsToList (k: v: (mkShiftBind modKey k { MoveFocus = v; })) directions);
+  mkDirectionalNav = mkMerge (mapAttrsToList (k: v: (mkShiftBind k { MoveFocus = v; })) directions);
 
   mkDirectionalNewPane = mkMerge (
     mapAttrsToList (
@@ -42,8 +46,6 @@ in
     ) directions
   );
 
-  mkModeSwitch =
-    modKey: key: mode:
-    (mkBind modKey key { SwitchToMode = mode; });
-  mkQuit = modKey: key: (mkBind modKey key { Quit = { }; });
+  mkModeSwitch = key: mode: (mkBind key { SwitchToMode = mode; });
+  mkQuit = key: (mkBind key { Quit = { }; });
 }

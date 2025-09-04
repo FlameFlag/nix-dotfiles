@@ -1,4 +1,4 @@
-{ inputs, myLib, ... }:
+{ inputs, ... }:
 let
   pkgsUnstable = (
     { config, ... }:
@@ -12,7 +12,7 @@ let
 in
 {
   anons-Mac-mini = inputs.nix-darwin.lib.darwinSystem {
-    specialArgs = { inherit inputs myLib; };
+    specialArgs = { inherit inputs; };
     modules = [
       pkgsUnstable
       ../../modules/common
