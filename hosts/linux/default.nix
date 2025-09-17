@@ -1,4 +1,4 @@
-{ inputs, myLib, ... }:
+{ inputs, ... }:
 let
   core = [
     pkgsUnstable
@@ -54,7 +54,7 @@ let
 in
 {
   lenovo-legion = inputs.nixpkgs.lib.nixosSystem {
-    specialArgs = { inherit inputs myLib; };
+    specialArgs = { inherit inputs; };
     modules = core ++ myModules ++ catppuccin ++ sops ++ modules;
   };
 }
