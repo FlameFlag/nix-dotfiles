@@ -39,11 +39,29 @@
           hide-preview = "${pluginsRepo}/hide-preview.yazi";
           max-preview = "${pluginsRepo}/max-preview.yazi";
           smart-enter = "${pluginsRepo}/smart-enter.yazi";
-          system-clipboard = pkgs.fetchFromGitHub {
-            owner = "orhnk";
-            repo = "system-clipboard.yazi";
-            rev = "4f6942dd5f0e143586ab347d82dfd6c1f7f9c894";
-            hash = "sha256-M7zKUlLcQA3ihpCAZyOkAy/SzLu31eqHGLkCSQPX1dY=";
+          system-clipboard = pkgs.applyPatches {
+            src = pkgs.fetchFromGitHub {
+              owner = "orhnk";
+              repo = "system-clipboard.yazi";
+              rev = "4f6942dd5f0e143586ab347d82dfd6c1f7f9c894";
+              hash = "sha256-M7zKUlLcQA3ihpCAZyOkAy/SzLu31eqHGLkCSQPX1dY=";
+            };
+            patches = [
+              (pkgs.writeText "system-clipboard-fix.patch" ''
+                diff --git a/main.lua b/main.lua
+                index 0e77f6a7bd..666604668d 100644
+                --- a/main.lua
+                +++ b/main.lua
+                @@ -13,7 +13,7 @@
+                 
+                 return {
+                 	entry = function()
+                -		ya.manager_emit("escape", { visual = true })
+                +		ya.mgr_emit("escape", { visual = true })
+                 
+                 		local urls = selected_or_hovered()
+              '')
+            ];
           };
         }
         // lib.optionalAttrs config.programs.git.enable { git = "${pluginsRepo}/git.yazi"; }
