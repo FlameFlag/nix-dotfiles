@@ -10,8 +10,12 @@
   environment.systemPackages =
     builtins.attrValues {
       # Nix Related
-      inherit (pkgsUnstable) nil nixd;
-      inherit (pkgs) nixfmt-rfc-style nixpkgs-review;
+      inherit (pkgsUnstable)
+        nil
+        nixd
+        nixfmt
+        nixpkgs-review
+        ;
 
       # Rust re-implementations of coreutils
       inherit (pkgsUnstable)
