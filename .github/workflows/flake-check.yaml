@@ -53,4 +53,4 @@ jobs:
           source-url: https://install.lix.systems/lix
 
       - name: Check Darwin Configuration
-        run: sudo nix run nix-darwin -- check --flake .#anons-Mac-mini
+        run: sudo nix run nix-darwin -- check --flake .#FlameFlags-Mac-mini

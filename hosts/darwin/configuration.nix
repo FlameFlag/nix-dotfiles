@@ -7,7 +7,7 @@
 {
   imports = [ inputs.sops-nix.darwinModules.sops ];
 
-  system.primaryUser = "anon";
+  system.primaryUser = "flame";
 
   nixpkgs.hostPlatform.system = "aarch64-darwin";
 

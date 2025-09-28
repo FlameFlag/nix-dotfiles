@@ -4,7 +4,7 @@ _: {
     _1password.enable = true;
     _1password-gui = {
       enable = true;
-      polkitPolicyOwners = [ "anon" ];
+      polkitPolicyOwners = [ "nyx" ];
     };
   };
 }

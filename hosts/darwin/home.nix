@@ -13,7 +13,7 @@
     extraSpecialArgs = { inherit inputs myLib pkgsUnstable; };
   };
 
-  home-manager.users.anon =
+  home-manager.users.flame =
     { config, ... }:
     {
       imports =

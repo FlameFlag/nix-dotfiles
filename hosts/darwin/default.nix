@@ -11,7 +11,7 @@ let
   );
 in
 {
-  anons-Mac-mini = inputs.nix-darwin.lib.darwinSystem {
+  FlameFlags-Mac-mini = inputs.nix-darwin.lib.darwinSystem {
     specialArgs = { inherit inputs; };
     modules = [
       pkgsUnstable

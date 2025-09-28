@@ -12,7 +12,10 @@
   config = lib.mkMerge [
     ({
       nix.settings = {
-        trusted-users = lib.splitString " " "anon nyx";
+        trusted-users = [
+          "flame"
+          "nyx"
+        ];
         experimental-features = "nix-command flakes";
         substituters = [
           "https://devenv.cachix.org"
