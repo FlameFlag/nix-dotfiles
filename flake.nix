@@ -9,17 +9,8 @@
     flake-parts.url = "github:hercules-ci/flake-parts";
     flake-utils.url = "github:numtide/flake-utils";
 
-    helix-editor.inputs.nixpkgs.follows = "nixpkgs";
-    helix-editor.inputs.rust-overlay.follows = "rust-overlay";
-    helix-editor.url = "github:helix-editor/helix";
-
     home-manager.inputs.nixpkgs.follows = "nixpkgs";
     home-manager.url = "github:nix-community/home-manager/release-25.05";
-
-    jj-vcs.inputs.flake-utils.follows = "flake-utils";
-    jj-vcs.inputs.nixpkgs.follows = "nixpkgs";
-    jj-vcs.inputs.rust-overlay.follows = "rust-overlay";
-    jj-vcs.url = "github:jj-vcs/jj";
 
     lix-module.inputs.flake-utils.follows = "flake-utils";
     lix-module.inputs.nixpkgs.follows = "nixpkgs";

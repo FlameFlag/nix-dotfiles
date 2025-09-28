@@ -1,9 +1,7 @@
 {
-  inputs,
   pkgs,
   lib,
   config,
-  osConfig,
   ...
 }:
 let
@@ -51,11 +49,6 @@ in
         if config.programs.git.signing.signByDefault then true else false;
       jujutsu = {
         enable = true;
-        package =
-          (inputs.jj-vcs.packages.${osConfig.nixpkgs.hostPlatform.system}.jujutsu).overrideAttrs
-            (_: {
-              doCheck = false; # Disable test checking
-            });
         settings = {
           fsmonitor.backend = "watchman";
           fsmonitor.watchman.register-snapshot-trigger = true;
