@@ -34,7 +34,7 @@ things in the Nix language
 settings; they're pretty opinionated compared to the macOS defaults, but I think
 they're very sensible
 
-[nixcord.nix](modules/hm/guis/nixcord.nix) - My
+[nixcord.nix](modules/hm/gui/nixcord.nix) - My
 [Nixcord](https://github.com/KaylorBen/nixcord) config; it has the Catppuccin
 theme and a bunch of QoL (Quality of Life) plugins, making using Discord much
 nicer
@@ -55,7 +55,7 @@ video in my own "niche" format
 
 [update.sh](pkgs/update.sh) - A neat bash script
 I have to update any custom modules I have *(e.g
-[catppuccin-userstyles.nix](modules/hm/custom/catppuccin-userstyles.nix))*
+[catppuccin-userstyles.nix](pkgs/catppuccin-userstyles.nix))*
 
 If you want to build my dotfiles, here's how to do it:
 
