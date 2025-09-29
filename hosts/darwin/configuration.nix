@@ -27,6 +27,17 @@
     serviceConfig.StartInterval = 0;
   };
 
+  launchd.user.agents."zero-capslock-delay".serviceConfig = {
+    ProgramArguments = [
+      "/usr/bin/hidutil"
+      "property"
+      "--set"
+      "{\"CapsLockDelayOverride\":0}"
+    ];
+    RunAtLoad = true;
+    StartInterval = 0;
+  };
+
   services.tailscale.enable = true;
   services.tailscale.package = pkgsUnstable.tailscale.overrideAttrs { doCheck = false; };
 
