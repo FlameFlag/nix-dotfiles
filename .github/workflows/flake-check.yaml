@@ -17,10 +17,10 @@ jobs:
       contents: read
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4.2.2
+        uses: actions/checkout@v5.0.0
 
       - name: Install Nix
-        uses: cachix/install-nix-action@v31.5.2
+        uses: cachix/install-nix-action@v31.7.0
         with:
           github_access_token: "${{ secrets.GITHUB_TOKEN }}"
           source-url: https://install.lix.systems/lix
@@ -44,10 +44,10 @@ jobs:
       contents: read
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4.2.2
+        uses: actions/checkout@v5.0.0
 
       - name: Install Nix
-        uses: cachix/install-nix-action@v31.5.2
+        uses: cachix/install-nix-action@v31.7.0
         with:
           github_access_token: "${{ secrets.GITHUB_TOKEN }}"
           source-url: https://install.lix.systems/lix
