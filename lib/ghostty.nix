@@ -1,5 +1,4 @@
-_: _: super:
-let
+_: _: super: {
   /**
     # Type: String -> String -> String -> String
 
@@ -54,12 +53,4 @@ let
   mkSuperShiftNested =
     superKey: p: k: c:
     "${superKey}+shift+${p}>${k}=${c}";
-in
-{
-  inherit
-    mkSuper
-    mkSuperPerf
-    mkSuperShift
-    mkSuperShiftNested
-    ;
 }
