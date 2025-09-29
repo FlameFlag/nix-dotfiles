@@ -40,15 +40,6 @@
               }
             )
           ];
-          macos-remap-keys = [
-            {
-              services.macos-remap-keys.enable = true;
-              services.macos-remap-keys.keyboard = {
-                Capslock = "Escape";
-                Escape = "Capslock";
-              };
-            }
-          ];
           myHmModules = [
             ../../modules/hm
             {
@@ -73,6 +64,6 @@
             }
           ];
         in
-        core ++ catppuccin ++ macos-remap-keys ++ myHmModules;
+        core ++ catppuccin ++ myHmModules;
     };
 }
