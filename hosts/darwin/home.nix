@@ -18,7 +18,6 @@
     {
       imports =
         let
-          core = [ { home.stateVersion = "25.05"; } ];
           catppuccin = [
             inputs.catppuccin.homeModules.catppuccin
             {
@@ -64,6 +63,12 @@
             }
           ];
         in
-        core ++ catppuccin ++ myHmModules;
+        [
+          {
+            home.stateVersion = "25.05";
+          }
+        ]
+        ++ catppuccin
+        ++ myHmModules;
     };
 }
