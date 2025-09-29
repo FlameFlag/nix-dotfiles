@@ -41,12 +41,9 @@ nicer
 
 ## Catppuccin
 
-Unfortunately, some programs (and projects) don't have a linter, so I made my
-own little solutions for this
-
 [catppuccin-userstyles.nix](pkgs/catppuccin-userstyles.nix) - Conveniently
 enough, Catppuccin has their theme for a bunch of sites. I love consistency, so
-I think it's a must-have, tbh
+I think it's a must-have
 
 [warp-terminal-catppuccin.nix](pkgs/warp-terminal-catppuccin.nix) - Warp
 Terminal
