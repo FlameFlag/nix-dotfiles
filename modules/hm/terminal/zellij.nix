@@ -17,6 +17,7 @@ let
     mkQuit
     mkDirectionalNewPane
     mkDirectionalResize
+    mkSimpleAction
     ;
 
   copy_command = if osConfig.nixpkgs.hostPlatform.isDarwin then "pbcopy" else "wl-copy";
@@ -94,24 +95,13 @@ in
         # Pane mode (Super+Shift+s > direction)
         pane = lib.mkMerge [
           mkDirectionalNewPane
-          (mkSimpleBind "p" { SwitchFocus = { }; })
-          (mkSimpleBind "x" {
-            CloseFocus = { };
-            SwitchToMode = "Normal";
-          })
-          (mkSimpleBind "f" {
-            ToggleFocusFullscreen = { };
-            SwitchToMode = "Normal";
-          })
-          (mkSimpleBind "z" {
-            TogglePaneFrames = { };
-            SwitchToMode = "Normal";
-          })
-          (mkSimpleBind "w" {
-            ToggleFloatingPanes = { };
-            SwitchToMode = "Normal";
-          })
+          (mkSimpleAction "p" { SwitchFocus = { }; })
+          (mkSimpleAction "x" { CloseFocus = { }; })
+          (mkSimpleAction "f" { ToggleFocusFullscreen = { }; })
+          (mkSimpleAction "z" { TogglePaneFrames = { }; })
+          (mkSimpleAction "w" { ToggleFloatingPanes = { }; })
           (mkSimpleBind "c" {
+            # This one doesn't switch to Normal, so we use the base helper
             SwitchToMode = "RenamePane";
             PaneNameInput = 0;
           })
@@ -119,78 +109,41 @@ in
         ];
 
         tab = lib.mkMerge [
-          (mkSimpleBind "h" {
-            GoToPreviousTab = { };
-            SwitchToMode = "Normal";
-          })
-          (mkSimpleBind "l" {
-            GoToNextTab = { };
-            SwitchToMode = "Normal";
-          })
-          (mkSimpleBind "x" {
-            CloseTab = { };
-            SwitchToMode = "Normal";
-          })
+          (mkSimpleAction "h" { GoToPreviousTab = { }; })
+          (mkSimpleAction "l" { GoToNextTab = { }; })
+          (mkSimpleAction "x" { CloseTab = { }; })
+          (mkSimpleAction "s" { ToggleActiveSyncTab = { }; })
+          (mkSimpleAction "b" { BreakPane = { }; })
           (mkSimpleBind "r" {
             SwitchToMode = "RenameTab";
             TabNameInput = 0;
-          })
-          (mkSimpleBind "s" {
-            ToggleActiveSyncTab = { };
-            SwitchToMode = "Normal";
-          })
-          (mkSimpleBind "b" {
-            BreakPane = { };
-            SwitchToMode = "Normal";
           })
           (mkSimpleBind "Esc" { SwitchToMode = "Normal"; })
         ];
 
         move = lib.mkMerge (
+          let
+            mkMoveActions =
+              keyMap: lib.mkMerge (lib.mapAttrsToList (key: dir: mkSimpleAction key { MovePane = dir; }) keyMap);
+          in
           [
-            (mkSimpleBind "Left" {
-              MovePane = "Left";
-              SwitchToMode = "Normal";
-            })
-            (mkSimpleBind "Right" {
-              MovePane = "Right";
-              SwitchToMode = "Normal";
-            })
-            (mkSimpleBind "Down" {
-              MovePane = "Down";
-              SwitchToMode = "Normal";
-            })
-            (mkSimpleBind "Up" {
-              MovePane = "Up";
-              SwitchToMode = "Normal";
+            (mkMoveActions {
+              Left = "Left";
+              Right = "Right";
+              Down = "Down";
+              Up = "Up";
             })
             (mkSimpleBind "Esc" { SwitchToMode = "Normal"; })
           ]
           ++ lib.optionals useHelixKeys [
-            (mkSimpleBind "h" {
-              MovePane = "Left";
-              SwitchToMode = "Normal";
+            (mkMoveActions {
+              h = "Left";
+              l = "Right";
+              j = "Down";
+              k = "Up";
             })
-            (mkSimpleBind "l" {
-              MovePane = "Right";
-              SwitchToMode = "Normal";
-            })
-            (mkSimpleBind "j" {
-              MovePane = "Down";
-              SwitchToMode = "Normal";
-            })
-            (mkSimpleBind "k" {
-              MovePane = "Up";
-              SwitchToMode = "Normal";
-            })
-            (mkSimpleBind "n" {
-              MovePane = { };
-              SwitchToMode = "Normal";
-            }) # Move to next tab
-            (mkSimpleBind "p" {
-              MovePaneBackwards = { };
-              SwitchToMode = "Normal";
-            }) # Move to prev tab
+            (mkSimpleAction "n" { MovePane = { }; }) # Move to next tab
+            (mkSimpleAction "p" { MovePaneBackwards = { }; }) # Move to prev tab
           ]
         );
 
