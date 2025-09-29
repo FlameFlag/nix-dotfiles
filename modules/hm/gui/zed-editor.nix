@@ -9,7 +9,7 @@
 
   config = lib.mkIf config.hm.zed-editor.enable {
     programs.zed-editor.enable = true;
-    programs.zed-editor.package = pkgsUnstable.zed-editor;
+    # programs.zed-editor.package = pkgsUnstable.zed-editor;
 
     programs.zed-editor.extensions = [
       "nix"
