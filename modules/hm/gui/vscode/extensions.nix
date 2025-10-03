@@ -1,4 +1,9 @@
-{ config, myLib, ... }:
+{
+  config,
+  osConfig,
+  myLib,
+  ...
+}:
 let
   inherit (config.programs.vscode.package) version;
   mkExt = myLib.mkExt version;
@@ -22,9 +27,7 @@ in
     (mkExt "mgmcdermott" "vscode-language-babel")
 
     # Nix
-    (mkExt "bbenoist" "nix")
     (mkExt "jnoortheen" "nix-ide")
-    (mkExt "kamadorueda" "alejandra")
 
     # Markdown & Docs
     (mkExt "davidanson" "vscode-markdownlint")
@@ -37,7 +40,7 @@ in
 
     # Language specific formatters
     "[nix]" = {
-      "editor.defaultFormatter" = "kamadorueda.alejandra";
+      "editor.defaultFormatter" = "jnoortheen.nix-ide";
       "editor.formatOnPaste" = true;
       "editor.formatOnSave" = true;
       "editor.formatOnType" = true;
@@ -56,10 +59,43 @@ in
     };
 
     # Language server settings
+    "bashIde.explainshellEndpoint" = "http://localhost:5134";
     "nix.enableLanguageServer" = true;
     "nix.serverPath" = "nil";
-    "alejandra.program" = "nixfmt";
-    "bashIde.explainshellEndpoint" = "http://localhost:5134";
+    "nix.formatterPath" = "nixfmt";
+    "nix.serverSettings" = {
+      nil = {
+        formatting = {
+          command = [
+            "nixfmt"
+          ];
+        };
+      };
+      nixd = {
+        formatting = {
+          command = [ "nixfmt" ];
+        };
+        options =
+          let
+            workspaceFolder =
+              if osConfig.nixpkgs.hostPlatform.isDarwin then
+                "${config.home.homeDirectory}/Developer/nix-dotfiles"
+              else
+                "/etc/nixos/";
+          in
+          {
+            nixos = {
+              expr = "(builtins.getFlake \"${workspaceFolder}\").nixosConfigurations.${config.home.username}.options";
+            };
+            home-manager = {
+              expr = "(builtins.getFlake \"${workspaceFolder}\").homeConfigurations.${config.home.username}.options";
+            };
+            nix-darwin = {
+              expr = "(builtins.getFlake \"${workspaceFolder}\").darwinConfigurations.${config.home.username}.options";
+            };
+          };
+      };
+    };
 
     # RedHat XML
     "redhat.telemetry.enabled" = false;
