@@ -15,9 +15,6 @@
   options.hm.yazi.enable = lib.mkEnableOption "Yazi";
 
   config = lib.mkIf config.hm.yazi.enable {
-    xdg.configFile = {
-      "yazi/plugins/smart-paste.yazi/main.lua".text = builtins.readFile ./plugins/smart-paste.lua;
-    };
     home.packages = builtins.attrValues { inherit (pkgs) mediainfo exiftool clipboard-jh; };
     programs.yazi = {
       enable = true;
@@ -39,6 +36,7 @@
           hide-preview = "${pluginsRepo}/hide-preview.yazi";
           max-preview = "${pluginsRepo}/max-preview.yazi";
           smart-enter = "${pluginsRepo}/smart-enter.yazi";
+          smart-paste = "${pluginsRepo}/smart-paste.yazi";
           system-clipboard = pkgs.applyPatches {
             src = pkgs.fetchFromGitHub {
               owner = "orhnk";
