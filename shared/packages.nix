@@ -18,24 +18,20 @@
         ;
 
       # Rust re-implementations of coreutils
-      inherit (pkgsUnstable)
-        uutils-coreutils-noprefix
-        uutils-diffutils
-        uutils-findutils
-        ;
+      inherit (pkgsUnstable) uutils-coreutils-noprefix uutils-diffutils uutils-findutils;
 
       # Shells (No Config)
-      inherit (pkgs) bash zsh;
+      inherit (pkgsUnstable) bash zsh;
 
       # Rust
       inherit (inputs.rust-overlay.packages.${config.nixpkgs.hostPlatform.system}) default;
 
       # .NET
-      inherit (pkgs) nuget-to-nix;
-      inherit (pkgs.dotnetCorePackages) sdk_9_0_3xx sdk_10_0-bin;
+      inherit (pkgsUnstable) nuget-to-nix;
+      inherit (pkgsUnstable.dotnetCorePackages) sdk_9_0_3xx sdk_10_0-bin;
 
       # Modern Rust Alternatives
-      inherit (pkgs)
+      inherit (pkgsUnstable)
         bat # cat
         bottom # htop & btop
         broot # tree
@@ -51,29 +47,29 @@
         ;
 
       # TUI
-      inherit (pkgs)
+      inherit (pkgsUnstable)
         btop
         ncdu
         nix-tree
         ;
 
       # Media
-      inherit (pkgs)
+      inherit (pkgsUnstable)
         ffmpeg-full
         imagemagick
         mediainfo
         yt-dlp
-        yt-dlp-script
         ;
+      inherit (pkgs) yt-dlp-script;
 
       # File Management & Archiving
-      inherit (pkgs)
+      inherit (pkgsUnstable)
         rar
         unrar
         unzip
         zip
         ;
-      inherit (pkgs)
+      inherit (pkgsUnstable)
         pandoc
         rsync
         tree
@@ -81,14 +77,14 @@
         ;
 
       # Text Processing & Viewing
-      inherit (pkgs)
+      inherit (pkgsUnstable)
         hexyl # CLI hex viewer
         jq # CLI JSON processor
         less
         ;
 
       # Networking
-      inherit (pkgs)
+      inherit (pkgsUnstable)
         curl
         dnsutils # `dig`, `nslookup`, etc.
         netcat-gnu # GNU netcat
@@ -98,7 +94,7 @@
         ;
 
       # System Information & Monitoring
-      inherit (pkgs)
+      inherit (pkgsUnstable)
         file
         lsof # List open files
         pciutils # lspci
@@ -106,7 +102,7 @@
         ;
 
       # Misc
-      inherit (pkgs)
+      inherit (pkgsUnstable)
         hyperfine
         tokei
         patch
@@ -114,22 +110,20 @@
         tldr
         which
         ;
-      inherit (pkgsUnstable)
-        prettier
-        ;
+      inherit (pkgsUnstable) prettier;
     }
     ++ lib.optionals config.nixpkgs.hostPlatform.isLinux (
       builtins.attrValues {
-        inherit (pkgs)
+        inherit (pkgsUnstable)
           networkmanagerapplet
           pavucontrol # PulseAudio Volume Control GUI
           playerctl # Control media players via MPRIS (CLI)
           ;
 
-        inherit (pkgs.kdePackages) ffmpegthumbs;
-        inherit (pkgs) nufraw-thumbnailer;
+        inherit (pkgsUnstable.kdePackages) ffmpegthumbs;
+        inherit (pkgsUnstable) nufraw-thumbnailer;
 
-        inherit (pkgs.kdePackages) breeze breeze-gtk breeze-icons;
+        inherit (pkgsUnstable.kdePackages) breeze breeze-gtk breeze-icons;
       }
     );
 }
