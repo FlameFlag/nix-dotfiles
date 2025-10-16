@@ -59,6 +59,10 @@
   };
 
   outputs = inputs: {
+    nixosModules = import ./modules/nixos;
+    darwinModules = import ./modules/darwin;
+    homeModules = import ./modules/hm;
+
     darwinConfigurations = import ./hosts/darwin { inherit inputs; };
     nixosConfigurations = import ./hosts/linux { inherit inputs; };
   };

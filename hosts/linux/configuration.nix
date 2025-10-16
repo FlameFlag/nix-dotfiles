@@ -16,8 +16,6 @@
     ./systemd.nix
     ./users.nix
     ./kanata.nix
-
-    ../../shared/packages.nix
   ];
 
   environment = {

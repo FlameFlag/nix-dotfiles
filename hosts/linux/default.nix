@@ -18,7 +18,6 @@ let
     ../../modules/nixos
     {
       nixOS = {
-        lix.enable = true;
         gnome.enable = true;
         dconf.enable = true;
         nvidia.enable = true;

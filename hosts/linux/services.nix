@@ -1,9 +1,4 @@
-{
-  pkgs,
-  pkgsUnstable,
-  config,
-  ...
-}:
+{ pkgsUnstable, ... }:
 {
   services = {
     xserver.enable = true;

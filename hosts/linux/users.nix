@@ -1,4 +1,4 @@
-{ pkgs, config, ... }:
+{ config, ... }:
 {
   sops.secrets.nyx-password.neededForUsers = true;
 

@@ -5,9 +5,7 @@
   ...
 }:
 {
-  imports = [ inputs.lix-module.nixosModules.default ];
-
-  options.nixOS.lix.enable = lib.mkEnableOption "Lix";
+  imports = [ inputs.lix-module.nixosModules.lixFromNixpkgs ];
 
   config = lib.mkMerge [
     ({
@@ -26,11 +24,7 @@
           "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
         ];
       }
-      // lib.optionalAttrs config.nixpkgs.hostPlatform.isLinux {
-        flake-registry = "";
-        # Workaround for https://github.com/NixOS/nix/issues/9574
-        nix-path = config.nix.nixPath;
-      };
+      // lib.optionalAttrs config.nixpkgs.hostPlatform.isLinux { flake-registry = ""; };
     })
     ({
       nix.buildMachines = lib.optionals config.nixpkgs.hostPlatform.isDarwin [
@@ -64,6 +58,5 @@
         distributedBuilds = true;
       };
     })
-    ({ lix.enable = lib.mkDefault config.nixOS.lix.enable; })
   ];
 }

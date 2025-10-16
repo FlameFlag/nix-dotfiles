@@ -3,15 +3,9 @@
   FlameFlags-Mac-mini = inputs.nix-darwin.lib.darwinSystem {
     specialArgs = { inherit inputs; };
     modules = [
-      ../../modules/common
+      inputs.self.darwinModules
       ./configuration.nix
-      ./fonts.nix
       ./home.nix
-      ./system.nix
-
-      ../../shared/packages.nix
-
-      { nixOS.lix.enable = true; }
     ];
   };
 }

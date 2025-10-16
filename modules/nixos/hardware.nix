@@ -62,6 +62,7 @@
       services.xserver.videoDrivers = [ "nvidia" ];
     })
     (lib.mkIf config.nixOS.nvidia.enable {
+      nixpkgs.config.cudaSupport = true;
       boot.extraModprobeConfig =
         "options nvidia "
         + lib.concatStringsSep " " [
