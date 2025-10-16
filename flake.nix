@@ -53,7 +53,7 @@
     treefmt-nix.inputs.nixpkgs.follows = "nixpkgs";
     treefmt-nix.url = "github:numtide/treefmt-nix";
 
-    yazi.url = "github:sxyazi/yazi";
+    yazi.url = "github:sxyazi/yazi/e067a705acd1323b3292a83fa09f28973703c41d";
     yazi.inputs.nixpkgs.follows = "nixpkgs";
     yazi.inputs.rust-overlay.follows = "rust-overlay";
   };
