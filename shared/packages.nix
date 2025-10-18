@@ -27,7 +27,7 @@
       inherit (inputs.rust-overlay.packages.${config.nixpkgs.hostPlatform.system}) default;
 
       # .NET
-      inherit (pkgsUnstable) nuget-to-nix;
+      inherit (pkgsUnstable) nuget-to-json;
       inherit (pkgsUnstable.dotnetCorePackages) sdk_9_0_3xx sdk_10_0-bin;
 
       # Modern Rust Alternatives
