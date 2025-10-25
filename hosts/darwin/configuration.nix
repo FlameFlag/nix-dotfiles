@@ -17,29 +17,8 @@
     shell = pkgsUnstable.zsh;
   };
 
-  launchd.user.agents."symlink-zsh-config" = {
-    script = ''
-      for file in zprofile zshenv zshrc; do
-        ln -sfn "/etc/''${file}" "/Users/${config.system.primaryUser}/.''${file}"
-      done
-    '';
-    serviceConfig.RunAtLoad = true;
-    serviceConfig.StartInterval = 0;
-  };
-
-  launchd.user.agents."zero-capslock-delay".serviceConfig = {
-    ProgramArguments = [
-      "/usr/bin/hidutil"
-      "property"
-      "--set"
-      "{\"CapsLockDelayOverride\":0}"
-    ];
-    RunAtLoad = true;
-    StartInterval = 0;
-  };
-
   services.tailscale.enable = true;
-  services.tailscale.package = pkgsUnstable.tailscale.overrideAttrs { doCheck = false; };
+  services.tailscale.package = pkgsUnstable.tailscale;
 
   sops = {
     age.keyFile = "/Users/${config.system.primaryUser}/Library/Application Support/sops/age/keys.txt";
