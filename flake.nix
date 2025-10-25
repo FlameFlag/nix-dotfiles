@@ -28,7 +28,6 @@
     nix-darwin.inputs.nixpkgs.follows = "nixpkgs";
     nix-darwin.url = "github:nix-darwin/nix-darwin/nix-darwin-25.05";
 
-    nix-vscode-extensions.inputs.flake-utils.follows = "flake-utils";
     nix-vscode-extensions.inputs.nixpkgs.follows = "nixpkgs";
     nix-vscode-extensions.url = "github:nix-community/nix-vscode-extensions";
 
