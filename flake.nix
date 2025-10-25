@@ -32,7 +32,7 @@
     nixcord.inputs.flake-compat.follows = "flake-compat";
     nixcord.inputs.flake-parts.follows = "flake-parts";
     nixcord.inputs.nixpkgs.follows = "nixpkgs";
-    nixcord.url = "github:KaylorBen/nixcord";
+    nixcord.url = "github:KaylorBen/nixcord/dev";
 
     nixos-hardware.url = "github:NixOS/nixos-hardware";
 
@@ -49,6 +49,10 @@
 
     sops-nix.inputs.nixpkgs.follows = "nixpkgs";
     sops-nix.url = "github:Mic92/sops-nix";
+
+    starship-jj.inputs.nixpkgs.follows = "nixpkgs";
+    starship-jj.inputs.flake-utils.follows = "flake-utils";
+    starship-jj.url = "gitlab:lanastara_foss/starship-jj";
 
     treefmt-nix.inputs.nixpkgs.follows = "nixpkgs";
     treefmt-nix.url = "github:numtide/treefmt-nix";
