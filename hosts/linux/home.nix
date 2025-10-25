@@ -26,6 +26,7 @@
                 enable = true;
                 flavor = "frappe";
                 accent = "blue";
+                helix.enable = false;
               };
             }
           ];
