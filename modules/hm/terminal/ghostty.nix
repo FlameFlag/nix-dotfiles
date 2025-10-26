@@ -68,6 +68,7 @@ in
       package = if isDarwin then null else pkgs.ghostty;
       clearDefaultKeybinds = true;
       settings = lib.optionalAttrs isDarwin { macos-option-as-alt = true; } // {
+        theme = "light:Catppuccin Latte,dark:Catppuccin Frappe";
         adjust-underline-position = 4;
         clipboard-paste-protection = false;
         command = "zsh -l -c 'nu -l -e zellij'";
