@@ -9,6 +9,19 @@
 
   config = lib.mkMerge [
     ({
+      nix.extraOptions = ''
+        !include ${config.sops.secrets.github-token.path}
+      '';
+      sops.secrets.github-token = {
+        mode = "0440";
+        group =
+          if config.nixpkgs.hostPlatform.isDarwin then
+            config.users.groups.nixbld.name
+          else
+            config.users.groups.keys.name;
+      };
+    })
+    ({
       nix.settings = {
         trusted-users = [
           "flame"
