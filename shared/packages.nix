@@ -17,8 +17,9 @@
         nixpkgs-review
         ;
 
-      # Rust re-implementations of coreutils
-      inherit (pkgsUnstable) uutils-coreutils-noprefix uutils-diffutils uutils-findutils;
+      uutils-coreutils-noprefix = (lib.hiPrio pkgsUnstable.uutils-coreutils-noprefix);
+      uutils-diffutils = (lib.hiPrio pkgsUnstable.uutils-diffutils);
+      uutils-findutils = (lib.hiPrio pkgsUnstable.uutils-findutils);
 
       # Shells (No Config)
       inherit (pkgsUnstable) bash zsh;
