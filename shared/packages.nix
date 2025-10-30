@@ -45,6 +45,7 @@
         ripgrep # grep
         sd # sed
         xh # curl
+        pfetch-rs # neofetch
         ;
 
       # TUI

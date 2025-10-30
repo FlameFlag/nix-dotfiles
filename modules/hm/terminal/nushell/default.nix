@@ -34,7 +34,7 @@ in
         open = "^open";
 
         htop = "btop";
-        neofetch = "fastfetch";
+        neofetch = "pfetch";
 
         update = "nix flake update --flake (readlink -f /etc/nixos/)";
         check =
