@@ -1,38 +1,36 @@
 {
+  pkgs,
   config,
   osConfig,
-  myLib,
   ...
 }:
-let
-  inherit (config.programs.vscode.package) version;
-  mkExt = myLib.mkExt version;
-in
 {
-  programs.vscode.profiles.default.extensions = [
-    # Utils
-    (mkExt "esbenp" "prettier-vscode")
-    (mkExt "mkhl" "direnv")
-    (mkExt "oderwat" "indent-rainbow")
-    (mkExt "visualstudioexptteam" "vscodeintellicode")
-    (mkExt "editorconfig" "editorconfig")
+  programs.vscode.profiles.default.extensions = (
+    pkgs.nix4vscode.forVscodeVersion (config.programs.vscode.package.version) [
+      # Utils
+      "esbenp.prettier-vscode"
+      "mkhl.direnv"
+      "oderwat.indent-rainbow"
+      "visualstudioexptteam.vscodeintellicode"
+      "editorconfig.editorconfig"
 
-    # Languages
-    # Bash
-    (mkExt "mads-hartmann" "bash-ide-vscode")
-    (mkExt "timonwong" "shellcheck")
+      # Languages
+      # Bash
+      "mads-hartmann.bash-ide-vscode"
+      "timonwong.shellcheck"
 
-    # JS & TS
-    (mkExt "dbaeumer" "vscode-eslint")
-    (mkExt "mgmcdermott" "vscode-language-babel")
+      # JS & TS
+      "dbaeumer.vscode-eslint"
+      "mgmcdermott.vscode-language-babel"
 
-    # Nix
-    (mkExt "jnoortheen" "nix-ide")
+      # Nix
+      "jnoortheen.nix-ide"
 
-    # Markdown & Docs
-    (mkExt "davidanson" "vscode-markdownlint")
-    (mkExt "redhat" "vscode-xml")
-  ];
+      # Markdown & Docs
+      "davidanson.vscode-markdownlint"
+      "redhat.vscode-xml"
+    ]
+  );
 
   programs.vscode.profiles.default.userSettings = {
     # Theme

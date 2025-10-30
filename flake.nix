@@ -28,8 +28,8 @@
     nix-darwin.inputs.nixpkgs.follows = "nixpkgs";
     nix-darwin.url = "github:nix-darwin/nix-darwin/nix-darwin-25.05";
 
-    nix-vscode-extensions.inputs.nixpkgs.follows = "nixpkgs";
-    nix-vscode-extensions.url = "github:nix-community/nix-vscode-extensions";
+    nix4vscode.inputs.nixpkgs.follows = "nixpkgs";
+    nix4vscode.url = "github:nix-community/nix4vscode";
 
     nixcord.inputs.flake-compat.follows = "flake-compat";
     nixcord.inputs.flake-parts.follows = "flake-parts";
