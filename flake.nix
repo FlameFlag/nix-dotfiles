@@ -64,12 +64,27 @@
     yazi.inputs.rust-overlay.follows = "rust-overlay";
   };
 
-  outputs = inputs: {
-    nixosModules = import ./modules/nixos;
-    darwinModules = import ./modules/darwin;
-    homeModules = import ./modules/hm;
+  outputs =
+    inputs:
+    inputs.flake-parts.lib.mkFlake { inherit inputs; } {
+      systems = [
+        "aarch64-darwin"
+        "x86_64-linux"
+      ];
 
-    darwinConfigurations = import ./hosts/darwin { inherit inputs; };
-    nixosConfigurations = import ./hosts/linux { inherit inputs; };
-  };
+      perSystem =
+        { pkgs, ... }:
+        {
+          formatter = pkgs.nixfmt-rfc-style;
+        };
+
+      flake = {
+        nixosModules = import ./modules/nixos;
+        darwinModules = import ./modules/darwin;
+        homeModules = import ./modules/hm;
+
+        darwinConfigurations = import ./hosts/darwin { inherit inputs; };
+        nixosConfigurations = import ./hosts/linux { inherit inputs; };
+      };
+    };
 }
