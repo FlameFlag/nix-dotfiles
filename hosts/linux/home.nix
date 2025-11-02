@@ -1,16 +1,11 @@
-{
-  pkgsUnstable,
-  inputs,
-  myLib,
-  ...
-}:
+{ inputs, myLib, ... }:
 {
   imports = [ inputs.home-manager.nixosModules.home-manager ];
 
   home-manager = {
     useGlobalPkgs = true;
     useUserPackages = true;
-    extraSpecialArgs = { inherit inputs myLib pkgsUnstable; };
+    extraSpecialArgs = { inherit inputs myLib; };
   };
 
   home-manager.users.nyx =

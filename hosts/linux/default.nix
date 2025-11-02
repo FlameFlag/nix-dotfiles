@@ -1,18 +1,6 @@
 { inputs, ... }:
 let
-  core = [
-    pkgsUnstable
-    ./configuration.nix
-  ];
-  pkgsUnstable = (
-    { config, ... }:
-    {
-      _module.args.pkgsUnstable = import inputs.nixpkgs-unstable-small {
-        system = "x86_64-linux";
-        config = config.nixpkgs.config;
-      };
-    }
-  );
+  core = [ ./configuration.nix ];
   myModules = [
     ../../modules/common
     ../../modules/nixos

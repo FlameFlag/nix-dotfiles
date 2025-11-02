@@ -1,5 +1,5 @@
 {
-  pkgsUnstable,
+  pkgs,
   inputs,
   myLib,
   ...
@@ -10,7 +10,7 @@
   home-manager = {
     useGlobalPkgs = true;
     useUserPackages = true;
-    extraSpecialArgs = { inherit inputs myLib pkgsUnstable; };
+    extraSpecialArgs = { inherit inputs myLib; };
   };
 
   home-manager.users.flame =
@@ -31,7 +31,7 @@
             }
             (
               let
-                catppuccin-userstyles = pkgsUnstable.callPackage ../../pkgs/catppuccin-userstyles.nix {
+                catppuccin-userstyles = pkgs.unstable.callPackage ../../pkgs/catppuccin-userstyles.nix {
                   inherit (config.catppuccin) accent flavor;
                 };
               in

@@ -1,5 +1,5 @@
 {
-  pkgsUnstable,
+  pkgs,
   lib,
   config,
   ...
@@ -10,7 +10,7 @@
   config = lib.mkIf config.hm.direnv.enable {
     programs.direnv = {
       enable = true;
-      package = pkgsUnstable.direnv;
+      package = pkgs.unstable.direnv;
       nix-direnv.enable = true;
     };
   };

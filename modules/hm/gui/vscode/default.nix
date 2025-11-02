@@ -1,5 +1,5 @@
 {
-  pkgsUnstable,
+  pkgs,
   lib,
   config,
   ...
@@ -15,7 +15,7 @@
   config = lib.mkIf config.hm.vscode.enable {
     programs.vscode = {
       enable = true;
-      package = pkgsUnstable.vscode;
+      package = pkgs.unstable.vscode;
       profiles.default.enableUpdateCheck = false;
       profiles.default.enableExtensionUpdateCheck = false;
       mutableExtensionsDir = false;

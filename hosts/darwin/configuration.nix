@@ -1,6 +1,6 @@
 {
   inputs,
-  pkgsUnstable,
+  pkgs,
   config,
   ...
 }:
@@ -14,11 +14,11 @@
   users.users.${config.system.primaryUser} = {
     name = "${config.system.primaryUser}";
     home = "/Users/${config.system.primaryUser}";
-    shell = pkgsUnstable.zsh;
+    shell = pkgs.unstable.zsh;
   };
 
   services.tailscale.enable = true;
-  services.tailscale.package = pkgsUnstable.tailscale;
+  services.tailscale.package = pkgs.unstable.tailscale;
 
   sops = {
     age.keyFile = "/Users/${config.system.primaryUser}/Library/Application Support/sops/age/keys.txt";

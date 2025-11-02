@@ -1,6 +1,5 @@
 {
   pkgs,
-  pkgsUnstable,
   lib,
   config,
   ...
@@ -8,7 +7,7 @@
 let
   inherit (pkgs.stdenvNoCC.hostPlatform) isDarwin;
   atuin-completions = pkgs.runCommand "atuin-completions.nu" {
-    buildInputs = builtins.attrValues { inherit (pkgsUnstable) atuin; };
+    buildInputs = builtins.attrValues { inherit (pkgs.unstable) atuin; };
   } ''atuin gen-completions -s nushell > "$out"'';
 in
 {
@@ -17,7 +16,7 @@ in
   config = lib.mkIf config.hm.nushell.enable {
     programs.nushell = {
       enable = true;
-      package = pkgsUnstable.nushell;
+      package = pkgs.unstable.nushell;
       shellAliases = {
         cd = "__zoxide_z";
         dc = "__zoxide_z";

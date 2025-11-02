@@ -1,8 +1,8 @@
-{ pkgsUnstable, ... }:
+{ pkgs, ... }:
 {
   services = {
     xserver.enable = true;
     tailscale.enable = true;
-    tailscale.package = pkgsUnstable.tailscale;
+    tailscale.package = pkgs.unstable.tailscale;
   };
 }

@@ -1,5 +1,5 @@
 {
-  pkgsUnstable,
+  pkgs,
   lib,
   config,
   ...
@@ -10,7 +10,7 @@
   config = lib.mkIf config.hm.atuin.enable {
     programs.atuin = {
       enable = true;
-      package = pkgsUnstable.atuin;
+      package = pkgs.unstable.atuin;
       daemon.enable = true;
       flags = [ "--disable-up-arrow" ];
     };
