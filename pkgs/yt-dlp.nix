@@ -14,14 +14,14 @@
 
 python3Packages.buildPythonApplication rec {
   pname = "yt-dlp";
-  version = "2025.10.22-unstable-2025-10-27";
+  version = "2025.10.22-unstable-2025-11-01";
   pyproject = true;
 
   src = fetchFromGitHub {
     owner = "yt-dlp";
     repo = "yt-dlp";
-    rev = "808b1fed76fbd07840cc23a346c11334e3d34f43";
-    hash = "sha256-yTMP0Sxb2vlB398YBl5u/64UPQ94f9DHbt6WR15bw+M=";
+    rev = "10dea209d2460daf924c93835ddc2f0301cf2cd4";
+    hash = "sha256-F8IY0jpMtkXB2sgQcs1/ZjOCqp6NegciIVKGy+vfQ1o=";
   };
 
   build-system = with python3Packages; [ hatchling ];
