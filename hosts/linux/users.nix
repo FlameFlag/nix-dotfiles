@@ -4,6 +4,10 @@
 
   users.mutableUsers = false;
 
+  users.groups.keys = {
+    members = [ "nyx" ];
+  };
+
   users.users = {
     nyx = {
       isNormalUser = true;
@@ -12,6 +16,7 @@
         "network"
         "networkmanager"
         "audio"
+        "keys"
       ];
       hashedPasswordFile = config.sops.secrets.nyx-password.path;
       openssh.authorizedKeys.keys = [
