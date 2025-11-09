@@ -30,7 +30,7 @@ in
     programs.zellij.enable = true;
     programs.zellij.package = pkgs.unstable.zellij;
     programs.zellij.settings = {
-      default_shell = "${lib.getExe pkgs.nushell}";
+      default_shell = "${lib.getExe config.programs.nushell.package}";
       inherit copy_command;
       copy_clipboard = "system";
       copy_on_select = false;
