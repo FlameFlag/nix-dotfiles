@@ -67,15 +67,28 @@
   outputs =
     inputs:
     inputs.flake-parts.lib.mkFlake { inherit inputs; } {
+      imports = [
+        inputs.treefmt-nix.flakeModule
+      ];
+
       systems = [
         "aarch64-darwin"
         "x86_64-linux"
       ];
 
       perSystem =
-        { pkgs, ... }:
+        { pkgs, config, ... }:
         {
-          formatter = pkgs.nixfmt-rfc-style;
+          treefmt = {
+            projectRootFile = "flake.nix";
+            programs.nixfmt = {
+              enable = true;
+              package = pkgs.nixfmt-rfc-style;
+            };
+          };
+
+          formatter = config.treefmt.build.wrapper;
+          checks.treefmt = config.treefmt.build.check;
         };
 
       flake = {
