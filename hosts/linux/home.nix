@@ -31,7 +31,6 @@
           hm = {
             atuin.enable = true;
             chromium.enable = true;
-            direnv.enable = true;
             firefox.enable = true;
             ghostty.enable = true;
             git.enable = true;

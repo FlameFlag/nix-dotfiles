@@ -9,7 +9,6 @@
     pkgs.nix4vscode.forVscodeVersion (config.programs.vscode.package.version) [
       # Utils
       "esbenp.prettier-vscode"
-      "mkhl.direnv"
       "oderwat.indent-rainbow"
       "visualstudioexptteam.vscodeintellicode"
       "editorconfig.editorconfig"
