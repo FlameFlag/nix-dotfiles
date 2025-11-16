@@ -14,6 +14,8 @@
         nixd
         nixfmt
         nixpkgs-review
+        bun
+        deno
         ;
 
       uutils-coreutils-noprefix = (lib.hiPrio pkgs.unstable.uutils-coreutils-noprefix);
