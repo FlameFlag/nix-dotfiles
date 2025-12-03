@@ -25,6 +25,9 @@
       # Nix
       "jnoortheen.nix-ide"
 
+      # Zig
+      "ziglang.vscode-zig"
+
       # Markdown & Docs
       "davidanson.vscode-markdownlint"
       "redhat.vscode-xml"
@@ -53,6 +56,10 @@
       "editor.formatOnPaste" = true;
       "editor.formatOnSave" = true;
       "editor.formatOnType" = true;
+    };
+    "[zig]" = {
+      "editor.formatOnSave" = true;
+      "editor.formatOnPaste" = true;
     };
 
     # Language server settings
@@ -96,5 +103,10 @@
 
     # RedHat XML
     "redhat.telemetry.enabled" = false;
+
+    # Zig Language Server
+    "zig.path" = "zig";
+    "zig.zls.path" = "zls";
+    "zig.buildOnSave" = false;
   };
 }
