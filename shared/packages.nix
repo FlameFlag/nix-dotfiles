@@ -14,9 +14,14 @@
         nixd
         nixfmt
         nixpkgs-review
-        bun
-        deno
         ;
+
+      # Anything Language Related
+      inherit (pkgs.unstable) bun deno;
+      inherit (pkgs.unstable) zls zig;
+      inherit (inputs.rust-overlay.packages.${config.nixpkgs.hostPlatform.system}) default;
+      inherit (pkgs.unstable) nuget-to-json;
+      inherit (pkgs.unstable.dotnetCorePackages) sdk_9_0_3xx sdk_10_0-bin;
 
       uutils-coreutils-noprefix = (lib.hiPrio pkgs.unstable.uutils-coreutils-noprefix);
       uutils-diffutils = (lib.hiPrio pkgs.unstable.uutils-diffutils);
@@ -24,13 +29,6 @@
 
       # Shells (No Config)
       inherit (pkgs.unstable) bash zsh;
-
-      # Rust
-      inherit (inputs.rust-overlay.packages.${config.nixpkgs.hostPlatform.system}) default;
-
-      # .NET
-      inherit (pkgs.unstable) nuget-to-json;
-      inherit (pkgs.unstable.dotnetCorePackages) sdk_9_0_3xx sdk_10_0-bin;
 
       # Modern Rust Alternatives
       inherit (pkgs.unstable)
