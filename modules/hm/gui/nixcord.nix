@@ -28,12 +28,12 @@
           betterSettings.enable = true;
           betterUploadButton.enable = true;
           biggerStreamPreview.enable = true;
-          blurNSFW.enable = true;
+          blurNsfw.enable = true;
           callTimer = {
             enable = true;
             format = "human";
           };
-          clearURLs.enable = true;
+          clearUrLs.enable = true;
           crashHandler.enable = true;
           disableCallIdle.enable = true;
           dontRoundMyTimestamps.enable = true;
@@ -73,10 +73,9 @@
           noPendingCount.enable = true;
           noProfileThemes.enable = true;
           normalizeMessageLinks.enable = true;
-          noRPC.enable = true;
           noTypingAnimation.enable = true;
           noUnblockToJump.enable = true;
-          onePingPerDM.enable = true;
+          onePingPerDm.enable = true;
           pauseInvitesForever.enable = true;
           pictureInPicture.enable = true;
           platformIndicators.enable = true;
