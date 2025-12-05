@@ -59,9 +59,11 @@
         ffmpeg-full
         imagemagick
         mediainfo
-        yt-dlp
         ;
-      inherit (pkgs) yt-dlp-script;
+      inherit (pkgs)
+        yt-dlp
+        yt-dlp-script
+        ;
 
       # File Management & Archiving
       inherit (pkgs.unstable)

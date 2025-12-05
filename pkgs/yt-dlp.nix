@@ -1,28 +1,36 @@
 {
   lib,
   python3Packages,
+  atomicparsley,
+  deno,
   fetchFromGitHub,
   ffmpeg-headless,
-  rtmpdump,
-  atomicparsley,
-  pandoc,
   installShellFiles,
-  atomicparsleySupport ? true,
-  ffmpegSupport ? true,
-  rtmpSupport ? true,
+  pandoc,
+  rtmpdump,
 }:
 
-python3Packages.buildPythonApplication rec {
+python3Packages.buildPythonApplication {
   pname = "yt-dlp";
-  version = "2025.10.22-unstable-2025-11-09";
+  version = "2025.11.12-unstable-2025-12-04";
   pyproject = true;
 
   src = fetchFromGitHub {
     owner = "yt-dlp";
     repo = "yt-dlp";
-    rev = "c96e9291ab7bd6e7da66d33424982c8b0b4431c7";
-    hash = "sha256-0Dap+3IwKLonED+c+x9jhI8BcUMCOifqbLrFCU/K8S8=";
+    rev = "7ec6b9bc40ee8a21b11cce83a09a07a37014062e";
+    hash = "sha256-Em8FLcCizSfvucg+KPuJyhFZ5MJ8STTjSpqaTD5xeKI=";
   };
+
+  doCheck = false;
+
+  postPatch = ''
+    substituteInPlace yt_dlp/version.py \
+      --replace-fail "UPDATE_HINT = None" 'UPDATE_HINT = "Nixpkgs/NixOS likely already contain an updated version.\n       To get it run nix-channel --update or nix flake update in your config directory."'
+    substituteInPlace yt_dlp/networking/_curlcffi.py \
+      --replace-fail "if curl_cffi_version != (0, 5, 10) and not (0, 10) <= curl_cffi_version < (0, 14)" \
+      "if curl_cffi_version != (0, 5, 10) and not (0, 10) <= curl_cffi_version"
+  '';
 
   build-system = with python3Packages; [ hatchling ];
 
@@ -31,23 +39,20 @@ python3Packages.buildPythonApplication rec {
     pandoc
   ];
 
-  dependencies = lib.flatten (lib.attrValues optional-dependencies);
-
-  optional-dependencies = {
-    default = with python3Packages; [
+  dependencies = builtins.attrValues {
+    inherit (python3Packages)
       brotli
       certifi
+      cffi
+      curl-cffi
       mutagen
       pycryptodomex
       requests
+      secretstorage
       urllib3
       websockets
-    ];
-    curl-cffi = [ python3Packages.curl-cffi ];
-    secretstorage = with python3Packages; [
-      cffi
-      secretstorage
-    ];
+      yt-dlp-ejs
+      ;
   };
 
   pythonRelaxDeps = [ "websockets" ];
@@ -67,20 +72,22 @@ python3Packages.buildPythonApplication rec {
     python devscripts/fish-completion.py completions/fish/yt-dlp.fish
   '';
 
-  makeWrapperArgs =
-    let
-      packagesToBinPath =
-        [ ]
-        ++ lib.optional atomicparsleySupport atomicparsley
-        ++ lib.optional ffmpegSupport ffmpeg-headless
-        ++ lib.optional rtmpSupport rtmpdump;
-    in
-    lib.optionals (packagesToBinPath != [ ]) [
-      ''--prefix PATH : "${lib.makeBinPath packagesToBinPath}"''
-    ];
+  makeWrapperArgs = ''--prefix PATH : "${
+    lib.makeBinPath [
+      atomicparsley
+      ffmpeg-headless
+      deno
+      rtmpdump
+    ]
+  }"'';
 
-  # Requires network
-  doCheck = false;
+  checkPhase = ''
+    output=$($out/bin/yt-dlp -v 2>&1 || true)
+    if echo $output | grep -q "unsupported"; then
+      echo "ERROR: Found \"unsupported\" string in yt-dlp -v output."
+      exit 1
+    fi
+  '';
 
   postInstall = ''
     installManPage yt-dlp.1
@@ -90,8 +97,7 @@ python3Packages.buildPythonApplication rec {
       --fish completions/fish/yt-dlp.fish \
       --zsh completions/zsh/_yt-dlp
 
-    ln -s "$out/bin/yt-dlp" "$out/bin/youtube-dl"
-
     install -Dm644 Changelog.md README.md -t "$out/share/doc/yt_dlp"
+    ln -s "$out/bin/yt-dlp" "$out/bin/youtube-dl"
   '';
 }
