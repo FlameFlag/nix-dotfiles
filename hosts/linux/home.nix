@@ -13,7 +13,7 @@
     {
       imports = [
         inputs.self.nixosModules
-        { home.stateVersion = "25.05"; }
+        { home.stateVersion = "25.11"; }
       ]
       ++ [
         inputs.catppuccin.homeModules.catppuccin

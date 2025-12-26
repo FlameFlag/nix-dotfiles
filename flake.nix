@@ -3,19 +3,19 @@
 
   inputs = {
     catppuccin.inputs.nixpkgs.follows = "nixpkgs";
-    catppuccin.url = "github:catppuccin/nix/release-25.05";
+    catppuccin.url = "github:catppuccin/nix";
 
     flake-compat.url = "github:edolstra/flake-compat";
     flake-parts.url = "github:hercules-ci/flake-parts";
     flake-utils.url = "github:numtide/flake-utils";
 
     home-manager.inputs.nixpkgs.follows = "nixpkgs";
-    home-manager.url = "github:nix-community/home-manager/release-25.05";
+    home-manager.url = "github:nix-community/home-manager/release-25.11";
 
     nix-darwin.inputs.nixpkgs.follows = "nixpkgs";
-    nix-darwin.url = "github:nix-darwin/nix-darwin/nix-darwin-25.05";
+    nix-darwin.url = "github:nix-darwin/nix-darwin/nix-darwin-25.11";
 
-    nix4vscode.inputs.nixpkgs.follows = "nixpkgs";
+    nix4vscode.inputs.nixpkgs.follows = "nixpkgs-unstable";
     nix4vscode.url = "github:nix-community/nix4vscode";
 
     nixcord.inputs.flake-compat.follows = "flake-compat";
@@ -25,7 +25,7 @@
 
     nixos-hardware.url = "github:NixOS/nixos-hardware";
 
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.05";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.11";
     nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixos-unstable";
     nixpkgs-unstable-small.url = "github:NixOS/nixpkgs/nixos-unstable-small";
 
@@ -46,7 +46,7 @@
     treefmt-nix.inputs.nixpkgs.follows = "nixpkgs";
     treefmt-nix.url = "github:numtide/treefmt-nix";
 
-    yazi.url = "github:sxyazi/yazi/e067a705acd1323b3292a83fa09f28973703c41d";
+    yazi.url = "github:sxyazi/yazi/2f66561a8251f8788b2b0fd366af90555ecafc86";
     yazi.inputs.nixpkgs.follows = "nixpkgs";
     yazi.inputs.rust-overlay.follows = "rust-overlay";
   };
@@ -70,7 +70,7 @@
             projectRootFile = "flake.nix";
             programs.nixfmt = {
               enable = true;
-              package = pkgs.nixfmt-rfc-style;
+              package = pkgs.nixfmt;
             };
           };
 
