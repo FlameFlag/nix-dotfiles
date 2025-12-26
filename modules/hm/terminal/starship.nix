@@ -91,7 +91,7 @@ in
       source = pkgs.writeText "starship-jj.toml" starshipJJTomlContent;
     };
     home.packages = builtins.attrValues {
-      inherit (inputs.starship-jj.packages.${pkgs.system}) default;
+      inherit (inputs.starship-jj.packages.${pkgs.stdenvNoCC.hostPlatform.system}) default;
     };
     programs.nushell.envFile.text = ''
       $env.TRANSIENT_PROMPT_COMMAND = ^starship module character
