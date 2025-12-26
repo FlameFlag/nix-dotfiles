@@ -23,6 +23,11 @@
   sops = {
     age.keyFile = "/Users/${config.system.primaryUser}/Library/Application Support/sops/age/keys.txt";
     defaultSopsFile = ../../secrets/secrets.yaml;
-    secrets.github_ssh = { };
+    validateSopsFiles = false;
+    environment.NIXOS_ACTION = "dry-activate";
+    secrets.github_ssh = {
+      uid = 0;
+      gid = 0;
+    };
   };
 }

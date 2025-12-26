@@ -32,7 +32,16 @@
         sops = {
           age.keyFile = "/home/nyx/.config/sops/age/keys.txt";
           defaultSopsFile = ../../secrets/secrets.yaml;
-          secrets.github_ssh = { };
+          validateSopsFiles = false;
+          environment.NIXOS_ACTION = "dry-activate";
+          secrets.github-token = {
+            uid = 0;
+            gid = 0;
+          };
+          secrets.github_ssh = {
+            uid = 0;
+            gid = 0;
+          };
         };
       }
     ];
