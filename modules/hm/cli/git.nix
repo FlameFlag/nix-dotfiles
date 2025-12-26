@@ -5,8 +5,8 @@
   ...
 }:
 let
-  userName = "FlameFlag";
-  userEmail = "github@flameflag.dev";
+  name = "FlameFlag";
+  email = "github@flameflag.dev";
   key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPsZFHUhLSPiz0EF1Q59jzu7IS7qdn3MSEImztN4KgmN";
   format = "ssh";
 in
@@ -17,7 +17,7 @@ in
     home.file.".gitconfig".source =
       config.lib.file.mkOutOfStoreSymlink "${config.xdg.configHome}/git/config";
     home.file.".ssh/allowed_signers".text = ''
-      ${userEmail} ${key}
+      ${email} ${key}
     '';
 
     home.packages = builtins.attrValues { inherit (pkgs) watchman; };
@@ -34,7 +34,11 @@ in
           "*.DS_Store"
           "*.swp"
         ];
-        inherit userName userEmail;
+        settings = {
+          user = {
+            inherit name email;
+          };
+        };
         signing = {
           inherit key format;
           signByDefault = true;
@@ -52,8 +56,7 @@ in
         settings = {
           fsmonitor.backend = "watchman";
           fsmonitor.watchman.register-snapshot-trigger = true;
-          user.email = userEmail;
-          user.name = userName;
+          user = { inherit name email; };
           ui = {
             paginate = "auto";
             merge-editor = "vscode";
@@ -82,7 +85,7 @@ in
             backends.ssh.allowed-signers = "${config.home.homeDirectory}/.ssh/allowed_signers";
           };
           templates = {
-            git_push_bookmark = ''"${lib.strings.toLower userName}/push-" ++ change_id.short()'';
+            git_push_bookmark = ''"${lib.strings.toLower name}/push-" ++ change_id.short()'';
             duplicate_description = "concat(description, \"\\n(cherry picked from commit \", commit_id, \")\")";
           };
         };
