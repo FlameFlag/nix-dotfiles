@@ -111,7 +111,6 @@
         [ "L+    /opt/rocm   -    -    -     -    ${rocmEnv}" ];
 
       hardware.graphics.extraPackages = builtins.attrValues {
-        inherit (pkgs) amdvlk;
         inherit (pkgs.rocmPackages) clr;
       };
     })
