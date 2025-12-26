@@ -497,17 +497,17 @@
         ]
       },
       "locked": {
-        "lastModified": 1760548975,
-        "narHash": "sha256-qHQDr9+04YORef47YQPdIC9HGUCAxcrQEYQ6cEtBZWA=",
+        "lastModified": 1766564291,
+        "narHash": "sha256-sJEEikn6EVwvOtlRG1eIhBy4+riQqYyH/JYgpvDlvfY=",
         "owner": "sxyazi",
         "repo": "yazi",
-        "rev": "e067a705acd1323b3292a83fa09f28973703c41d",
+        "rev": "2f66561a8251f8788b2b0fd366af90555ecafc86",
         "type": "github"
       },
       "original": {
         "owner": "sxyazi",
         "repo": "yazi",
-        "rev": "e067a705acd1323b3292a83fa09f28973703c41d",
+        "rev": "2f66561a8251f8788b2b0fd366af90555ecafc86",
         "type": "github"
       }
     }
