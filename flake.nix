@@ -39,10 +39,6 @@
     sops-nix.inputs.nixpkgs.follows = "nixpkgs";
     sops-nix.url = "github:Mic92/sops-nix";
 
-    starship-jj.inputs.nixpkgs.follows = "nixpkgs";
-    starship-jj.inputs.flake-utils.follows = "flake-utils";
-    starship-jj.url = "gitlab:lanastara_foss/starship-jj";
-
     treefmt-nix.inputs.nixpkgs.follows = "nixpkgs";
     treefmt-nix.url = "github:numtide/treefmt-nix";
 
