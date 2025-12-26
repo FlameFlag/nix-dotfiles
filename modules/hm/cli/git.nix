@@ -23,7 +23,7 @@ in
     home.packages = builtins.attrValues { inherit (pkgs) watchman; };
 
     programs = {
-      gitui.enable = true;
+      # gitui.enable = true;
       gh.enable = true;
       gh.settings.git_protocol = format;
       git = {
