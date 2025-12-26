@@ -23,8 +23,11 @@ in
     };
     programs.ssh = {
       enable = true;
+      enableDefaultConfig = false;
       package = pkgs.openssh_hpn;
-      addKeysToAgent = "yes";
+      matchBlocks."*" = {
+        addKeysToAgent = "yes";
+      };
       extraConfig = ''
         Host *
           IdentityAgent "${home}/${sockPath}"
