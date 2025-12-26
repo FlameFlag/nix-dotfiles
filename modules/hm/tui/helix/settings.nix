@@ -16,8 +16,7 @@ let
 in
 {
   programs.helix.settings = {
-    theme.light = "catppuccin_light";
-    theme.dark = "catppuccin_frappe";
+    theme = "catppuccin_frappe";
 
     editor = {
       # Core

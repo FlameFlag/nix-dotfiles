@@ -9,9 +9,6 @@
     flake-parts.url = "github:hercules-ci/flake-parts";
     flake-utils.url = "github:numtide/flake-utils";
 
-    helix.inputs.rust-overlay.follows = "rust-overlay";
-    helix.url = "github:helix-editor/helix/d79cce4e4bfc24dd204f1b294c899ed73f7e9453";
-
     home-manager.inputs.nixpkgs.follows = "nixpkgs";
     home-manager.url = "github:nix-community/home-manager/release-25.05";
 
