@@ -5,8 +5,6 @@
   ...
 }:
 {
-  imports = [ inputs.lix-module.nixosModules.lixFromNixpkgs ];
-
   config = lib.mkMerge [
     ({
       nix.extraOptions = ''

@@ -15,16 +15,6 @@
     home-manager.inputs.nixpkgs.follows = "nixpkgs";
     home-manager.url = "github:nix-community/home-manager/release-25.05";
 
-    lix-module.inputs.flake-utils.follows = "flake-utils";
-    lix-module.inputs.nixpkgs.follows = "nixpkgs";
-    lix-module.url = "https://git.lix.systems/lix-project/nixos-module/archive/2.93.3-2.tar.gz";
-
-    lix.inputs.flake-compat.follows = "";
-    lix.inputs.nix2container.follows = "";
-    lix.inputs.nixpkgs.follows = "nixpkgs";
-    lix.inputs.pre-commit-hooks.follows = "";
-    lix.url = "https://git.lix.systems/lix-project/lix/archive/2.93.3.tar.gz";
-
     nix-darwin.inputs.nixpkgs.follows = "nixpkgs";
     nix-darwin.url = "github:nix-darwin/nix-darwin/nix-darwin-25.05";
 
