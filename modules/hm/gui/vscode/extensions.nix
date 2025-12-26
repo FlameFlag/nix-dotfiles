@@ -10,7 +10,6 @@
       # Utils
       "esbenp.prettier-vscode"
       "oderwat.indent-rainbow"
-      "visualstudioexptteam.vscodeintellicode"
       "editorconfig.editorconfig"
 
       # Languages
