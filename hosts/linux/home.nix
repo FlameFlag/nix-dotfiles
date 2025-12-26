@@ -12,7 +12,6 @@
     { osConfig, ... }:
     {
       imports = [
-        inputs.self.nixosModules
         { home.stateVersion = "25.11"; }
       ]
       ++ [
@@ -26,7 +25,7 @@
         }
       ]
       ++ [
-        inputs.self.homeModules
+        inputs.self.homeModules.default
         {
           hm = {
             atuin.enable = true;

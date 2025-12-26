@@ -42,7 +42,7 @@
             )
           ];
           myHmModules = [
-            inputs.self.homeModules
+            inputs.self.homeModules.default
             {
               hm = {
                 atuin.enable = true;

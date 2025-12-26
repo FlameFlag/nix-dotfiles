@@ -3,7 +3,7 @@
   FlameFlags-Mac-mini = inputs.nix-darwin.lib.darwinSystem {
     specialArgs = { inherit inputs; };
     modules = [
-      inputs.self.darwinModules
+      inputs.self.darwinModules.default
       ./configuration.nix
       ./home.nix
     ];
