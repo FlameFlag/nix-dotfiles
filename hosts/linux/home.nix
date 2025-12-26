@@ -41,7 +41,6 @@
             ssh.enable = true;
             starship.enable = true;
             vscode.enable = true;
-            warp-terminal.enable = true;
             yazi.enable = true;
             zed-editor.enable = true;
             zellij.enable = true;

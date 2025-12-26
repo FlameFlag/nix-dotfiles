@@ -45,9 +45,6 @@ nicer
 enough, Catppuccin has their theme for a bunch of sites. I love consistency, so
 I think it's a must-have
 
-[warp-terminal-catppuccin.nix](pkgs/warp-terminal-catppuccin.nix) - Warp
-Terminal
-
 ## Scripts
 
 [yt-dlp-script.sh](scripts/yt-dlp-script.sh) - A bash script, I have to download
