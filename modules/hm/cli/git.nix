@@ -6,7 +6,7 @@
 }:
 let
   userName = "FlameFlag";
-  userEmail = "57304299+${userName}@users.noreply.github.com";
+  userEmail = "github@flameflag.dev";
   key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPsZFHUhLSPiz0EF1Q59jzu7IS7qdn3MSEImztN4KgmN";
   format = "ssh";
 in
