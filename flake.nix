@@ -66,9 +66,7 @@
               package = pkgs.nixfmt;
             };
           };
-
           formatter = config.treefmt.build.wrapper;
-          checks.treefmt = config.treefmt.build.check;
         };
 
       flake = {
