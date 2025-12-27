@@ -20,7 +20,7 @@
       # Anything Language Related
       inherit (inputs.rust-overlay.packages.${config.nixpkgs.hostPlatform.system}) default;
       inherit (pkgs.unstable.dotnetCorePackages) sdk_9_0_3xx sdk_10_0-bin;
-      inherit (pkgs.unstable) bun deno;
+      inherit (pkgs.unstable) bun deno nodejs_24;
       inherit (pkgs.unstable) nuget-to-json;
       inherit (pkgs.unstable) ruff uv ty;
       inherit (pkgs.unstable) zls zig;

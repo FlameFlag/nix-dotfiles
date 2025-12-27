@@ -1,6 +1,5 @@
-{ pkgs, lib, ... }:
+{ lib, ... }:
 {
-  home.packages = builtins.attrValues { inherit (pkgs) nodejs_24; };
   programs.vscode.profiles.default.userSettings = {
     "editor.fontFamily" = "'MonaspiceKr Nerd Font Mono', 'UbuntuMono Nerd Font', monospace";
     "editor.wordWrap" = "on";
