@@ -5,7 +5,6 @@
     modules = [
       ./configuration.nix
       inputs.nur.modules.nixos.default
-      inputs.nixos-hardware.nixosModules.lenovo-legion-15arh05h
       inputs.self.nixosModules.default
       {
         nixOS = {

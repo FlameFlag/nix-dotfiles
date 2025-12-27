@@ -51,6 +51,12 @@
   boot.loader.efi.canTouchEfiVariables = true;
   boot.kernelPackages = pkgs.linuxPackages_latest;
 
+  hardware.nvidia.prime = {
+    reverseSync.enable = true;
+    amdgpuBusId = "PCI:6:0:0";
+    nvidiaBusId = "PCI:1:0:0";
+  };
+
   time.timeZone = "Europe/Sofia";
 
   fonts = {

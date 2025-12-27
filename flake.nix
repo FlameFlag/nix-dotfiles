@@ -23,8 +23,6 @@
     nixcord.inputs.nixpkgs.follows = "nixpkgs";
     nixcord.url = "github:KaylorBen/nixcord";
 
-    nixos-hardware.url = "github:NixOS/nixos-hardware";
-
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.11";
     nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixos-unstable-small";
 
