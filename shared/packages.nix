@@ -11,6 +11,7 @@
       # Nix Related
       inherit (pkgs.unstable)
         nil
+        nix-prefetch-github
         nixd
         nixfmt
         nixpkgs-review
