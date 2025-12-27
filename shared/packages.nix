@@ -17,11 +17,12 @@
         ;
 
       # Anything Language Related
-      inherit (pkgs.unstable) bun deno;
-      inherit (pkgs.unstable) zls zig;
       inherit (inputs.rust-overlay.packages.${config.nixpkgs.hostPlatform.system}) default;
-      inherit (pkgs.unstable) nuget-to-json;
       inherit (pkgs.unstable.dotnetCorePackages) sdk_9_0_3xx sdk_10_0-bin;
+      inherit (pkgs.unstable) bun deno;
+      inherit (pkgs.unstable) nuget-to-json;
+      inherit (pkgs.unstable) ruff uv ty;
+      inherit (pkgs.unstable) zls zig;
 
       uutils-coreutils-noprefix = (lib.hiPrio pkgs.unstable.uutils-coreutils-noprefix);
       uutils-diffutils = (lib.hiPrio pkgs.unstable.uutils-diffutils);
