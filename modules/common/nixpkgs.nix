@@ -5,7 +5,8 @@
     overlays = [
       (final: prev: {
         unstable = import inputs.nixpkgs-unstable {
-          inherit (prev) system config;
+          inherit (prev.stdenvNoCC.hostPlatform) system;
+          inherit (prev) config;
         };
       })
       inputs.nur.overlays.default
