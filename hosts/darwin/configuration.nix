@@ -24,10 +24,20 @@
     age.keyFile = "/Users/${config.system.primaryUser}/Library/Application Support/sops/age/keys.txt";
     defaultSopsFile = ../../secrets/secrets.yaml;
     validateSopsFiles = false;
-    environment.NIXOS_ACTION = "dry-activate";
-    secrets.github_ssh = {
-      uid = 0;
-      gid = 0;
+    secrets = {
+      github_ssh = {
+        uid = 0;
+        gid = 0;
+        group = "wheel";
+        owner = "root";
+      };
+      raycast-openrouter-api-key = {
+        mode = "0644";
+        group = "wheel";
+        owner = "root";
+        uid = 0;
+        gid = 0;
+      };
     };
   };
 }

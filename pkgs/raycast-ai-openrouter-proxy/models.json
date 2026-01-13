@@ -1,0 +1,23 @@
+[
+  {
+    "name": "Xiaomi: MiMo-V2-Flash",
+    "id": "xiaomi/mimo-v2-flash:free",
+    "contextLength": 262144,
+    "capabilities": [],
+    "temperature": 0.3
+  },
+  {
+    "name": "OpenAI: gpt-oss-120b",
+    "id": "openai/gpt-oss-120b:free",
+    "contextLength": 131072,
+    "capabilities": [],
+    "temperature": 0.3
+  },
+  {
+    "name": "Nous: Hermes 3 405B Instruct",
+    "id": "nousresearch/hermes-3-llama-3.1-405b:free",
+    "contextLength": 131072,
+    "capabilities": [],
+    "temperature": 0.3
+  }
+]
