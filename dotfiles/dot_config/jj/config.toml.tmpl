@@ -1,0 +1,42 @@
+[user]
+name = "FlameFlag"
+email = "github@flameflag.dev"
+
+[ui]
+paginate = "auto"
+merge-editor = "vscode"
+diff-formatter = ":git"
+default-command = "log"
+
+[git]
+sign-on-push = true
+auto-local-bookmark = false
+
+[fsmonitor]
+backend = "watchman"
+
+[fsmonitor.watchman]
+register-snapshot-trigger = true
+
+[signing]
+behavior = "own"
+backend = "ssh"
+key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPsZFHUhLSPiz0EF1Q59jzu7IS7qdn3MSEImztN4KgmN"
+
+[signing.backends.ssh]
+program = {{- if eq .chezmoi.os "darwin" -}}
+"/Applications/1Password.app/Contents/MacOS/op-ssh-sign"
+{{- else -}}
+"op-ssh-sign"
+{{- end }}
+allowed-signers = "{{ .chezmoi.homeDir }}/.ssh/allowed_signers"
+
+[aliases]
+d = ["describe"]
+p = ["git push"]
+e = ["edit"]
+n = ["new"]
+
+[templates]
+git_push_bookmark = '"flameflag/push-" ++ change_id.short()'
+duplicate_description = 'concat(description, "\n(cherry picked from commit ", commit_id, ")")'

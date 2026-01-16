@@ -1,0 +1,46 @@
+theme = light:Catppuccin Latte,dark:Catppuccin Frappe
+adjust-underline-position = 4
+clipboard-paste-protection = false
+command = zsh -l -c 'nu -l -e zellij'
+confirm-close-surface = false
+cursor-style-blink = false
+font-family = MonaspiceKr Nerd Font
+font-size = 18
+mouse-scroll-multiplier = 3
+quit-after-last-window-closed = true
+scrollback-limit = 100000000
+
+{{- if eq .chezmoi.os "darwin" }}
+macos-option-as-alt = true
+{{- end }}
+
+# Keybindings
+keybind = clear
+{{- if eq .chezmoi.os "darwin" }}
+keybind = super+left=text:\x01
+keybind = super+right=text:\x05
+keybind = super+g=write_screen_file:open
+keybind = super+0=reset_font_size
+keybind = super+equal=increase_font_size:1
+keybind = super+shift+equal=increase_font_size:1
+keybind = super+minus=decrease_font_size:1
+keybind = super+shift+minus=decrease_font_size:1
+keybind = super+shift+c=text:\x1bC
+keybind = super+shift+v=paste_from_clipboard
+keybind = super+a=select_all
+keybind = super+,=reload_config
+{{- end }}
+keybind = ctrl+left=text:\x01
+keybind = ctrl+right=text:\x05
+keybind = alt+left=text:\x1b\x62
+keybind = alt+right=text:\x1b\x66
+keybind = ctrl+g=write_screen_file:open
+keybind = ctrl+0=reset_font_size
+keybind = ctrl+equal=increase_font_size:1
+keybind = ctrl+shift+equal=increase_font_size:1
+keybind = ctrl+minus=decrease_font_size:1
+keybind = ctrl+shift+minus=decrease_font_size:1
+keybind = ctrl+shift+c=copy_to_clipboard
+keybind = ctrl+shift+v=paste_from_clipboard
+keybind = ctrl+a=select_all
+keybind = ctrl+,=reload_config

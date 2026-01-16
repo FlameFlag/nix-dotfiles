@@ -1,4 +1,9 @@
-{ pkgs, config, ... }:
+{
+  pkgs,
+  lib,
+  config,
+  ...
+}:
 {
   launchd.user.agents."symlink-zsh-config" = {
     script = ''
@@ -34,5 +39,22 @@
     ];
     RunAtLoad = true;
     KeepAlive = true;
+  };
+
+  launchd.user.agents.atuin-daemon = {
+    serviceConfig = {
+      ProgramArguments = [
+        (lib.getExe' pkgs.unstable.atuin "atuin")
+        "daemon"
+      ];
+      RunAtLoad = true;
+      KeepAlive = {
+        Crashed = true;
+        SuccessfulExit = false;
+      };
+      ProcessType = "Background";
+      StandardOutPath = "/Users/${config.system.primaryUser}/Library/Logs/atuin-daemon.log";
+      StandardErrorPath = "/Users/${config.system.primaryUser}/Library/Logs/atuin-daemon.log";
+    };
   };
 }

@@ -1,6 +1,6 @@
 _: {
   imports = [
-    ../../shared/packages.nix
+    ../../pkgs/packages.nix
     ../common
     ./fonts.nix
     ./launchd.nix

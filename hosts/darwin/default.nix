@@ -5,7 +5,6 @@
     modules = [
       inputs.self.darwinModules.default
       ./configuration.nix
-      ./home.nix
     ];
   };
 }

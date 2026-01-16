@@ -1,0 +1,4 @@
+git_protocol: ssh
+editor: hx
+pager: less
+color_labels: enabled

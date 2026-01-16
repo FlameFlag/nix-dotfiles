@@ -1,0 +1,10 @@
+{{ if ne .chezmoi.os "darwin" }}
+Library/
+{{ end }}
+
+{{ if eq .chezmoi.os "darwin" }}
+.config/Code/
+.config/ghostty/
+.config/kanata/
+.config/nushell/
+{{ end }}

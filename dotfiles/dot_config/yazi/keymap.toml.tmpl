@@ -1,0 +1,82 @@
+[mgr]
+prepend_keymap = [
+    { on = ["p"], run = "plugin --sync max-preview", desc = "Maximize Preview" },
+    { on = ["d"], run = "plugin diff", desc = "Diff the selected with the hovered file" }
+]
+
+keymap = [
+    { on = ["~"], run = "help", desc = "Open help" },
+    { on = ["u"], run = "undo", desc = "Undo the last operation" },
+    { on = ["r"], run = "redo", desc = "Redo the last operation" },
+    { on = ["q"], run = "quit", desc = "Quit Yazi" },
+
+    # Tasks
+    { on = ["w"], run = "tasks:show", desc = "Show the tasks manager" },
+    { on = ["<Enter>"], run = "inspect", desc = "Inspect the task" },
+    { on = ["x"], run = "cancel", desc = "Cancel the task" },
+
+    # Navigation
+    { on = ["<Up>"], run = "arrow -1", desc = "Move up" },
+    { on = ["<Down>"], run = "arrow 1", desc = "Move down" },
+    { on = ["<S-Up>"], run = "arrow -50%", desc = "Move up 50%" },
+    { on = ["<S-Down>"], run = "arrow 50%", desc = "Move down 50%" },
+    { on = [{{- if eq .chezmoi.os "darwin" }}"<D-Up>"{{- else }}"<C-Home>"{{- end }}], run = "arrow -100%", desc = "Move to the top" },
+    { on = [{{- if eq .chezmoi.os "darwin" }}"<D-Down>"{{- else }}"<C-End>"{{- end }}], run = "arrow -100%", desc = "Move to the bottom" },
+    { on = ["<Right>"], run = "plugin smart-enter", desc = "Enter directory" },
+    { on = ["<Left>"], run = "leave", desc = "Exit directory" },
+    { on = ["g", "g"], run = "cd --interactive", desc = "Go to a directory interactively" },
+
+    # Go to
+    { on = ["g", "c"], run = "cd {{ .chezmoi.homeDir }}/.config", desc = "Go to Config" },
+    { on = ["g", "d"], run = "cd {{ .chezmoi.homeDir }}/Downloads", desc = "Go to Downloads" },
+    { on = ["g", "h"], run = "cd {{ .chezmoi.homeDir }}/", desc = "Go to Home" },
+    { on = ["g", "m"], run = "cd {{ .chezmoi.homeDir }}/Movies", desc = "Go to Movies" },
+    { on = ["g", "u"], run = "cd {{ .chezmoi.homeDir }}/Music", desc = "Go to Music" },
+    { on = ["g", "p"], run = "cd {{ .chezmoi.homeDir }}/Pictures", desc = "Go to Pictures" },
+
+    # Tabs
+    { on = ["1"], run = "tab_switch 0", desc = "Switch to Tab 1" },
+    { on = ["2"], run = "tab_switch 1", desc = "Switch to Tab 2" },
+    { on = ["3"], run = "tab_switch 2", desc = "Switch to Tab 3" },
+    { on = ["4"], run = "tab_switch 3", desc = "Switch to Tab 4" },
+    { on = ["5"], run = "tab_switch 4", desc = "Switch to Tab 5" },
+    { on = ["6"], run = "tab_switch 5", desc = "Switch to Tab 6" },
+    { on = ["7"], run = "tab_switch 6", desc = "Switch to Tab 7" },
+    { on = ["8"], run = "tab_switch 7", desc = "Switch to Tab 8" },
+    { on = ["9"], run = "tab_switch 8", desc = "Switch to Tab 9" },
+    { on = ["q"], run = "close", desc = "Close current tab" },
+    { on = ["t"], run = "tab_create --current", desc = "Create a new tab using the current path" },
+    { on = ["["], run = "tab_switch -1 --relative", desc = "Switch to the previous tab" },
+    { on = ["]"], run = "tab_switch 1 --relative", desc = "Switch to the next tab" },
+    { on = ["{"], run = "tab_swap -1", desc = "Swap the current tab with the previous tab" },
+    { on = ["}"], run = "tab_swap 1", desc = "Swap the current tab with the next tab" },
+
+    # Operations
+    { on = ["o"], run = "open", desc = "Open selected file" },
+    { on = ["O"], run = "open --interactive", desc = "Open selected interactively file" },
+    { on = ["a"], run = "select_all --state=true", desc = "Select all files" },
+    { on = ["/"], run = "find --smart", desc = "Find next file" },
+    { on = ["?"], run = "find --previous --smart", desc = "Find previous file" },
+    { on = ["n"], run = "find_arrow", desc = "Go to the next found" },
+    { on = ["N"], run = "find_arrow --previous", desc = "Go to the previous found" },
+    { on = ["y"], run = "yank", desc = "Yank a file (copy)" },
+    { on = ["Y"], run = "plugin system-clipboard", desc = "Copy to clipboard" },
+    { on = ["U"], run = "unyank", desc = "Cancel the yank status" },
+    { on = ["c", "c"], run = "copy path", desc = "Copy path to a file" },
+    { on = ["c", "d"], run = "copy dirname", desc = "Copy dirname file" },
+    { on = ["c", "f"], run = "copy filename", desc = "Copy the filename" },
+    { on = ["c", "n"], run = "copy name_without_ext", desc = "Copy the filename without extension" },
+    { on = ["p"], run = "plugin smart-paste", desc = "Paste a file" },
+    { on = ["P"], run = "plugin smart-paste --force", desc = "Paste a file (force)" },
+    { on = [":"], run = "shell --interactive", desc = "Run a shell command" },
+    { on = ["a"], run = "create", desc = "Create a file (ends with / for directories)" },
+    { on = ["<S-D>"], run = "remove", desc = "Delete a file" },
+    { on = ["r"], run = "rename --cursor=before_ext", desc = "Rename selected file(s)" },
+    { on = ["s"], run = "search rg", desc = "Search files by content using ripgrep" },
+
+    # Mode switching
+    { on = ["v"], run = "visual_mode", desc = "Enter Visual Mode (Select)" },
+    { on = ["V"], run = "visual_mode", desc = "Exit Visual Mode (Unset)" },
+    { on = ["<Esc>"], run = "escape", desc = "Go back to normal mode or cancel input" },
+    { on = ["s"], run = "shell \"$SHELL\" --block --confirm", desc = "Open shell here" }
+]

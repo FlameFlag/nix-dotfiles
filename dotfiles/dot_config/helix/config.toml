@@ -1,0 +1,68 @@
+theme = "catppuccin_frappe"
+
+[editor]
+auto-format = true
+auto-save = false
+idle-timeout = 50
+color-modes = true
+cursorline = true
+line-number = "relative"
+true-color = true
+mouse = true
+bufferline = "always"
+completion-replace = true
+completion-trigger-len = 1
+
+[editor.cursor-shape]
+insert = "bar"
+normal = "block"
+select = "underline"
+
+[editor.gutters]
+layout = ["diagnostics", "line-numbers", "spacer", "diff"]
+
+[editor.indent-guides]
+render = true
+
+[editor.statusline]
+center = ["position-percentage"]
+
+[editor.whitespace.characters]
+nbsp = "⍽"
+newline = "⏎"
+space = "·"
+tab = "→"
+tabpad = "·"
+trail = "•"
+
+[editor.lsp]
+display-messages = true
+display-inlay-hints = true
+
+[editor.file-picker]
+git-global = true
+git-ignore = true
+hidden = false
+
+[editor.soft-wrap]
+enable = true
+
+[editor.search]
+smart-case = true
+wrap-around = true
+
+[keys.normal]
+"{" = "page_cursor_half_up"
+"}" = "page_cursor_half_down"
+G = "goto_file_end"
+g = { g = "goto_file_start", q = ":reflow" }
+Z = { Z = ":write-quit", Q = ":quit!" }
+"space" = { "space" = "file_picker" }
+esc = ["collapse_selection", "keep_primary_selection"]
+
+[keys.select]
+"{" = "page_cursor_half_up"
+"}" = "page_cursor_half_down"
+G = "goto_file_end"
+g = { g = "goto_file_start", q = ":reflow" }
+Z = { Z = ":write-quit", Q = ":quit!" }

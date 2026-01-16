@@ -1,0 +1,5 @@
+{{ if eq .chezmoi.os "darwin" -}}
+dot_config/Code
+dot_config/ghostty
+dot_config/nushell
+{{- end }}

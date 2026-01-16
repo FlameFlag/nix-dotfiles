@@ -1,0 +1,49 @@
+$env.EDITOR = "hx"
+$env.VISUAL = "hx"
+
+source ./env.nu
+source ./aliases.nu
+source ./catppuccin_frappe.nu
+
+{{- range $t := list "bat" "curl" "git" "jj" "man" "nix" "rg" "ssh" "vscode" "zellij" }}
+source ./completions/{{ $t }}.nu
+{{- end }}
+
+$env.config = {
+    cursor_shape: {
+        vi_insert: "line"
+        vi_normal: "block"
+    }
+    edit_mode: "vi"
+    buffer_editor: "hx"
+    highlight_resolved_externals: true
+    rm: {
+        always_trash: true
+    }
+    show_banner: false
+    use_kitty_protocol: true
+    history: {
+        max_size: 10000
+        sync_on_enter: false
+        file_format: "plaintext"
+    }
+}
+
+$env.config.keybindings = ($env.config.keybindings? | default [] | append [
+    {
+        name: atuin
+        modifier: control
+        keycode: char_r
+        mode: [emacs, vi_normal, vi_insert]
+        event: { send: executehostcommand cmd: (_atuin_search_cmd) }
+    }
+])
+
+{{- if eq .chezmoi.os "darwin" }}
+alias rebuild = nh darwin switch (readlink -f /etc/nixos/)
+alias check = sudo darwin-rebuild check --flake (readlink -f /etc/nixos/)
+alias micfix = sudo killall coreaudiod
+{{- else }}
+alias rebuild = nh os switch (readlink -f /etc/nixos/)
+alias check = nix flake check (readlink -f /etc/nixos/)
+{{- end }}

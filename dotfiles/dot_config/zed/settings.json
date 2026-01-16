@@ -1,0 +1,72 @@
+{
+    "disable_ai": true,
+    "auto_update": false,
+    "telemetry": {
+        "diagnostics": false,
+        "metrics": false
+    },
+    "wrap_guides": [72, 80, 120],
+    "helix_mode": true,
+    "lsp": {
+        "nil": {
+            "initialization_options": {
+                "formatting": {
+                    "command": ["nixfmt"]
+                }
+            }
+        },
+        "languages": {
+            "Nix": {
+                "language_servers": ["nil"],
+                "formatter": {
+                    "external": {
+                        "command": "nixfmt"
+                    }
+                }
+            },
+            "YAML": {
+                "language_servers": ["yaml-language-server"],
+                "formatter": "language_server"
+            },
+            "JSON": {
+                "language_servers": ["json-language-server"],
+                "formatter": {
+                    "external": {
+                        "command": "prettier",
+                        "arguments": ["--parser", "json", "--stdin-filepath", "{buffer_path}"]
+                    }
+                }
+            },
+            "HTML": {
+                "language_servers": ["html-language-server"],
+                "formatter": {
+                    "external": {
+                        "command": "prettier",
+                        "arguments": ["--parser", "html", "--stdin-filepath", "{buffer_path}"]
+                    }
+                }
+            },
+            "CSS": {
+                "formatter": {
+                    "external": {
+                        "command": "prettier",
+                        "arguments": ["--parser", "css", "--stdin-filepath", "{buffer_path}"]
+                    }
+                }
+            },
+            "Bash": {
+                "language_servers": ["bash-language-server"],
+                "formatter": {
+                    "external": {
+                        "command": "shfmt",
+                        "arguments": ["-i", "2"]
+                    }
+                }
+            },
+            "Rust": {
+                "language_servers": ["rust-analyzer"],
+                "formatter": "language_server"
+            }
+        }
+    }
+}

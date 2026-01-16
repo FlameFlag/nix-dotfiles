@@ -1,0 +1,50 @@
+[mgr]
+show_hidden = true
+sort_by = "mtime"
+sort_dir_first = true
+sort_reverse = true
+
+[plugin]
+prepend_fetchers = [
+    { id = "git", name = "*", run = "git" },
+    { id = "git", name = "*/", run = "git" }
+]
+
+plugins = {
+    {{- if eq .chezmoi.os "darwin" }}
+    diff = "{{ .chezmoi.homeDir }}/Library/Application Support/yazi/plugins/diff.yazi",
+    "full-border" = "{{ .chezmoi.homeDir }}/Library/Application Support/yazi/plugins/full-border.yazi",
+    "smart-enter" = "{{ .chezmoi.homeDir }}/Library/Application Support/yazi/plugins/smart-enter.yazi",
+    "smart-paste" = "{{ .chezmoi.homeDir }}/Library/Application Support/yazi/plugins/smart-paste.yazi",
+    "system-clipboard" = "{{ .chezmoi.homeDir }}/Library/Application Support/yazi/plugins/system-clipboard.yazi",
+    git = "{{ .chezmoi.homeDir }}/Library/Application Support/yazi/plugins/git.yazi",
+    starship = "{{ .chezmoi.homeDir }}/Library/Application Support/yazi/plugins/starship.yazi",
+    {{- else }}
+    diff = "{{ .chezmoi.homeDir }}/.config/yazi/plugins/diff.yazi",
+    "full-border" = "{{ .chezmoi.homeDir }}/.config/yazi/plugins/full-border.yazi",
+    "smart-enter" = "{{ .chezmoi.homeDir }}/.config/yazi/plugins/smart-enter.yazi",
+    "smart-paste" = "{{ .chezmoi.homeDir }}/.config/yazi/plugins/smart-paste.yazi",
+    "system-clipboard" = "{{ .chezmoi.homeDir }}/.config/yazi/plugins/system-clipboard.yazi",
+    git = "{{ .chezmoi.homeDir }}/.config/yazi/plugins/git.yazi",
+    starship = "{{ .chezmoi.homeDir }}/.config/yazi/plugins/starship.yazi",
+    {{- end }}
+}
+
+[open]
+rules = [
+    { name = "*/", use = ["edit", "open", "reveal"] },
+    { mime = "text/*", use = ["edit", "reveal"] },
+    { mime = "image/*", use = ["open", "reveal"] },
+    { mime = "{audio,video}/*", use = [
+        {{- if eq .chezmoi.os "darwin" }}
+        "open",
+        {{- end }}
+        "reveal"
+    ] },
+    { mime = "application/{,g}zip", use = ["unzip", "reveal"] },
+    { mime = "application/x-{tar,bzip*,7z-compressed,xz,rar}", use = ["extract", "reveal"] },
+    { mime = "application/{json,x-ndjson}", use = ["edit", "reveal"] },
+    { mime = "*/javascript", use = ["edit", "reveal"] },
+    { mime = "inode/x-empty", use = ["edit", "reveal"] },
+    { name = "*", use = ["open", "reveal"] }
+]

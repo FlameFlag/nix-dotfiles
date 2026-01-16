@@ -1,0 +1,27 @@
+[user]
+    name = FlameFlag
+    email = github@flameflag.dev
+    signingkey = ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPsZFHUhLSPiz0EF1Q59jzu7IS7qdn3MSEImztN4KgmN
+
+[gpg]
+    format = ssh
+
+[gpg "ssh"]
+    program = {{- if eq .chezmoi.os "darwin" -}}
+/Applications/1Password.app/Contents/MacOS/op-ssh-sign
+{{- else -}}
+op-ssh-sign
+{{- end }}
+    allowedSignersFile = "{{ .chezmoi.homeDir }}/.ssh/allowed_signers"
+
+[commit]
+    gpgsign = true
+
+[core]
+    excludesfile = "{{ .chezmoi.homeDir }}/.gitignore_global"
+
+[filter "lfs"]
+    clean = git-lfs clean -- %f
+    smudge = git-lfs smudge -- %f
+    process = git-lfs filter-process
+    required = true

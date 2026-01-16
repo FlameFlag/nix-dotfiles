@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+#
+# Author: FlameFlag
+#
+
+set -euo pipefail
+
+while read -r extension; do
+    code --install-extension "$extension" --force
+done < {{ joinPath .chezmoi.sourceDir "dot_config/Code/User/vscode-extensions.txt" | quote }}

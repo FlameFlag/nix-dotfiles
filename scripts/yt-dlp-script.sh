@@ -278,4 +278,3 @@ compress_video() {
 #}}}
 
 main "${@}"
-

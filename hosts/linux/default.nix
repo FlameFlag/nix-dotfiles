@@ -4,7 +4,6 @@
     specialArgs = { inherit inputs; };
     modules = [
       ./configuration.nix
-      inputs.nur.modules.nixos.default
       inputs.self.nixosModules.default
       {
         nixOS = {
@@ -12,16 +11,6 @@
           dconf.enable = true;
           nvidia.enable = true;
           amd.enable = true;
-        };
-      }
-    ]
-    ++ [
-      inputs.catppuccin.nixosModules.catppuccin
-      {
-        catppuccin = {
-          enable = true;
-          flavor = "frappe";
-          accent = "blue";
         };
       }
     ]

@@ -2,33 +2,15 @@
   description = "My NixOS & Darwin System Flake";
 
   inputs = {
-    catppuccin.inputs.nixpkgs.follows = "nixpkgs";
-    catppuccin.url = "github:catppuccin/nix";
-
     flake-compat.url = "github:edolstra/flake-compat";
     flake-parts.url = "github:hercules-ci/flake-parts";
     flake-utils.url = "github:numtide/flake-utils";
 
-    home-manager.inputs.nixpkgs.follows = "nixpkgs";
-    home-manager.url = "github:nix-community/home-manager/release-25.11";
-
     nix-darwin.inputs.nixpkgs.follows = "nixpkgs";
     nix-darwin.url = "github:nix-darwin/nix-darwin/nix-darwin-25.11";
 
-    nix4vscode.inputs.nixpkgs.follows = "nixpkgs-unstable";
-    nix4vscode.url = "github:nix-community/nix4vscode";
-
-    nixcord.inputs.flake-compat.follows = "flake-compat";
-    nixcord.inputs.flake-parts.follows = "flake-parts";
-    nixcord.inputs.nixpkgs.follows = "nixpkgs";
-    nixcord.url = "github:KaylorBen/nixcord";
-
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.11";
     nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixos-unstable-small";
-
-    nur.inputs.flake-parts.follows = "flake-parts";
-    nur.inputs.nixpkgs.follows = "nixpkgs";
-    nur.url = "github:nix-community/NUR";
 
     rust-overlay.inputs.nixpkgs.follows = "nixpkgs";
     rust-overlay.url = "github:oxalica/rust-overlay";
@@ -68,7 +50,6 @@
       flake = {
         nixosModules.default = import ./modules/nixos;
         darwinModules.default = import ./modules/darwin;
-        homeModules.default = import ./modules/hm;
 
         darwinConfigurations = import ./hosts/darwin { inherit inputs; };
         nixosConfigurations = import ./hosts/linux { inherit inputs; };

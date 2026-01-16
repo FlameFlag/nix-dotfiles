@@ -1,0 +1,45 @@
+(defcfg
+  process-unmapped-keys yes
+  log-layer-changes yes
+  (linux-dev
+    "/dev/input/by-id/usb-ITE_Tech._Inc._ITE_Device_8910_-event-kbd"
+    "/dev/input/by-id/usb-Ducky_Ducky_One2_Mini_RGB_DK-V1.09-201006-event-if03"
+    "/dev/input/by-id/usb-Ducky_Ducky_One2_Mini_RGB_DK-V1.09-201006-event-kbd"
+    "/dev/input/by-id/usb-Logitech_USB_Receiver-if01-event-mouse"
+    "/dev/input/by-id/usb-Logitech_USB_Receiver-event-kbd"
+  )
+)
+
+(deflocalkeys-linux
+  my_extra_button 276
+  my_side_button 275
+)
+
+(defsrc
+  esc caps a s d f e h j k l scln o spc my_side_button my_extra_button
+)
+
+(defvar hold-timeout 240)
+(defvar left-hand-keys (q w e r t a s d f g z x c v b))
+(defvar right-hand-keys (y u i o p h j k l scln n m , . /))
+(defvar tap-timeout 220)
+(defvar toggle-hold-time 500)
+(deflayer base
+  caps esc @a @s @d @f e h @j @k @l @scln @o-mods-on spc vold volu
+)
+
+(deflayer base-no-mods
+  caps esc a s d f e h j k l scln @o-mods-off spc vold volu
+)
+
+(defalias
+  o-mods-on (tap-hold 500 220 o (layer-switch base-no-mods))
+  o-mods-off (tap-hold 500 220 o (layer-switch base))
+  a (tap-hold-release-keys 240 220 a lmet (q w e r t a s d f g z x c v b))
+  d (tap-hold-release-keys 240 220 d lctl (q w e r t a s d f g z x c v b))
+  f (tap-hold-release-keys 240 220 f lsft (q w e r t a s d f g z x c v b))
+  j (tap-hold 240 220 j rsft)
+  k (tap-hold 240 220 k rctl)
+  l (tap-hold 240 220 l ralt)
+  s (tap-hold-release-keys 240 220 s lalt (q w e r t a s d f g z x c v b))
+)

@@ -1,43 +1,20 @@
-# My Nix dotfiles
+# My dotfiles
 
-[![built with nix](https://img.shields.io/static/v1?logo=nixos&logoColor=white&label=&message=Built%20with%20Nix&color=41439a)](https://builtwithnix.org)
+[![Fedora](https://img.shields.io/badge/Fedora-4E9ED3?style=for-the-badge&logo=fedora&logoColor=white)](https://getfedora.org/)
 
-This repo contains my personal dotfiles for NixOS and macOS (Darwin)
+[![Fedora Kinoite](https://img.shields.io/badge/Fedora%20Kinoite-4E9ED3?style=for-the-badge&logo=fedora&logoColor=white)](https://fedoraproject.org/atomic-desktops/kinoite/)
 
-It has some interesting stuff in [lib](lib/) and [modules](modules/)
+[![NixOS](https://img.shields.io/badge/NixOS-5277C3?style=for-the-badge&logo=nixos&logoColor=white)](https://nixos.org)
 
-## myLib
+[![macOS](https://img.shields.io/badge/macOS-000000?style=for-the-badge&logo=apple&logoColor=F0F0F0)](https://www.apple.com/os/macos/)
 
-`myLib`, as the name suggests, is a `lib` that has functions I made for my own
-purposes and use. It mainly has functions for modules where, without custom
-functions, creating configurations would be too verbose
-
-A few highlights from `myLib` include:
-
-[kanata.nix](lib/kanata.nix): This is the most impressive part of `myLib`. It
-contains _a bunch_ of functions for generating LISP Schema code for Kanata.
-Somewhat ironically, this requires more code than raw LISP, but it's easier to
-reason about if you're used to the Nix language and not LISP
-
-[zellij.nix](lib/zellij.nix): Although less impressive, it actually uses less
-code (unlike [kanata.nix](lib/kanata.nix)). Its main purpose is not only to make
-Zellij configuration easier but also to make it much less verbose
-
-[ghostty.nix](lib/ghostty.nix): It's basically for the same reasons as Zellij,
-but here the idea is more about keeping the code in Nix. The generated code is
-about the same as the Nix one (perhaps even less), but again, I want to keep
-things in the Nix language
+This repo has my dotfiles for Linux and macOS (Darwin)
 
 ## Modules
 
 [system.nix](hosts/darwin/system.nix) - Here I keep all my macOS system
 settings; they're pretty opinionated compared to the macOS defaults, but I think
 they're very sensible
-
-[nixcord.nix](modules/hm/gui/nixcord.nix) - My
-[Nixcord](https://github.com/KaylorBen/nixcord) config; it has the Catppuccin
-theme and a bunch of QoL (Quality of Life) plugins, making using Discord much
-nicer
 
 ## Catppuccin
 
@@ -59,6 +36,8 @@ If you want to build my dotfiles, here's how to do it:
 ### NixOS
 
 ```bash
+chezmoi apply --refresh-externals=always --force
+
 # Override secrets with your own or modify hosts/nixos/users.nix to not use secrets
 
 # Delete my hardware-configuration.nix and create your own one
@@ -76,6 +55,8 @@ nixos-rebuild switch --use-remote-sudo --flake $(readlink -f "/etc/nixos")
 ### macOS (Darwin)
 
 ```bash
+chezmoi apply --refresh-externals=always --force
+
 sudo ln -s ~/Developer/nix-dotfiles/ "/etc/nixos"
 
 nix run nix-darwin -- switch --flake $(readlink -f "/etc/nixos/")

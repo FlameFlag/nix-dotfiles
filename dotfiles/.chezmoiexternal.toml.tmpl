@@ -1,0 +1,29 @@
+{{- $nushellConfigPath := "" -}}
+{{- $yaziConfigPath := "" -}}
+{{- if eq .chezmoi.os "darwin" -}}
+{{-   $nushellConfigPath = "Library/Application Support/nushell" -}}
+{{-   $yaziConfigPath = ".config/yazi" -}}
+{{- else -}}
+{{-   $nushellConfigPath = ".config/nushell" -}}
+{{-   $yaziConfigPath = ".config/yazi" -}}
+{{- end -}}
+
+# ----- Nushell -----
+
+{{- $nushellTools := list "bat" "curl" "git" "jj" "man" "nix" "rg" "ssh" "vscode" "zellij" -}}
+{{- range $tool := $nushellTools }}
+["{{ $nushellConfigPath }}/completions/{{ $tool }}.nu"]
+type = "file"
+url = "https://raw.githubusercontent.com/nushell/nu_scripts/main/custom-completions/{{ $tool }}/{{ $tool }}-completions.nu"
+refreshPeriod = "168h"
+{{ end }}
+
+# ----- Yazi -----
+
+{{- $yaziFlavors := list "frappe" "latte" -}}
+{{- range $flavor := $yaziFlavors }}
+["{{ $yaziConfigPath }}/flavors/catppuccin-{{ $flavor }}-blue.yazi/flavor.toml"]
+type = "file"
+url = "https://raw.githubusercontent.com/catppuccin/yazi/main/themes/{{ $flavor }}/catppuccin-{{ $flavor }}-blue.toml"
+refreshPeriod = "168h"
+{{ end }}

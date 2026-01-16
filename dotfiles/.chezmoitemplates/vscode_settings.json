@@ -1,0 +1,76 @@
+{
+    "editor.fontFamily": "'MonaspiceKr Nerd Font Mono', 'UbuntuMono Nerd Font', monospace",
+    "editor.wordWrap": "on",
+    "editor.mouseWheelZoom": true,
+    "editor.guides.bracketPairs": "active",
+    "editor.bracketPairColorization.independentColorPoolPerBracketType": true,
+    "editor.accessibilitySupport": "off",
+    "editor.semanticHighlighting.enabled": true,
+
+    "workbench.editor.showIcons": true,
+    "workbench.colorTheme": "Catppuccin Frappé",
+    "workbench.iconTheme": "catppuccin-frappe",
+    "window.zoomLevel": 1.5,
+    "window.titleBarStyle": "custom",
+
+    "terminal.integrated.fontFamily": "'MonaspiceKr Nerd Font Mono', 'UbuntuMono Nerd Font', monospace",
+    "terminal.integrated.minimumContrastRatio": 1,
+
+    "diffEditor.ignoreTrimWhitespace": false,
+
+    "security.workspace.trust.enabled": false,
+
+    "chat.agent.enabled": false,
+    "git.enableCommitSigning": true,
+
+    "catppuccin.accentColor": "blue",
+
+    "[python]": {
+        "editor.codeActionsOnSave": {
+            "source.organizeImports": "explicit"
+        }
+    },
+    "[nix]": {
+        "editor.defaultFormatter": "jnoortheen.nix-ide",
+        "editor.formatOnPaste": true,
+        "editor.formatOnSave": true,
+        "editor.formatOnType": true
+    },
+    "[javascript]": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "editor.formatOnPaste": true,
+        "editor.formatOnSave": true,
+        "editor.formatOnType": true
+    },
+    "[typescript]": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "editor.formatOnPaste": true,
+        "editor.formatOnSave": true,
+        "editor.formatOnType": true
+    },
+    "[zig]": {
+        "editor.formatOnSave": true,
+        "editor.formatOnPaste": true
+    },
+
+    "nix.enableLanguageServer": true,
+    "nix.serverPath": "nil",
+    "nix.formatterPath": "nixfmt",
+    "nix.serverSettings": {
+        "nil": {
+            "formatting": {
+                "command": ["nixfmt"]
+            }
+        },
+        "nixd": {
+            "formatting": {
+                "command": ["nixfmt"]
+            }
+        }
+    },
+
+    "bashIde.explainshellEndpoint": "http://localhost:5134",
+    "zig.path": "zig",
+    "zig.zls.path": "zls",
+    "redhat.telemetry.enabled": false
+}

@@ -1,0 +1,19 @@
+Host *
+  AddKeysToAgent yes
+{{- if eq .chezmoi.os "darwin" }}
+  IdentityAgent "{{ .chezmoi.homeDir }}/Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock"
+{{- else }}
+  IdentityAgent ~/.1password/agent.sock
+{{- end }}
+
+Host github.com
+  Hostname ssh.github.com
+  Port 443
+  User git
+  IdentityFile {{ .chezmoi.homeDir }}/.ssh/github_key
+
+Host codeberg.org
+  Hostname codeberg.org
+  Port 22
+  User git
+  IdentityFile {{ .chezmoi.homeDir }}/.ssh/github_key

@@ -1,0 +1,96 @@
+[[language]]
+name = "python"
+auto-format = true
+language-servers = ["ruff"]
+
+[[language]]
+name = "nix"
+auto-format = true
+language-servers = ["nil"]
+
+[[language]]
+name = "bash"
+auto-format = true
+diagnostic-severity = "warning"
+formatter = { command = "shfmt", args = ["-w"] }
+language-servers = ["bash-language-server"]
+
+[[language]]
+name = "javascript"
+auto-format = true
+indent = { tab-width = 4, unit = "    " }
+language-servers = ["deno"]
+
+[[language]]
+name = "typescript"
+auto-format = true
+indent = { tab-width = 4, unit = "    " }
+language-servers = ["deno"]
+
+[[language]]
+name = "css"
+auto-format = true
+language-servers = ["deno"]
+
+[[language]]
+name = "json"
+auto-format = true
+indent = { tab-width = 2, unit = "  " }
+language-servers = ["deno"]
+
+[[language]]
+name = "yaml"
+auto-format = true
+language-servers = ["yaml-language-server"]
+
+[[language]]
+name = "toml"
+auto-format = true
+language-servers = ["taplo"]
+
+[language-server.bash-language-server]
+command = "bash-language-server"
+args = ["start"]
+
+[language-server.nil]
+command = "nil"
+[language-server.nil.config.nil.formatting]
+command = ["nixfmt"]
+
+[language-server.ruff]
+command = "ruff"
+args = ["server", "--preview"]
+[language-server.ruff.config]
+lineLength = 100
+[language-server.ruff.config.lint]
+extendSelect = ["I"]
+
+[language-server.deno]
+command = "deno"
+args = ["lsp"]
+[language-server.deno.config]
+enable = true
+lint = true
+unstable = true
+[language-server.deno.config.format.options]
+lineWidth = 100
+indentWidth = 2
+[language-server.deno.config.javascript.format.options]
+indentWidth = 4
+[language-server.deno.config.typescript.format.options]
+indentWidth = 4
+
+[language-server.yaml-language-server]
+command = "yaml-language-server"
+args = ["--stdio"]
+[language-server.yaml-language-server.config.yaml]
+format = { enable = true }
+validation = true
+schemas = { https = true }
+
+[language-server.taplo]
+command = "taplo"
+args = ["lsp", "stdio"]
+[language-server.taplo.config.formatter]
+alignEntries = true
+columnWidth = 100
