@@ -22,13 +22,19 @@
     inputs.flake-parts.lib.mkFlake { inherit inputs; } {
       systems = [
         "aarch64-darwin"
+        "aarch64-linux"
         "x86_64-linux"
       ];
 
       perSystem =
-        { pkgs, config, ... }:
+        { pkgs, ... }:
         {
-
+          packages = {
+            raycast-ai-openrouter-proxy = pkgs.callPackage ./pkgs/raycast-ai-openrouter-proxy { };
+            yt-dlp = pkgs.callPackage ./pkgs/yt-dlp.nix { };
+            yt-dlp-script = pkgs.callPackage ./pkgs/yt-dlp-script.nix { };
+            catppuccin-userstyles = pkgs.callPackage ./pkgs/catppuccin-userstyles.nix { };
+          };
         };
 
       flake = {
