@@ -7,13 +7,16 @@
     nix-darwin.inputs.nixpkgs.follows = "nixpkgs";
     nix-darwin.url = "github:nix-darwin/nix-darwin/nix-darwin-25.11";
 
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.11";
-    nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixos-unstable-small";
+    nixcord.inputs.nixpkgs.follows = "nixpkgs-unstable";
+    nixcord.url = "github:FlameFlag/nixcord";
 
-    rust-overlay.inputs.nixpkgs.follows = "nixpkgs";
+    nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixos-unstable-small";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.11";
+
+    rust-overlay.inputs.nixpkgs.follows = "nixpkgs-unstable";
     rust-overlay.url = "github:oxalica/rust-overlay";
 
-    sops-nix.inputs.nixpkgs.follows = "nixpkgs";
+    sops-nix.inputs.nixpkgs.follows = "nixpkgs-unstable";
     sops-nix.url = "github:Mic92/sops-nix";
   };
 
