@@ -26,7 +26,9 @@ plugins {
 }
 
 keybinds {
+    unbind "Ctrl p"
     normal {
+        unbind "Ctrl p"
         bind "{{ if eq .chezmoi.os "darwin" }}Super{{ else }}Ctrl{{ end }} t" { NewTab; }
         bind "{{ if eq .chezmoi.os "darwin" }}Super{{ else }}Ctrl{{ end }} k" { Clear; }
         bind "{{ if eq .chezmoi.os "darwin" }}Super{{ else }}Ctrl{{ end }} Shift Backspace" { CloseFocus; }
@@ -43,7 +45,6 @@ keybinds {
         bind "{{ if eq .chezmoi.os "darwin" }}Super{{ else }}Ctrl{{ end }} g" { SwitchToMode "Locked"; }
         bind "{{ if eq .chezmoi.os "darwin" }}Super{{ else }}Ctrl{{ end }} Shift r" { SwitchToMode "Resize"; }
         bind "{{ if eq .chezmoi.os "darwin" }}Super{{ else }}Ctrl{{ end }} Shift s" { SwitchToMode "Pane"; }
-        bind "{{ if eq .chezmoi.os "darwin" }}Super{{ else }}Ctrl{{ end }} s" { SwitchToMode "Search"; }
         bind "{{ if eq .chezmoi.os "darwin" }}Super{{ else }}Ctrl{{ end }} o" { SwitchToMode "Session"; }
         bind "{{ if eq .chezmoi.os "darwin" }}Super{{ else }}Ctrl{{ end }} q" { Quit; }
         bind "{{ if eq .chezmoi.os "darwin" }}Super{{ else }}Ctrl{{ end }} Shift t" { SwitchToMode "Tab"; }
