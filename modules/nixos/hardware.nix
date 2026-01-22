@@ -5,7 +5,6 @@
   ...
 }:
 {
-
   options.nixOS.nvidia.enable = lib.mkEnableOption "NVIDIA";
   options.nixOS.amd.enable = lib.mkEnableOption "AMD";
 
@@ -59,7 +58,7 @@
       };
     })
     (lib.mkIf config.nixOS.nvidia.enable {
-      nixpkgs.config.cudaSupport = true;
+      # nixpkgs.config.cudaSupport = true;
       boot.extraModprobeConfig =
         "options nvidia "
         + lib.concatStringsSep " " [
@@ -70,9 +69,6 @@
           # https://www.ddcutil.com/nvidia/
           "NVreg_RegistryDwords=RMUseSwI2c=0x01;RMI2cSpeed=100"
         ];
-      boot.kernelParams = lib.optional config.powerManagement.enable [
-        "nvidia.NVreg_TemporaryFilePath=/var/tmp"
-      ];
 
       environment.sessionVariables = {
         # Required to run the correct GBM backend for NVIDIA GPUs on Wayland
@@ -90,15 +86,6 @@
       hardware = {
         nvidia = {
           open = true;
-          package = {
-            version = "590.48.01";
-            sha256_64bit = "sha256-ueL4BpN4FDHMh/TNKRCeEz3Oy1ClDWto1LO/LWlr1ok=";
-            sha256_aarch64 = "sha256-FOz7f6pW1NGM2f74kbP6LbNijxKj5ZtZ08bm0aC+/YA=";
-            openSha256 = "sha256-hECHfguzwduEfPo5pCDjWE/MjtRDhINVr4b1awFdP44=";
-            settingsSha256 = "sha256-NWsqUciPa4f1ZX6f0By3yScz3pqKJV1ei9GvOF8qIEE=";
-            persistencedSha256 = "sha256-wsNeuw7IaY6Qc/i/AzT/4N82lPjkwfrhxidKWUtcwW8=";
-            useProfiles = true;
-          };
           modesetting.enable = true;
           powerManagement.enable = true;
           powerManagement.finegrained = true;

@@ -14,7 +14,6 @@
     ./sound.nix
     ./systemd.nix
     ./users.nix
-    ./kanata.nix
   ];
 
   environment = {
@@ -77,7 +76,7 @@
 
       inherit (pkgs)
         noto-fonts-cjk-sans
-        noto-fonts-emoji
+        noto-fonts-color-emoji
         twemoji-color-font
         ;
     };

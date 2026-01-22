@@ -80,14 +80,17 @@
         ]
       },
       "locked": {
-        "lastModified": 1769005640,
-        "narHash": "sha256-/RKlwksMDoasU6Vm6Oop6SET9OMhSwWUN+qPJFaAGQs=",
-        "path": "/Users/flame/Developer/nixcord",
-        "type": "path"
+        "lastModified": 1769187435,
+        "narHash": "sha256-kxMx16F9hS7xUozxJouEUXZeSjRcLgBL9V5a4it4cos=",
+        "owner": "FlameFlag",
+        "repo": "nixcord",
+        "rev": "af7f4d4b54a397f574fe950000862ae8c4cdb9ea",
+        "type": "github"
       },
       "original": {
-        "path": "/Users/flame/Developer/nixcord",
-        "type": "path"
+        "owner": "FlameFlag",
+        "repo": "nixcord",
+        "type": "github"
       }
     },
     "nixpkgs": {

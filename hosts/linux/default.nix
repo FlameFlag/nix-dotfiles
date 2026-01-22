@@ -21,7 +21,6 @@
           age.keyFile = "/home/nyx/.config/sops/age/keys.txt";
           defaultSopsFile = ../../secrets/secrets.yaml;
           validateSopsFiles = false;
-          environment.NIXOS_ACTION = "dry-activate";
           secrets.github-token = {
             uid = 0;
             gid = 0;

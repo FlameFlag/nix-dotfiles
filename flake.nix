@@ -8,7 +8,7 @@
     nix-darwin.url = "github:nix-darwin/nix-darwin/nix-darwin-25.11";
 
     nixcord.inputs.nixpkgs.follows = "nixpkgs-unstable";
-    nixcord.url = "path:/Users/flame/Developer/nixcord";
+    nixcord.url = "github:FlameFlag/nixcord";
 
     nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixos-unstable-small";
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.11";

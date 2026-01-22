@@ -1,7 +1,7 @@
 (defcfg
   process-unmapped-keys yes
   log-layer-changes yes
-  (linux-dev
+  linux-dev (
     "/dev/input/by-id/usb-ITE_Tech._Inc._ITE_Device_8910_-event-kbd"
     "/dev/input/by-id/usb-Ducky_Ducky_One2_Mini_RGB_DK-V1.09-201006-event-if03"
     "/dev/input/by-id/usb-Ducky_Ducky_One2_Mini_RGB_DK-V1.09-201006-event-kbd"
@@ -25,7 +25,7 @@
 (defvar tap-timeout 220)
 (defvar toggle-hold-time 500)
 (deflayer base
-  caps esc @a @s @d @f e h @j @k @l @scln @o-mods-on spc vold volu
+  caps esc @a @s @d @f e h @j @k @l scln @o-mods-on spc vold volu
 )
 
 (deflayer base-no-mods
