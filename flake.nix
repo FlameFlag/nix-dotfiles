@@ -2,8 +2,6 @@
   description = "My NixOS & Darwin System Flake";
 
   inputs = {
-    flake-parts.url = "github:hercules-ci/flake-parts";
-
     nix-darwin.inputs.nixpkgs.follows = "nixpkgs";
     nix-darwin.url = "github:nix-darwin/nix-darwin/nix-darwin-25.11";
 
@@ -19,30 +17,33 @@
 
   outputs =
     inputs:
-    inputs.flake-parts.lib.mkFlake { inherit inputs; } {
+    let
       systems = [
         "aarch64-darwin"
         "aarch64-linux"
         "x86_64-linux"
       ];
 
-      perSystem =
-        { pkgs, ... }:
+      forAllSystems = f: inputs.nixpkgs.lib.genAttrs systems (system: f system);
+    in
+    {
+      packages = forAllSystems (
+        system:
+        let
+          pkgs = import inputs.nixpkgs { inherit system; };
+        in
         {
-          packages = {
-            raycast-ai-openrouter-proxy = pkgs.callPackage ./pkgs/raycast-ai-openrouter-proxy { };
-            yt-dlp = pkgs.callPackage ./pkgs/yt-dlp.nix { };
-            yt-dlp-script = pkgs.callPackage ./pkgs/yt-dlp-script.nix { };
-            catppuccin-userstyles = pkgs.callPackage ./pkgs/catppuccin-userstyles.nix { };
-          };
-        };
+          raycast-ai-openrouter-proxy = pkgs.callPackage ./pkgs/raycast-ai-openrouter-proxy { };
+          yt-dlp = pkgs.callPackage ./pkgs/yt-dlp.nix { };
+          yt-dlp-script = pkgs.callPackage ./pkgs/yt-dlp-script.nix { };
+          catppuccin-userstyles = pkgs.callPackage ./pkgs/catppuccin-userstyles.nix { };
+        }
+      );
 
-      flake = {
-        nixosModules.default = import ./modules/nixos;
-        darwinModules.default = import ./modules/darwin;
+      nixosModules.default = import ./modules/nixos;
+      darwinModules.default = import ./modules/darwin;
 
-        darwinConfigurations = import ./hosts/darwin { inherit inputs; };
-        nixosConfigurations = import ./hosts/linux { inherit inputs; };
-      };
+      darwinConfigurations = import ./hosts/darwin { inherit inputs; };
+      nixosConfigurations = import ./hosts/linux { inherit inputs; };
     };
 }
