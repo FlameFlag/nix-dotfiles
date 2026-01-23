@@ -13,9 +13,6 @@
     nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixos-unstable-small";
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.11";
 
-    rust-overlay.inputs.nixpkgs.follows = "nixpkgs-unstable";
-    rust-overlay.url = "github:oxalica/rust-overlay";
-
     sops-nix.inputs.nixpkgs.follows = "nixpkgs-unstable";
     sops-nix.url = "github:Mic92/sops-nix";
   };
