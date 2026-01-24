@@ -17,4 +17,4 @@ done
 
 starship init nu > "$HOME/.cache/starship/init.nu"
 zoxide init nushell > "$HOME/.cache/zoxide/init.nu"
-atuin init nu > "$HOME/.local/share/atuin/init.nu"
+atuin init nu --disable-up-arrow > "$HOME/.local/share/atuin/init.nu"
