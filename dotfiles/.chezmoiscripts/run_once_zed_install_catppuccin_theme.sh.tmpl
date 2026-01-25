@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+#
+# Author: FlameFlag
+#
+
+set -euo pipefail
+
+readonly ZED_THEME_DIR="{{ .chezmoi.homeDir }}/.config/zed/themes"
+readonly LATEST_RELEASE_URL="https://api.github.com/repos/catppuccin/zed/releases/latest"
+readonly THEME_FILE="catppuccin-blue.json"
+
+fetch_latest_tag() {
+    curl -s "$LATEST_RELEASE_URL" | grep '"tag_name"' | awk -F'"' '{print $4}'
+}
+
+main() {
+    echo "Fetching latest Catppuccin Zed release..."
+    local latest_tag
+    latest_tag=$(fetch_latest_tag)
+
+    echo "Latest release: $latest_tag"
+
+    local download_url="https://github.com/catppuccin/zed/releases/download/$latest_tag/$THEME_FILE"
+    local temp_file="/tmp/$THEME_FILE"
+
+    echo "Downloading $THEME_FILE..."
+    curl -L -o "$temp_file" "$download_url"
+
+    echo "Creating theme directory if needed..."
+    mkdir -p "$ZED_THEME_DIR"
+
+    echo "Installing theme..."
+    mv "$temp_file" "$ZED_THEME_DIR/$THEME_FILE"
+
+    echo "Done! Theme installed to $ZED_THEME_DIR/$THEME_FILE"
+}
+
+main "$@"
