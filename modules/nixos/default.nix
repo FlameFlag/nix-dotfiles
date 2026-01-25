@@ -9,5 +9,6 @@ _: {
     ./networking.nix
     ./nixcord.nix
     ./services.nix
+    ./zed-remote.nix
   ];
 }

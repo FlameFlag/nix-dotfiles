@@ -1,4 +1,16 @@
 {
+    "ssh_connections": [
+        {
+            "host": "nyx@lenovo-legion",
+            "projects": [
+                { "paths": ["~/nix-dotfiles"] },
+                { "paths": ["~/euvlok"] },
+                { "paths": ["~/nixpkgs"] }
+            ],
+            "upload_binary_over_ssh": false,
+            "nickname": "nyx"
+        }
+    ],
     "disable_ai": true,
     "auto_update": false,
     "telemetry": {
@@ -33,7 +45,12 @@
                 "formatter": {
                     "external": {
                         "command": "prettier",
-                        "arguments": ["--parser", "json", "--stdin-filepath", "{buffer_path}"]
+                        "arguments": [
+                            "--parser",
+                            "json",
+                            "--stdin-filepath",
+                            "{buffer_path}"
+                        ]
                     }
                 }
             },
@@ -42,7 +59,12 @@
                 "formatter": {
                     "external": {
                         "command": "prettier",
-                        "arguments": ["--parser", "html", "--stdin-filepath", "{buffer_path}"]
+                        "arguments": [
+                            "--parser",
+                            "html",
+                            "--stdin-filepath",
+                            "{buffer_path}"
+                        ]
                     }
                 }
             },
@@ -50,7 +72,12 @@
                 "formatter": {
                     "external": {
                         "command": "prettier",
-                        "arguments": ["--parser", "css", "--stdin-filepath", "{buffer_path}"]
+                        "arguments": [
+                            "--parser",
+                            "css",
+                            "--stdin-filepath",
+                            "{buffer_path}"
+                        ]
                     }
                 }
             },
