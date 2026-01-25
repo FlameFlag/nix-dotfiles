@@ -1,9 +1,12 @@
 Host *
   AddKeysToAgent yes
+  ForwardAgent yes
 {{- if eq .chezmoi.os "darwin" }}
+Match host * exec "test -z $SSH_TTY"
   IdentityAgent "{{ .chezmoi.homeDir }}/Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock"
 {{- else }}
-  IdentityAgent ~/.1password/agent.sock
+Match host * exec "test -z $SSH_TTY"
+  IdentityAgent "{{ .chezmoi.homeDir }}/.1password/agent.sock"
 {{- end }}
 
 Host github.com
