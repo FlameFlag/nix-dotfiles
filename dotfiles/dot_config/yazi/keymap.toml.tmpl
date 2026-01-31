@@ -53,7 +53,7 @@ keymap = [
     # Operations
     { on = ["o"], run = "open", desc = "Open selected file" },
     { on = ["O"], run = "open --interactive", desc = "Open selected interactively file" },
-    { on = ["a"], run = "select_all --state=true", desc = "Select all files" },
+    { on = ["<C-a>"], run = "select_all --state=true", desc = "Select all files" },
     { on = ["/"], run = "find --smart", desc = "Find next file" },
     { on = ["?"], run = "find --previous --smart", desc = "Find previous file" },
     { on = ["n"], run = "find_arrow", desc = "Go to the next found" },
@@ -68,7 +68,7 @@ keymap = [
     { on = ["p"], run = "plugin smart-paste", desc = "Paste a file" },
     { on = ["P"], run = "plugin smart-paste --force", desc = "Paste a file (force)" },
     { on = [":"], run = "shell --interactive", desc = "Run a shell command" },
-    { on = ["a"], run = "create", desc = "Create a file (ends with / for directories)" },
+    { on = "a", run = "create", desc = "Create a file (ends with / for directories)" },
     { on = ["<S-D>"], run = "remove", desc = "Delete a file" },
     { on = ["r"], run = "rename --cursor=before_ext", desc = "Rename selected file(s)" },
     { on = ["s"], run = "search rg", desc = "Search files by content using ripgrep" },
