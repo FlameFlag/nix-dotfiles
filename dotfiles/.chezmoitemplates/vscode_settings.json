@@ -10,8 +10,15 @@
     "editor.semanticHighlighting.enabled": true,
 
     "workbench.editor.showIcons": true,
+
+    "window.autoDetectColorScheme": true,
+    "workbench.preferredDarkColorTheme": "Catppuccin Frappé",
+    "workbench.preferredLightColorTheme": "Catppuccin Latte",
     "workbench.colorTheme": "Catppuccin Frappé",
+    "catppuccin.accentColor": "blue",
+
     "workbench.iconTheme": "catppuccin-frappe",
+
     "window.zoomLevel": 1.5,
     "window.titleBarStyle": "custom",
 
@@ -21,11 +28,7 @@
     "diffEditor.ignoreTrimWhitespace": false,
 
     "security.workspace.trust.enabled": false,
-
-    "chat.agent.enabled": false,
     "git.enableCommitSigning": true,
-
-    "catppuccin.accentColor": "blue",
 
     "[python]": {
         "editor.codeActionsOnSave": {
@@ -74,5 +77,13 @@
     "bashIde.explainshellEndpoint": "http://localhost:5134",
     "zig.path": "zig",
     "zig.zls.path": "zls",
-    "redhat.telemetry.enabled": false
+    "redhat.telemetry.enabled": false,
+    "json.schemaDownload.trustedDomains": {
+        "https://schemastore.azurewebsites.net/": true,
+        "https://raw.githubusercontent.com/": true,
+        "https://www.schemastore.org/": true,
+        "https://json.schemastore.org/": true,
+        "https://json-schema.org/": true,
+        "https://esm.sh": true
+    },
 }
