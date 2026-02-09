@@ -1,23 +1,20 @@
 [
   {
-    "name": "Xiaomi: MiMo-V2-Flash",
-    "id": "xiaomi/mimo-v2-flash:free",
+    "name": "Free Models Router",
+    "id": "openrouter/free",
+    "contextLength": 200000,
+    "capabilities": []
+  },
+  {
+    "name": "MoonshotAI: Kimi K2.5",
+    "id": "moonshotai/kimi-k2.5",
     "contextLength": 262144,
-    "capabilities": [],
-    "temperature": 0.3
+    "capabilities": ["vision", "tools"]
   },
   {
-    "name": "OpenAI: gpt-oss-120b",
-    "id": "openai/gpt-oss-120b:free",
-    "contextLength": 131072,
-    "capabilities": [],
-    "temperature": 0.3
-  },
-  {
-    "name": "Nous: Hermes 3 405B Instruct",
-    "id": "nousresearch/hermes-3-llama-3.1-405b:free",
-    "contextLength": 131072,
-    "capabilities": [],
-    "temperature": 0.3
+    "name": "Z.AI: GLM 4.7 Flash",
+    "id": "z-ai/glm-4.7-flash",
+    "contextLength": 202752,
+    "capabilities": []
   }
 ]
