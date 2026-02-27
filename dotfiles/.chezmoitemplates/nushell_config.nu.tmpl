@@ -1,3 +1,5 @@
+use std/util "path add"
+
 $env.EDITOR = "hx"
 $env.VISUAL = "hx"
 
@@ -8,6 +10,8 @@ source ./catppuccin_frappe.nu
 {{- range $t := list "bat" "curl" "git" "jj" "man" "nix" "rg" "ssh" "vscode" "zellij" }}
 source ./completions/{{ $t }}.nu
 {{- end }}
+
+[ .bun .npm .local .cargo .go .yarn ] | each {|dir| $"($env.HOME)/($dir)/bin" } | path add $in
 
 $env.config = {
     cursor_shape: {
