@@ -16,6 +16,12 @@ alias mp3-cut = yt-dlp-script mp3-cut
 alias mp4 = yt-dlp-script mp4
 alias mp4-cut = yt-dlp-script mp4-cut
 
+# Agents Aliases
+alias cc = claude --allow-dangerously-skip-permissions
+alias oc = opencode
+alias c = claude --allow-dangerously-skip-permissions
+alias o = opencode
+
 alias update = nix flake update --flake (readlink -f /etc/nixos/)
 
 alias cd = __zoxide_z
