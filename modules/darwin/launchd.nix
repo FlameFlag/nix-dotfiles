@@ -27,21 +27,6 @@
       StartInterval = 0;
     };
 
-    raycast-ai-openrouter-proxy.serviceConfig = {
-      ProgramArguments = [
-        "/bin/sh"
-        "-c"
-        ''
-          export API_KEY=$(cat ${config.sops.secrets.raycast-openrouter-api-key.path});
-          export PORT=11435;
-          export BASE_URL=https://openrouter.ai/api/v1;
-          exec ${lib.getExe' pkgs.raycast-ai-openrouter-proxy "raycast-ai-openrouter-proxy"}
-        ''
-      ];
-      RunAtLoad = true;
-      KeepAlive = true;
-    };
-
     atuin-daemon.serviceConfig = {
       ProgramArguments = [
         (lib.getExe' pkgs.unstable.atuin "atuin")

@@ -33,7 +33,6 @@
           pkgs = import inputs.nixpkgs { inherit system; };
         in
         {
-          raycast-ai-openrouter-proxy = pkgs.callPackage ./pkgs/raycast-ai-openrouter-proxy { };
           yt-dlp = pkgs.callPackage ./pkgs/yt-dlp.nix { };
           yt-dlp-script = pkgs.callPackage ./pkgs/yt-dlp-script.nix { };
           catppuccin-userstyles = pkgs.callPackage ./pkgs/catppuccin-userstyles.nix { };
