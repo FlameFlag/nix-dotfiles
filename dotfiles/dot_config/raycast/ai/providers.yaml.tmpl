@@ -1,0 +1,47 @@
+{{- $secrets := secret (joinPath .chezmoi.sourceDir "../secrets/secrets.yaml") | fromYaml -}}
+providers:
+  - id: openrouter
+    name: OpenRouter
+    base_url: https://openrouter.ai/api/v1
+    api_keys:
+      openrouter: {{ index $secrets "raycast-openrouter-api-key" }}
+    models:
+      - id: openrouter/free
+        name: Free Models Router
+        provider: openrouter
+        context: 200000
+        abilities:
+          temperature:
+            supported: true
+          vision:
+            supported: false
+          system_message:
+            supported: true
+          tools:
+            supported: false
+      - id: moonshotai/kimi-k2.5
+        name: "MoonshotAI: Kimi K2.5"
+        provider: openrouter
+        context: 262144
+        abilities:
+          temperature:
+            supported: true
+          vision:
+            supported: true
+          system_message:
+            supported: true
+          tools:
+            supported: true
+      - id: z-ai/glm-4.7-flash
+        name: "Z.AI: GLM 4.7 Flash"
+        provider: openrouter
+        context: 202752
+        abilities:
+          temperature:
+            supported: true
+          vision:
+            supported: false
+          system_message:
+            supported: true
+          tools:
+            supported: false

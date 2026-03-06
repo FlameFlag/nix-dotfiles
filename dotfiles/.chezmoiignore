@@ -1,5 +1,6 @@
 {{ if ne .chezmoi.os "darwin" }}
 Library/
+.config/raycast/
 {{ end }}
 
 {{ if eq .chezmoi.os "darwin" }}
