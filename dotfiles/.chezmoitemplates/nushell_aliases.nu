@@ -24,6 +24,7 @@ alias o = opencode
 
 alias update = nix flake update --flake (readlink -f /etc/nixos/)
 
+alias cza = chezmoi apply --force
 alias cd = __zoxide_z
 alias dc = __zoxide_z
 
