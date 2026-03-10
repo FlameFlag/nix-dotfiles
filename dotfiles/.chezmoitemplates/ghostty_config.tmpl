@@ -9,9 +9,15 @@ font-size = 18
 mouse-scroll-multiplier = 3
 quit-after-last-window-closed = true
 scrollback-limit = 100000000
+window-padding-x = 8
+window-padding-y = 4
+window-padding-balance = true
+shell-integration-features = no-cursor
+mouse-hide-while-typing = true
 
 {{- if eq .chezmoi.os "darwin" }}
 macos-option-as-alt = true
+font-thicken = true
 {{- end }}
 
 # Keybindings

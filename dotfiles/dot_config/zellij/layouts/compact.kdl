@@ -3,7 +3,7 @@ layout {
         children
         pane size=1 borderless=true {
             plugin location="https://github.com/dj95/zjstatus/releases/latest/download/zjstatus.wasm" {
-                format_left   "{mode}"
+                format_left   "{mode} #[fg=#f4b8e4,bold]{session}"
                 format_center "{tabs}"
                 format_right  "{datetime}"
                 format_space  ""
@@ -17,6 +17,12 @@ layout {
                 mode_pane     "#[bg=#99d1db,fg=#292c3c] PANE "
                 mode_resize   "#[bg=#f4b8e4,fg=#292c3c] RESIZE "
                 mode_session  "#[bg=#e78284,fg=#292c3c] SESSION "
+                mode_scroll       "#[bg=#a6d189,fg=#292c3c] SCROLL "
+                mode_search       "#[bg=#babbf1,fg=#292c3c] SEARCH "
+                mode_move         "#[bg=#ef9f76,fg=#292c3c] MOVE "
+                mode_rename_tab   "#[bg=#a6d189,fg=#292c3c] RENAME TAB "
+                mode_rename_pane  "#[bg=#99d1db,fg=#292c3c] RENAME PANE "
+                mode_enter_search "#[bg=#babbf1,fg=#292c3c] SEARCH "
 
                 tab_normal    "#[fg=#949cbb]{name} "
                 tab_active    "#[fg=#c6d0f5,bold]{name} "
