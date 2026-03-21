@@ -59,7 +59,6 @@ _: {
     noMosaic.enable = true;
     noPendingCount.enable = true;
     noProfileThemes.enable = true;
-    normalizeMessageLinks.enable = true;
     noTypingAnimation.enable = true;
     noUnblockToJump.enable = true;
     OnePingPerDM.enable = true;
