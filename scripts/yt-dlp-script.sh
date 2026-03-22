@@ -164,7 +164,7 @@ validate_arguments() {
 	fi
 
 	log_info "Fetching video metadata..."
-	JSON_METADATA=$(yt-dlp --ignore-config --dump-json "${URL}")
+	JSON_METADATA=$(yt-dlp --ignore-config --dump-json "${URL}" "${YTDLP_PASSTHROUGH_ARGS[@]}")
 	if [[ -z "${JSON_METADATA}" ]]; then
 		log_error "Failed to fetch video metadata. The URL may be invalid or private."
 		exit 1
