@@ -10,7 +10,7 @@
         };
       })
       (final: prev: {
-        yt-dlp = final.callPackage ../../pkgs/yt-dlp.nix { };
+        yt-dlp = final.callPackage ../../pkgs/yt-dlp.nix { yt-dlp = final.unstable.yt-dlp; };
         yt-dlp-script = final.callPackage ../../pkgs/yt-dlp-script.nix { };
       })
     ];
