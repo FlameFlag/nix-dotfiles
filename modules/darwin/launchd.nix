@@ -8,7 +8,7 @@
   launchd.user.agents = {
     symlink-zsh-config = {
       script = ''
-        for file in zprofile zshenv zshrc; do
+        for file in zprofile zshenv; do
           ln -sfn "/etc/''${file}" "/Users/${config.system.primaryUser}/.''${file}"
         done
       '';

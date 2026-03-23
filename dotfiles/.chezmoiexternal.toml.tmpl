@@ -18,6 +18,39 @@ url = "https://raw.githubusercontent.com/nushell/nu_scripts/main/custom-completi
 refreshPeriod = "168h"
 {{ end }}
 
+# ----- Oh-My-Zsh -----
+
+[".oh-my-zsh"]
+type = "git-repo"
+url = "https://github.com/ohmyzsh/ohmyzsh.git"
+refreshPeriod = "168h"
+[".oh-my-zsh".pull]
+args = ["--ff-only"]
+
+[".oh-my-zsh/custom/plugins/zsh-autosuggestions"]
+type = "git-repo"
+url = "https://github.com/zsh-users/zsh-autosuggestions.git"
+refreshPeriod = "168h"
+
+[".oh-my-zsh/custom/plugins/zsh-syntax-highlighting"]
+type = "git-repo"
+url = "https://github.com/zsh-users/zsh-syntax-highlighting.git"
+refreshPeriod = "168h"
+
+[".oh-my-zsh/custom/plugins/fzf-tab"]
+type = "git-repo"
+url = "https://github.com/Aloxaf/fzf-tab.git"
+refreshPeriod = "168h"
+
+# ----- Oh-My-Bash -----
+
+[".oh-my-bash"]
+type = "git-repo"
+url = "https://github.com/ohmybash/oh-my-bash.git"
+refreshPeriod = "168h"
+[".oh-my-bash".pull]
+args = ["--ff-only"]
+
 # ----- Yazi -----
 
 {{- $yaziFlavors := list "frappe" "latte" -}}

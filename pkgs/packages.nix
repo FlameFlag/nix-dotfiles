@@ -52,9 +52,11 @@
         dust # du
         eza # ls
         fd # find
+        fzf # fuzzy finder
         procs # ps
         ripgrep # grep
         sd # sed
+        television # fuzzy finder TUI
         xh # curl
         pfetch-rs # neofetch
         ;
