@@ -1,11 +1,14 @@
 {{- $nushellConfigPath := "" -}}
 {{- $yaziConfigPath := "" -}}
+{{- $fontsPath := "" -}}
 {{- if eq .chezmoi.os "darwin" -}}
 {{-   $nushellConfigPath = "Library/Application Support/nushell" -}}
 {{-   $yaziConfigPath = ".config/yazi" -}}
+{{-   $fontsPath = "Library/Fonts" -}}
 {{- else -}}
 {{-   $nushellConfigPath = ".config/nushell" -}}
 {{-   $yaziConfigPath = ".config/yazi" -}}
+{{-   $fontsPath = ".local/share/fonts" -}}
 {{- end -}}
 
 # ----- Nushell -----
@@ -49,6 +52,15 @@ type = "git-repo"
 url = "https://github.com/ohmybash/oh-my-bash.git"
 refreshPeriod = "168h"
 [".oh-my-bash".pull]
+args = ["--ff-only"]
+
+# ----- Paid Fonts (private repo, auth via gh) -----
+
+["{{ $fontsPath }}/paid-fonts"]
+type = "git-repo"
+url = "https://github.com/FlameFlag/paid-fonts.git"
+refreshPeriod = "168h"
+[{{ printf "%s/paid-fonts" $fontsPath | printf "%q" }}.pull]
 args = ["--ff-only"]
 
 # ----- Yazi -----
