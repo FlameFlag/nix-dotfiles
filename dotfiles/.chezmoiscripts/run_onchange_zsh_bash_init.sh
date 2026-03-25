@@ -21,13 +21,13 @@ done
 
 # Generate init files for zsh
 starship init zsh > "$HOME/.cache/starship/init.zsh"
-zoxide init zsh > "$HOME/.cache/zoxide/init.zsh"
+zoxide init zsh --cmd cd > "$HOME/.cache/zoxide/init.zsh"
 atuin init zsh --disable-up-arrow > "$HOME/.cache/atuin/init.zsh"
 tv init zsh > "$HOME/.cache/television/init.zsh"
 
 # Generate init files for bash
 starship init bash > "$HOME/.cache/starship/init.bash"
-zoxide init bash > "$HOME/.cache/zoxide/init.bash"
+zoxide init bash --cmd cd > "$HOME/.cache/zoxide/init.bash"
 atuin init bash --disable-up-arrow > "$HOME/.cache/atuin/init.bash"
 tv init bash > "$HOME/.cache/television/init.bash"
 

@@ -3,13 +3,13 @@ export OSH="$HOME/.oh-my-bash"
 OSH_THEME=""  # Disabled — using starship
 
 # --- Plugins ---
-plugins=(git bashmarks progress)
+plugins=(git bashmarks)
 
 # --- Completions ---
 completions=(git gh ssh system)
 
 # --- Aliases (oh-my-bash) ---
-aliases=(general)
+aliases=()
 
 source "$OSH/oh-my-bash.sh"
 
@@ -49,12 +49,6 @@ alias lt="eza --tree --icons"
 alias cat="bat"
 alias htop="btop"
 alias neofetch="pfetch"
-alias grep="rg"
-alias find="fd"
-alias du="dust"
-alias df="duf"
-alias sed="sd"
-alias ps="procs"
 alias top="btm"
 
 # yt-dlp shortcuts

@@ -1,7 +1,7 @@
 {
     "chat.disableAIFeatures": true,
 
-    "editor.fontFamily": "'MonaspiceKr Nerd Font Mono', 'UbuntuMono Nerd Font', monospace",
+    "editor.fontFamily": "'TX-02', 'MonaspiceKr Nerd Font Mono', monospace",
     "editor.wordWrap": "on",
     "editor.mouseWheelZoom": true,
     "editor.guides.bracketPairs": "active",
@@ -22,7 +22,7 @@
     "window.zoomLevel": 1.5,
     "window.titleBarStyle": "custom",
 
-    "terminal.integrated.fontFamily": "'MonaspiceKr Nerd Font Mono', 'UbuntuMono Nerd Font', monospace",
+    "terminal.integrated.fontFamily": "'TX-02', 'MonaspiceKr Nerd Font Mono', monospace",
     "terminal.integrated.minimumContrastRatio": 1,
 
     "diffEditor.ignoreTrimWhitespace": false,
