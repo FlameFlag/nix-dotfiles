@@ -1,22 +1,29 @@
 {
-  writeShellApplication,
+  lib,
+  writeTextFile,
+  nushell,
+  makeWrapper,
+  symlinkJoin,
   cacert,
-  uutils-findutils,
   ffmpeg-full,
-  jq,
-  gnused,
   yt-dlp,
 }:
 
-writeShellApplication {
+let
+  script = writeTextFile {
+    name = "yt-dlp-script";
+    text = builtins.readFile ../scripts/yt-dlp-script.nu;
+    executable = true;
+    destination = "/bin/yt-dlp-script";
+  };
+in
+symlinkJoin {
   name = "yt-dlp-script";
-  text = builtins.readFile ../scripts/yt-dlp-script.sh;
-  runtimeInputs = [
-    cacert
-    uutils-findutils
-    gnused
-    ffmpeg-full
-    jq
-    yt-dlp
-  ];
+  paths = [ script ];
+  nativeBuildInputs = [ makeWrapper ];
+  postBuild = ''
+    wrapProgram $out/bin/yt-dlp-script \
+      --set SSL_CERT_FILE "${cacert}/etc/ssl/certs/ca-bundle.crt" \
+      --prefix PATH : ${lib.makeBinPath [ nushell ffmpeg-full yt-dlp ]}
+  '';
 }
