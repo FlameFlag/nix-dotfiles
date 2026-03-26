@@ -1,12 +1,13 @@
 _: {
   programs.nixcord = {
     enable = true;
-    discord.vencord.unstable = true;
+    discord.vencord.enable = false;
+    discord.equicord.enable = true;
     quickCss = ''
       /* ----- CATPPUCCIN THEME ----- */
-      @import url("https://catppuccin.github.io/discord/dist/catppuccin-frappe-blue.theme.css")
+      @import url("https://catppuccin.github.io/discord/dist/catppuccin-frappe-pink.theme.css")
       (prefers-color-scheme: dark);
-      @import url("https://catppuccin.github.io/discord/dist/catppuccin-latte-blue.theme.css")
+      @import url("https://catppuccin.github.io/discord/dist/catppuccin-latte-pink.theme.css")
       (prefers-color-scheme: light);
     '';
   };
@@ -117,10 +118,10 @@ _: {
     userVoiceShow.enable = true;
     validReply.enable = true;
     validUser.enable = true;
-    vencordToolbox.enable = true;
     viewIcons.enable = true;
     voiceChatDoubleClick.enable = true;
     volumeBooster.enable = true;
     youtubeAdblock.enable = true;
+    questify.enable = true;
   };
 }
