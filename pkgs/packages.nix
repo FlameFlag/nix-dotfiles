@@ -25,6 +25,7 @@
       inherit (pkgs.unstable.dotnetCorePackages) sdk_10_0-bin;
       inherit (pkgs.unstable) bun deno nodejs_25;
       inherit (pkgs.unstable) nuget-to-json;
+      inherit (pkgs.unstable) go golangci-lint gopls;
       inherit (pkgs.unstable) ruff uv ty;
       inherit (pkgs.unstable)
         cargo
