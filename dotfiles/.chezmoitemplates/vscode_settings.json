@@ -24,6 +24,7 @@
 
     "terminal.integrated.fontFamily": "'TX-02', 'MonaspiceKr Nerd Font Mono', monospace",
     "terminal.integrated.minimumContrastRatio": 1,
+    "terminal.integrated.macOptionIsMeta": true,
 
     "diffEditor.ignoreTrimWhitespace": false,
 
