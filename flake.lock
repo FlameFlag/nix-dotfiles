@@ -1,5 +1,26 @@
 {
   "nodes": {
+    "dis": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs-unstable"
+        ]
+      },
+      "locked": {
+        "lastModified": 1774632529,
+        "narHash": "sha256-70t0rRs6ZRKP2aIjOiTReT/txkelPhM8hn+afydy1Ac=",
+        "owner": "FlameFlag",
+        "repo": "dis",
+        "rev": "55fd07d7d62111f176665ffe16e9fffca4aed1cb",
+        "type": "github"
+      },
+      "original": {
+        "owner": "FlameFlag",
+        "ref": "v11.2.1",
+        "repo": "dis",
+        "type": "github"
+      }
+    },
     "flake-compat": {
       "locked": {
         "lastModified": 1733328505,
@@ -141,6 +162,7 @@
     },
     "root": {
       "inputs": {
+        "dis": "dis",
         "nix-darwin": "nix-darwin",
         "nixcord": "nixcord",
         "nixpkgs": "nixpkgs",

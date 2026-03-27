@@ -5,6 +5,9 @@
     nix-darwin.inputs.nixpkgs.follows = "nixpkgs";
     nix-darwin.url = "github:nix-darwin/nix-darwin/nix-darwin-25.11";
 
+    dis.inputs.nixpkgs.follows = "nixpkgs-unstable";
+    dis.url = "github:FlameFlag/dis/v11.2.1";
+
     nixcord.inputs.nixpkgs.follows = "nixpkgs-unstable";
     nixcord.url = "github:FlameFlag/nixcord";
 

@@ -70,6 +70,7 @@
         ;
 
       # Media
+      inherit (pkgs) dis;
       inherit (pkgs.unstable)
         ffmpeg-full
         imagemagick
