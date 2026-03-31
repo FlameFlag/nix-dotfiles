@@ -9,7 +9,7 @@ source {{ .chezmoi.homeDir }}/.cache/starship/init.nu
 source {{ .chezmoi.homeDir }}/.cache/zoxide/init.nu
 
 $env.ATUIN_NOBIND = true
-source {{ .chezmoi.homeDir }}/.local/share/atuin/init.nu
+$env.ATUIN_SESSION = (atuin uuid | str replace -a "-" "")
 
 {{- if eq .chezmoi.os "darwin" }}
 $env.SSH_AUTH_SOCK = $"($env.HOME)/Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock"

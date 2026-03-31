@@ -13,7 +13,7 @@ source ./completions/{{ $t }}.nu
 
 [ .bun .npm .local .cargo .go .yarn ] | each {|dir| $"($env.HOME)/($dir)/bin" } | path add $in
 
-$env.config = {
+$env.config = ($env.config | merge {
     cursor_shape: {
         vi_insert: "line"
         vi_normal: "block"
@@ -31,7 +31,9 @@ $env.config = {
         sync_on_enter: false
         file_format: "plaintext"
     }
-}
+})
+
+source {{ .chezmoi.homeDir }}/.local/share/atuin/init.nu
 
 $env.config.keybindings = ($env.config.keybindings? | default [] | append [
     {

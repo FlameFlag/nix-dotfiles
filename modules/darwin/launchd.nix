@@ -31,6 +31,7 @@
       ProgramArguments = [
         (lib.getExe' pkgs.unstable.atuin "atuin")
         "daemon"
+        "start"
       ];
       RunAtLoad = true;
       KeepAlive = {
