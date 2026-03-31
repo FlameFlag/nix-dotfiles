@@ -25,3 +25,14 @@ op-ssh-sign
     smudge = git-lfs smudge -- %f
     process = git-lfs filter-process
     required = true
+
+[sendemail]
+    from = github@flameflag.dev
+    suppresscc = author
+    smtpServer = smtp.migadu.com
+    smtpServerPort = 465
+    smtpEncryption = ssl
+    smtpUser = github@flameflag.dev
+
+[credential "smtp://github%40flameflag.dev@smtp.migadu.com:465"]
+    helper = "!f() { echo password=$(cat /run/secrets/migadu); }; f"
