@@ -73,6 +73,7 @@
       FiraCode = pkgs.nerd-fonts.fira-code;
       Monaspace = pkgs.nerd-fonts.monaspace;
       Noto = pkgs.nerd-fonts.noto;
+      TX-02-NerdFont = pkgs.callPackage ../../pkgs/tx-02-nerd-font.nix { };
 
       inherit (pkgs)
         noto-fonts-cjk-sans
