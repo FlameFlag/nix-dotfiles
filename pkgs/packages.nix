@@ -1,5 +1,4 @@
 {
-  inputs,
   pkgs,
   lib,
   config,
@@ -56,6 +55,7 @@
         fzf # fuzzy finder
         procs # ps
         ripgrep # grep
+        tv # television
         sd # sed
         television # fuzzy finder TUI
         xh # curl
@@ -146,6 +146,7 @@
 
       inherit (pkgs.unstable)
         atuin
+        claude-code
         gh
         gitui
         helix
@@ -163,6 +164,7 @@
       builtins.attrValues {
         inherit (pkgs.unstable)
           ghostty
+          google-chrome
           networkmanagerapplet
           pavucontrol # PulseAudio Volume Control GUI
           playerctl # Control media players via MPRIS (CLI)
