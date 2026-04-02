@@ -5,10 +5,12 @@
     modules = [
       ./configuration.nix
       inputs.self.nixosModules.default
+      inputs.niri.nixosModules.niri
       {
         nixOS = {
           gnome.enable = true;
           dconf.enable = true;
+          niri.enable = true;
           nvidia.enable = true;
           amd.enable = true;
         };

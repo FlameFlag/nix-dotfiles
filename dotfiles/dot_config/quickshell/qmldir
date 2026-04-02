@@ -1,0 +1,12 @@
+singleton Theme Theme.qml
+BatteryIndicator BatteryIndicator.qml
+CheatBind CheatBind.qml
+CheatSection CheatSection.qml
+Cheatsheet Cheatsheet.qml
+CalendarPopup CalendarPopup.qml
+Clock Clock.qml
+GrainOverlay GrainOverlay.qml
+SysTray SysTray.qml
+ThemeSwitcher ThemeSwitcher.qml
+Wallpaper Wallpaper.qml
+Workspaces Workspaces.qml

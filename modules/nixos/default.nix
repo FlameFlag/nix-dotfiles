@@ -7,6 +7,7 @@ _: {
     ./hardware.nix
     ./kanata.nix
     ./networking.nix
+    ./niri.nix
     ./nixcord.nix
     ./services.nix
     ./zed-remote.nix

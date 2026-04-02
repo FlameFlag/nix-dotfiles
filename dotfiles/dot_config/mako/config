@@ -1,0 +1,13 @@
+font=Montserrat 12
+background-color=#414559
+text-color=#c6d0f5
+border-color=#626880
+border-size=3
+border-radius=0
+padding=8
+margin=12
+width=350
+height=120
+default-timeout=5000
+layer=overlay
+anchor=top-right

@@ -7,5 +7,10 @@ Library/
 .config/Code/
 .config/ghostty/
 .config/kanata/
+.config/anyrun/
+.config/fuzzel/
+.config/mako/
+.config/niri/
 .config/nushell/
+.config/quickshell/
 {{ end }}
