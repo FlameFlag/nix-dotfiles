@@ -7,7 +7,6 @@
 
     atuin = {
       enable = true;
-      package = pkgs.unstable.atuin;
       port = 8888;
       openFirewall = false;
       openRegistration = false;
