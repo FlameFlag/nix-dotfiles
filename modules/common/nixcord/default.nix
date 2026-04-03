@@ -3,13 +3,6 @@ _: {
     enable = true;
     discord.vencord.enable = false;
     discord.equicord.enable = true;
-    quickCss = ''
-      /* ----- CATPPUCCIN THEME ----- */
-      @import url("https://catppuccin.github.io/discord/dist/catppuccin-frappe-pink.theme.css")
-      (prefers-color-scheme: dark);
-      @import url("https://catppuccin.github.io/discord/dist/catppuccin-latte-pink.theme.css")
-      (prefers-color-scheme: light);
-    '';
   };
   programs.nixcord.config.useQuickCss = true;
   programs.nixcord.config.plugins = {
