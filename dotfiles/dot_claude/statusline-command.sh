@@ -36,6 +36,10 @@ mapfile -t _f <<<"$jq_out"
 dir_name=${_f[0]} model=${_f[1]} used=${_f[2]} cur_tokens=${_f[3]}
 max_tokens=${_f[4]} rate_5h=${_f[5]} rate_7d=${_f[6]} json_dir=${_f[7]}
 
+# Shorten model name: "Opus 4.6 (1M context)" -> "Opus"
+# Remove version number and parenthetical (context size shown in token display)
+model=$(sed -E 's/ [0-9]+\.[0-9]+//; s/ \([^)]*\)//' <<<"$model")
+
 # ── pure-bash helpers (no subshells, write to shared vars) ──
 
 # Sets REPLY to the ANSI color code for a percentage value
@@ -208,27 +212,35 @@ if [[ -n "$used" ]]; then
 
 	token_label=""
 	if [[ -n "$cur_tokens" && "$cur_tokens" != "0" && -n "$max_tokens" ]]; then
-		token_label=" ${DIM}${cur_tokens}/${max_tokens}${RST}"
+		token_label="${cur_tokens}/${max_tokens}"
 	fi
 
-	ctx_display="${color}${pct}%${RST}${token_label}"
+	# Show token fraction if available, otherwise fall back to percentage
+	if [[ -n "$token_label" ]]; then
+		ctx_display="${color}${token_label}${RST}"
+	else
+		ctx_display="${color}${pct}%${RST}"
+	fi
 fi
 
 # ── rate limits ──
 rate_info=""
 rate_parts=()
-for r in "$rate_5h" "$rate_7d"; do
+labels=(5h 7d)
+rates=("$rate_5h" "$rate_7d")
+for i in 0 1; do
+	r="${rates[$i]}"
 	[[ -z "$r" ]] && continue
 	printf -v local_pct '%.0f' "$r" 2>/dev/null || continue
 	color_for_pct "$local_pct" 50 100
-	rate_parts+=("${REPLY}${local_pct}%${RST}")
+	rate_parts+=("${DIM}${labels[$i]}${RST} ${REPLY}${local_pct}%${RST}")
 done
 ((${#rate_parts[@]} > 0)) && rate_info="⏱ ${rate_parts[*]}"
 
 # ── assemble ──
 parts="$dir_name"
 append "$vcs_info"
-[[ -n "$model" ]] && append "${C_BLUE}◆${RST} ${model}"
+[[ -n "$model" ]] && append "${C_BLUE}${model}${RST}"
 append "$ctx_display"
 append "$rate_info"
 
