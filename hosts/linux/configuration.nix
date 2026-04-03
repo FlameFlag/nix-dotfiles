@@ -66,21 +66,25 @@
         emoji = [ "Twitter Color Emoji" ];
       };
     };
-    packages = builtins.attrValues {
-      Ubuntu = pkgs.nerd-fonts.ubuntu;
-      UbuntuMono = pkgs.nerd-fonts.ubuntu-mono;
-      UbuntuSans = pkgs.nerd-fonts.ubuntu-sans;
-      FiraCode = pkgs.nerd-fonts.fira-code;
-      Monaspace = pkgs.nerd-fonts.monaspace;
-      Noto = pkgs.nerd-fonts.noto;
-      TX-02-NerdFont = pkgs.callPackage ../../pkgs/tx-02-nerd-font.nix { };
+    packages =
+      let
+        paidFonts = (pkgs.callPackage ../../pkgs/paid-fonts/build-font.nix { }).packages;
+      in
+      builtins.attrValues {
+        Ubuntu = pkgs.nerd-fonts.ubuntu;
+        UbuntuMono = pkgs.nerd-fonts.ubuntu-mono;
+        UbuntuSans = pkgs.nerd-fonts.ubuntu-sans;
+        FiraCode = pkgs.nerd-fonts.fira-code;
+        Monaspace = pkgs.nerd-fonts.monaspace;
+        Noto = pkgs.nerd-fonts.noto;
 
-      inherit (pkgs)
-        noto-fonts-cjk-sans
-        noto-fonts-color-emoji
-        twemoji-color-font
-        ;
-    };
+        inherit (pkgs)
+          noto-fonts-cjk-sans
+          noto-fonts-color-emoji
+          twemoji-color-font
+          ;
+      }
+      ++ builtins.attrValues paidFonts;
   };
 
   # https://wiki.nixos.org/wiki/FAQ#When_do_I_update_stateVersion
