@@ -1,3 +1,8 @@
+# --- Ghostty terminfo fallback (remote SSH hosts without xterm-ghostty) ---
+if [[ "$TERM" == "xterm-ghostty" ]] && ! infocmp xterm-ghostty &>/dev/null; then
+  export TERM=xterm-256color
+fi
+
 # --- Oh-My-Zsh Configuration ---
 export ZSH="$HOME/.oh-my-zsh"
 ZSH_THEME=""  # Disabled — using starship

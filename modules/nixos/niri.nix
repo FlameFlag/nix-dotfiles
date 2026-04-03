@@ -11,11 +11,6 @@
   config = lib.mkIf config.nixOS.niri.enable {
     programs.niri.enable = true;
 
-    xdg.portal = {
-      enable = true;
-      extraPortals = [ pkgs.xdg-desktop-portal-gtk ];
-    };
-
     environment.systemPackages = builtins.attrValues {
       inherit (pkgs)
         wl-clipboard

@@ -1,3 +1,14 @@
+# --- Ghostty terminfo fallback (remote SSH hosts without xterm-ghostty) ---
+if [[ "$TERM" == "xterm-ghostty" ]] && ! infocmp xterm-ghostty &>/dev/null; then
+  export TERM=xterm-256color
+fi
+
+# Bail out for non-interactive shells (e.g. `ssh host cmd`, scp).
+# Everything below assumes an interactive prompt — running it on every
+# non-interactive ssh invocation is both noisy (starship/atuin warnings)
+# and slow.
+[[ $- != *i* ]] && return
+
 # Oh-My-Bash Configuration
 export OSH="$HOME/.oh-my-bash"
 OSH_THEME=""  # Disabled — using starship

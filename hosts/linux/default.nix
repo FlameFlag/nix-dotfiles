@@ -5,7 +5,6 @@
     modules = [
       ./configuration.nix
       inputs.self.nixosModules.default
-      inputs.niri.nixosModules.niri
       {
         nixOS = {
           gnome.enable = true;
