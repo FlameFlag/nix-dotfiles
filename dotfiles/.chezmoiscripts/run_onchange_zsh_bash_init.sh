@@ -22,7 +22,7 @@ done
 # Generate init files for zsh and bash
 for shell in zsh bash; do
     starship init "$shell" > "$HOME/.cache/starship/init.$shell"
-    zoxide init "$shell" --cmd cd > "$HOME/.cache/zoxide/init.$shell"
+    zoxide init "$shell" > "$HOME/.cache/zoxide/init.$shell"
     atuin init "$shell" --disable-up-arrow > "$HOME/.cache/atuin/init.$shell"
     tv init "$shell" > "$HOME/.cache/television/init.$shell"
 done
