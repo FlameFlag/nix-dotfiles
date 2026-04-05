@@ -83,6 +83,22 @@ def clean-roots [] {
     print "Done"
 }
 
+# Shadow system python/pip
+def --wrapped python [...args] { uv run python ...$args }
+def --wrapped python3 [...args] { uv run python3 ...$args }
+def --wrapped pip [...rest] {
+    if ($env | get -o VIRTUAL_ENV | is-empty) and not ("." | path join ".venv" | path exists) {
+        uv venv -q
+    }
+    uv pip ...$rest
+}
+def --wrapped pip3 [...rest] {
+    if ($env | get -o VIRTUAL_ENV | is-empty) and not ("." | path join ".venv" | path exists) {
+        uv venv -q
+    }
+    uv pip ...$rest
+}
+
 def now [] { date now | format date "%H:%M:%S" }
 def nowdate [] { date now | format date "%d-%m-%Y" }
 def nowunix [] { date now | format date "%s" }

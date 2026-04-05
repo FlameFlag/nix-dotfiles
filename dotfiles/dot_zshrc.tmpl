@@ -97,5 +97,19 @@ export FZF_DEFAULT_OPTS="--height 40% --layout=reverse --border
   --color=fg:#c6d0f5,header:#e78284,info:#ca9ee6,pointer:#f2d5cf
   --color=marker:#f2d5cf,fg+:#c6d0f5,prompt:#ca9ee6,hl+:#e78284"
 
+# Shadow system python
+export UV_PYTHON_PREFERENCE="only-managed"
+
+function python()  { uv run python "$@"; }
+function python3() { uv run python3 "$@"; }
+function pip() {
+  [[ -z "$VIRTUAL_ENV" && ! -d ".venv" ]] && uv venv -q
+  uv pip "$@"
+}
+function pip3() {
+  [[ -z "$VIRTUAL_ENV" && ! -d ".venv" ]] && uv venv -q
+  uv pip "$@"
+}
+
 # --- Zoxide (must be at the end of .zshrc) ---
 source "$HOME/.cache/zoxide/init.zsh"

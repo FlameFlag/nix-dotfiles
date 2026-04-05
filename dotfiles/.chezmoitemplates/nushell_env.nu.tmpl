@@ -16,3 +16,6 @@ $env.SSH_AUTH_SOCK = $"($env.HOME)/Library/Group Containers/2BUA8C4S2C.com.1pass
 {{- else }}
 $env.SSH_AUTH_SOCK = $"($env.HOME)/.1password/agent.sock"
 {{- end }}
+
+# Shadow system python
+$env.UV_PYTHON_PREFERENCE = "only-managed"

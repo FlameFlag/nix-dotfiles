@@ -79,6 +79,20 @@ function yy() {
   rm -f -- "$tmp"
 }
 
+# shadow system python
+export UV_PYTHON_PREFERENCE="only-managed"
+
+function python()  { uv run python "$@"; }
+function python3() { uv run python3 "$@"; }
+function pip() {
+  [[ -z "$VIRTUAL_ENV" && ! -d ".venv" ]] && uv venv -q
+  uv pip "$@"
+}
+function pip3() {
+  [[ -z "$VIRTUAL_ENV" && ! -d ".venv" ]] && uv venv -q
+  uv pip "$@"
+}
+
 # --- fzf Configuration ---
 export FZF_DEFAULT_COMMAND="fd --type f --hidden --follow --exclude .git"
 export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"

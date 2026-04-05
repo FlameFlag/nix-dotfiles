@@ -34,5 +34,11 @@ op-ssh-sign
     smtpEncryption = ssl
     smtpUser = github@flameflag.dev
 
+[credential "https://github.com"]
+    helper = !/usr/bin/env gh auth git-credential
+
+[credential "https://gist.github.com"]
+    helper = !/usr/bin/env gh auth git-credential
+
 [credential "smtp://github%40flameflag.dev@smtp.migadu.com:465"]
     helper = "!f() { echo password=$(cat /run/secrets/migadu); }; f"
