@@ -1,43 +1,42 @@
-# --- Oh-My-Bash Configuration ---
+# Oh-My-Bash Configuration
 export OSH="$HOME/.oh-my-bash"
 OSH_THEME=""  # Disabled — using starship
 
-# --- Plugins ---
+# Plugins
 plugins=(git bashmarks)
 
-# --- Completions ---
+# Completions
 completions=(git gh ssh system)
 
-# --- Aliases (oh-my-bash) ---
+# Aliases (oh-my-bash)
 aliases=()
 
 source "$OSH/oh-my-bash.sh"
 
-# --- Tool Integrations (cached init files) ---
+# Tool Integrations (cached init files)
 source "$HOME/.cache/starship/init.bash"
-source "$HOME/.cache/zoxide/init.bash"
 source "$HOME/.cache/television/init.bash"
 eval "$(fzf --bash)"
 source "$HOME/.cache/atuin/init.bash"
 atuin-bind -m emacs '\C-r' atuin-search-emacs
 
-# --- Completions (cached) ---
+# Completions (cached)
 for f in "$HOME/.cache/bash/completions"/*; do
   [ -f "$f" ] && source "$f"
 done
 
-# --- 1Password SSH Agent ---
+# 1Password SSH Agent
 {{- if eq .chezmoi.os "darwin" }}
 export SSH_AUTH_SOCK="$HOME/Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock"
 {{- else }}
 export SSH_AUTH_SOCK="$HOME/.1password/agent.sock"
 {{- end }}
 
-# --- Environment ---
+# Environment
 export EDITOR="hx"
 export VISUAL="hx"
 
-# --- Aliases ---
+# Aliases
 alias v="hx"
 alias vi="hx"
 alias vim="hx"
@@ -93,7 +92,7 @@ function pip3() {
   uv pip "$@"
 }
 
-# --- fzf Configuration ---
+# fzf Configuration
 export FZF_DEFAULT_COMMAND="fd --type f --hidden --follow --exclude .git"
 export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
 export FZF_ALT_C_COMMAND="fd --type d --hidden --follow --exclude .git"
@@ -101,3 +100,6 @@ export FZF_DEFAULT_OPTS="--height 40% --layout=reverse --border
   --color=bg+:#414559,bg:#303446,spinner:#f2d5cf,hl:#e78284
   --color=fg:#c6d0f5,header:#e78284,info:#ca9ee6,pointer:#f2d5cf
   --color=marker:#f2d5cf,fg+:#c6d0f5,prompt:#ca9ee6,hl+:#e78284"
+
+# Zoxide (must be at the end of .bashrc)
+source "$HOME/.cache/zoxide/init.bash"
