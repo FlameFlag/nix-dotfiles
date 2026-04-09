@@ -77,6 +77,7 @@
         mediainfo
         ;
       inherit (pkgs)
+        claude-statusline
         gh-hide-comment
         yt-dlp
         yt-dlp-script
@@ -124,7 +125,7 @@
       # Misc
       inherit (pkgs.unstable)
         clipboard-jh
-        gnused # GNU sed (gsed) — needed by fzf-bash-completion on macOS
+        gnused # GNU sed (gsed) - needed by fzf-bash-completion on macOS
         hyperfine
         patch
         shellcheck

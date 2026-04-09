@@ -8,10 +8,10 @@ Thumbs.db
 .direnv/
 result
 
-# You'll need to generate your own hardware-configuration 
-
 # IDEs
 **/.idea/
 **/.vs/
 **/.vscode/
 **/packages/
+
+**/target/

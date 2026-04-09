@@ -1,0 +1,10 @@
+edition = "2024"
+max_width = 100
+
+# Comment reflow. Requires nightly rustfmt - on stable these are parsed
+# but ignored with a warning. Run `cargo +nightly fmt` to apply.
+unstable_features = true
+wrap_comments = true
+comment_width = 82
+normalize_comments = true
+format_code_in_doc_comments = true

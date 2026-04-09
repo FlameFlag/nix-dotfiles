@@ -1,0 +1,121 @@
+[package]
+name = "claude-statusline"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+anstream = "1.0.0"
+anstyle = "1.0.14"
+bstr = "1.12.1"
+chrono = { version = "0.4.44", default-features = false, features = ["clock"] }
+clap = { version = "4.6.0", features = ["derive", "env"] }
+clap_complete = "4.6.0"
+clap_complete_nushell = "4.6.0"
+compact_str = "0.9.0"
+dirs = "6.0.0"
+gix = { version = "0.81.0", default-features = false, features = ["max-performance-safe", "status", "revision", "index"] }
+indexmap = "2.13.1"
+iso_currency = "0.5.3"
+# Pinned exactly: jj-lib is pre-1.0 and shifts API often. Bumping it requires
+# re-checking the snapshot-avoidance code path in src/jj.rs.
+jj-lib = "=0.40.0"
+nerd-font-symbols = "0.3.0"
+pollster = "0.4.0"
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0.149"
+simd-json = "0.17.0"
+supports-hyperlinks = "3.2.0"
+tempfile = "3.27.0"
+terminal-colorsaurus = "1.0.3"
+terminal_size = "0.4.4"
+unicode-width = "0.2.2"
+ureq = { version = "3.3.0", default-features = false, features = ["rustls", "platform-verifier"] }
+
+[lints.rust]
+# Hard errors
+unsafe_code = "deny"
+unsafe_op_in_unsafe_fn = "deny"
+
+# Warnings (promote to deny once clean)
+elided_lifetimes_in_paths = "warn"
+missing_debug_implementations = "warn"
+# missing_docs: too noisy for a binary crate with bench-only pub items.
+# Uncomment when the crate stabilises a public API.
+# missing_docs = "warn"
+single_use_lifetimes = "warn"
+trivial_casts = "warn"
+trivial_numeric_casts = "warn"
+unreachable_pub = "warn"
+unused_import_braces = "warn"
+unused_lifetimes = "warn"
+unused_qualifications = "warn"
+
+[lints.clippy]
+# Lint groups
+pedantic = { level = "warn", priority = -1 }
+nursery = { level = "warn", priority = -1 }
+
+# Promote select footguns to hard errors
+unwrap_used = "deny"
+expect_used = "deny"
+panic = "deny"
+unimplemented = "deny"
+todo = "deny"
+dbg_macro = "deny"
+exit = "deny"
+wildcard_imports = "deny"
+# str_to_string/string_to_string: opinionated `.to_string()` on &str is
+# idiomatic Rust and used widely in the codebase. Prefer `.to_owned()` in
+# new code but don't enforce it.
+# string_to_string = "deny"
+# str_to_string = "deny"
+lossy_float_literal = "deny"
+rest_pat_in_fully_bound_structs = "deny"
+verbose_file_reads = "deny"
+
+# Pedantic overrides: allow where the lint hurts more than it helps
+# Module layout is intentional; not every pub item needs inline docs yet.
+missing_errors_doc = "allow"
+missing_panics_doc = "allow"
+# Casts are used deliberately for display math (e.g. token counts, widths).
+cast_possible_truncation = "allow"
+cast_precision_loss = "allow"
+cast_sign_loss = "allow"
+cast_lossless = "allow"
+# Single-match is often clearer than an if-let for exhaustiveness signaling.
+single_match_else = "allow"
+# These are too noisy for a binary crate with bench-only pub items.
+must_use_candidate = "allow"
+return_self_not_must_use = "allow"
+# Style preferences that conflict with local conventions.
+module_name_repetitions = "allow"
+redundant_else = "allow"
+option_if_let_else = "allow"
+# Cli struct legitimately has many bool flags (--preview, --no-align, etc.).
+struct_excessive_bools = "allow"
+# Serde structs with `_tokens` suffix are clear and intentional.
+struct_field_names = "allow"
+# Variable name similarity is rarely confusing in short scopes.
+similar_names = "allow"
+
+[dev-dependencies]
+divan = "0.1.21"
+
+# divan provides its own harness, so the default libtest harness must be
+# disabled for the bench target. There is no `cargo` subcommand to register
+# bench targets, so this block is hand-edited.
+[[bench]]
+name = "pricing"
+harness = false
+
+[[bench]]
+name = "render"
+harness = false
+
+[[bench]]
+name = "format"
+harness = false
+
+[[bench]]
+name = "session"
+harness = false

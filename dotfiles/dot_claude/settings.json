@@ -1,7 +1,7 @@
 {
   "statusLine": {
     "type": "command",
-    "command": "/run/current-system/sw/bin/bash ~/.claude/statusline-command.sh"
+    "command": "claude-statusline"
   },
   "enabledPlugins": {
     "frontend-design@claude-plugins-official": true,
@@ -20,5 +20,8 @@
   },
   "effortLevel": "medium",
   "autoUpdatesChannel": "latest",
-  "skipDangerousModePermissionPrompt": true
+  "skipDangerousModePermissionPrompt": true,
+  "env": {
+    "_ZO_DOCTOR": "0"
+  }
 }

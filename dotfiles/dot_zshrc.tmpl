@@ -112,7 +112,4 @@ function pip3() {
 }
 
 # --- Zoxide (must be at the end of .zshrc) ---
-# Silence doctor check: Claude Code's shell snapshot captures the `cd`
-# override but not `chpwd_functions`, causing a false-positive warning.
-export _ZO_DOCTOR=0
 source "$HOME/.cache/zoxide/init.zsh"
