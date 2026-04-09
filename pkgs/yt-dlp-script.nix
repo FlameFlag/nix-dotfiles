@@ -24,6 +24,12 @@ symlinkJoin {
   postBuild = ''
     wrapProgram $out/bin/yt-dlp-script \
       --set SSL_CERT_FILE "${cacert}/etc/ssl/certs/ca-bundle.crt" \
-      --prefix PATH : ${lib.makeBinPath [ nushell ffmpeg-full yt-dlp ]}
+      --prefix PATH : ${
+        lib.makeBinPath [
+          nushell
+          ffmpeg-full
+          yt-dlp
+        ]
+      }
   '';
 }

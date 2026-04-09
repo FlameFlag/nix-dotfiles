@@ -38,6 +38,7 @@
         {
           yt-dlp = pkgs.callPackage ./pkgs/yt-dlp.nix { };
           yt-dlp-script = pkgs.callPackage ./pkgs/yt-dlp-script.nix { };
+          gh-hide-comment = pkgs.callPackage ./pkgs/gh-hide-comment.nix { };
           catppuccin-userstyles = pkgs.callPackage ./pkgs/catppuccin-userstyles.nix { };
         }
       );

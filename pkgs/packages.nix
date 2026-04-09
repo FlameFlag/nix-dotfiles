@@ -77,6 +77,7 @@
         mediainfo
         ;
       inherit (pkgs)
+        gh-hide-comment
         yt-dlp
         yt-dlp-script
         ;
@@ -135,7 +136,9 @@
 
       git = pkgs.unstable.git.overrideAttrs (old: {
         postInstall = (old.postInstall or "") + ''
-          sed -i "s|export GITPERLLIB='\(.*\)'|export GITPERLLIB='\1:${pkgs.unstable.perlPackages.makePerlPath [ pkgs.unstable.perlPackages.EmailValid ]}'|" \
+          sed -i "s|export GITPERLLIB='\(.*\)'|export GITPERLLIB='\1:${
+            pkgs.unstable.perlPackages.makePerlPath [ pkgs.unstable.perlPackages.EmailValid ]
+          }'|" \
             $out/libexec/git-core/git-send-email
         '';
       });

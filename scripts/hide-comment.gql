@@ -1,0 +1,8 @@
+mutation HideComment($id: ID!, $reason: ReportedContentClassifiers!) {
+  minimizeComment(input: { subjectId: $id, classifier: $reason }) {
+    minimizedComment {
+      isMinimized
+      minimizedReason
+    }
+  }
+}

@@ -7,7 +7,7 @@ source ./env.nu
 source ./aliases.nu
 source ./catppuccin_frappe.nu
 
-{{- range $t := list "bat" "curl" "git" "jj" "man" "nix" "rg" "ssh" "vscode" "zellij" }}
+{{- range $t := list "bat" "curl" "gh-hide-comment" "git" "jj" "man" "nix" "rg" "ssh" "vscode" "zellij" }}
 source ./completions/{{ $t }}.nu
 {{- end }}
 
