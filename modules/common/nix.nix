@@ -12,7 +12,7 @@
       '';
       sops.secrets.github-token = {
         mode = "0440";
-        group = if config.nixpkgs.hostPlatform.isDarwin then "wheel" else "root";
+        group = if config.nixpkgs.hostPlatform.isDarwin then "staff" else "root";
       };
     })
     ({

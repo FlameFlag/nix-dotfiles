@@ -22,8 +22,8 @@
           defaultSopsFile = ../../secrets/secrets.yaml;
           validateSopsFiles = false;
           secrets.github-token = {
-            uid = 0;
-            gid = 0;
+            mode = "0440";
+            group = "users";
           };
           secrets.github_ssh = {
             uid = 0;
