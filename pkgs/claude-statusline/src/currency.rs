@@ -86,10 +86,11 @@ fn resolve() -> Currency {
     if cfg!(test) {
         return Currency::usd();
     }
-    if let Ok(forced) = std::env::var("CLAUDE_STATUSLINE_CURRENCY")
-        && let Some(c) = currency_from_code(forced.trim())
-    {
-        return c;
+    if let Ok(forced) = std::env::var("CLAUDE_STATUSLINE_CURRENCY") {
+        let code = forced.trim();
+        if let Some(c) = currency_from_code_with_rate(code) {
+            return c;
+        }
     }
     if let Some(c) = read_cache() {
         return c;
@@ -100,20 +101,45 @@ fn resolve() -> Currency {
     Currency::usd()
 }
 
-/// Look up a currency by ISO code without going through geo-IP. Used by
-/// the `CLAUDE_STATUSLINE_CURRENCY` override. Sets `usd_rate` to `1.0`
-/// for non-USD codes because we don't have FX data without a network
-/// call.
-fn currency_from_code(code: &str) -> Option<Currency> {
+/// Look up a currency by ISO code and fetch its exchange rate. Used by
+/// the `CLAUDE_STATUSLINE_CURRENCY` override. Tries the cache first,
+/// then fetches the rate from the network. Falls back to `None` if
+/// the code is unrecognised.
+fn currency_from_code_with_rate(code: &str) -> Option<Currency> {
     if code.eq_ignore_ascii_case("USD") {
-        return Some(Currency::usd());
+        let c = Currency::usd();
+        write_cache(&c);
+        return Some(c);
     }
     let iso = iso_currency::Currency::from_code(code)?;
-    Some(Currency {
-        symbol: display_symbol(iso),
-        code: iso.code().to_owned(),
-        usd_rate: 1.0,
-    })
+    let symbol = display_symbol(iso);
+    let iso_code = iso.code().to_owned();
+
+    // Try cache first — if cached currency matches the forced code, reuse it
+    if let Some(cached) = read_cache() {
+        if cached.code == iso_code {
+            return Some(cached);
+        }
+    }
+
+    // Fetch the actual exchange rate
+    let agent: ureq::Agent = ureq::Agent::config_builder()
+        .timeout_global(Some(FETCH_TIMEOUT))
+        .user_agent(concat!("claude-statusline/", env!("CARGO_PKG_VERSION")))
+        .build()
+        .into();
+
+    let rate = fetch_rate(&agent, &iso_code)?;
+    if !rate.is_finite() || rate <= 0.0 {
+        return None;
+    }
+    let c = Currency {
+        symbol,
+        code: iso_code,
+        usd_rate: rate,
+    };
+    write_cache(&c);
+    Some(c)
 }
 
 /// Return a compact display symbol for a currency. For currencies that
@@ -152,8 +178,20 @@ fn cache_path() -> PathBuf {
 
 fn read_cache() -> Option<Currency> {
     let bytes = fs::read(cache_path()).ok()?;
-    serde_json::from_slice(&bytes).ok()
+    let c: Currency = serde_json::from_slice(&bytes).ok()?;
+    // Reject stale entries for legacy currencies whose countries have
+    // since adopted the euro (e.g. BGN after Bulgaria joined the eurozone).
+    if STALE_CODES.contains(&c.code.as_str()) {
+        let _ = fs::remove_file(cache_path());
+        return None;
+    }
+    Some(c)
 }
+
+/// Legacy currency codes that should no longer be cached because their
+/// countries have adopted the euro. If we find one of these in the cache
+/// we discard it and re-fetch.
+const STALE_CODES: &[&str] = &["BGN", "HRK"];
 
 fn write_cache(c: &Currency) {
     if let Ok(bytes) = serde_json::to_vec(c) {
@@ -229,6 +267,14 @@ fn fetch_rate(agent: &ureq::Agent, code: &str) -> Option<f64> {
     parsed.rates?.get(code).copied()
 }
 
+/// Countries that have adopted the Euro since the `iso_currency` crate's
+/// data was last updated. The crate still maps these to their legacy
+/// currencies, so we override them here.
+const EURO_OVERRIDES: &[&str] = &[
+    "BG", // Bulgaria adopted EUR on 2025-01-01
+    "HR", // Croatia adopted EUR on 2023-01-01
+];
+
 /// Map an ISO 3166-1 alpha-2 country code to its primary `(code, symbol)`
 /// pair. Uses the `iso_currency` crate for the country→currency lookup
 /// and our [`display_symbol`] helper for disambiguated symbols.
@@ -237,6 +283,9 @@ fn fetch_rate(agent: &ureq::Agent, code: &str) -> Option<f64> {
 /// treats as "fall back to USD".
 pub fn country_to_currency(country: &str) -> Option<(String, String)> {
     let upper = country.to_ascii_uppercase();
+    if EURO_OVERRIDES.contains(&upper.as_str()) {
+        return Some(("EUR".into(), "€".into()));
+    }
     let country_enum: iso_currency::Country = upper.parse().ok()?;
     let iso = iso_currency::Currency::from(country_enum);
     let code = iso.code().to_owned();
@@ -255,6 +304,16 @@ mod tests {
     }
 
     #[test]
+    fn bulgaria_is_euro_since_2025() {
+        assert_eq!(country_to_currency("BG"), Some(("EUR".into(), "€".into())));
+    }
+
+    #[test]
+    fn croatia_is_euro_since_2023() {
+        assert_eq!(country_to_currency("HR"), Some(("EUR".into(), "€".into())));
+    }
+
+    #[test]
     fn poland_is_zloty() {
         assert_eq!(country_to_currency("PL"), Some(("PLN".into(), "zł".into())));
     }
@@ -269,5 +328,11 @@ mod tests {
         let u = Currency::usd();
         assert_eq!(u.code, "USD");
         assert_eq!(u.usd_rate, 1.0);
+    }
+
+    #[test]
+    fn stale_bgn_is_rejected() {
+        assert!(STALE_CODES.contains(&"BGN"));
+        assert!(STALE_CODES.contains(&"HRK"));
     }
 }
