@@ -1,4 +1,5 @@
 {
+  inputs,
   pkgs,
   lib,
   config,
@@ -77,10 +78,7 @@
         mediainfo
         ;
       inherit (pkgs)
-        claude-statusline
         gh-hide-comment
-        yt-dlp
-        yt-dlp-script
         ;
 
       # File Management & Archiving
@@ -146,21 +144,29 @@
 
       inherit (pkgs.unstable)
         atuin
-        claude-code
         gh
         gitui
         helix
         jujutsu
         nushell
         starship
-        vscode
         yazi
         zed-editor
         zellij
         zoxide
         ;
+
+      inherit (pkgs.eupkgs)
+        claude-code
+        claude-statusline
+        opencode
+        yt-dlp
+        yt-dlp-script
+        ;
     }
-    ++ lib.optionals config.nixpkgs.hostPlatform.isLinux (
+    # vscode broken on darwin: nixpkgs#507400 added glibc.bin to preFixup unconditionally
+    ++ lib.optionals pkgs.stdenv.hostPlatform.isLinux [ pkgs.unstable.vscode ]
+    ++ lib.optionals pkgs.stdenv.hostPlatform.isLinux (
       builtins.attrValues {
         inherit (pkgs.unstable)
           ghostty

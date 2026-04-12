@@ -24,9 +24,6 @@ I think it's a must-have
 
 ## Scripts
 
-[yt-dlp-script.sh](scripts/yt-dlp-script.sh) - A bash script, I have to download
-video in my own "niche" format
-
 [update.sh](pkgs/update.sh) - A neat bash script
 I have to update any custom modules I have *(e.g
 [catppuccin-userstyles.nix](pkgs/catppuccin-userstyles.nix))*

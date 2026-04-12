@@ -8,8 +8,8 @@
     dis.inputs.nixpkgs.follows = "nixpkgs-unstable";
     dis.url = "github:FlameFlag/dis/v11.2.1";
 
-    fenix.inputs.nixpkgs.follows = "nixpkgs";
-    fenix.url = "github:nix-community/fenix";
+    eupkgs.inputs.nixpkgs.follows = "nixpkgs-unstable";
+    eupkgs.url = "github:euvlok/pkgs";
 
     niri.inputs.nixpkgs.follows = "nixpkgs";
     niri.url = "github:sodiboo/niri-flake";
@@ -45,30 +45,8 @@
           pkgs = import inputs.nixpkgs { inherit system; };
         in
         {
-          yt-dlp = pkgs.callPackage ./pkgs/yt-dlp.nix { };
-          yt-dlp-script = pkgs.callPackage ./pkgs/yt-dlp-script.nix { };
           gh-hide-comment = pkgs.callPackage ./pkgs/gh-hide-comment.nix { };
-          claude-statusline = pkgs.callPackage ./pkgs/claude-statusline.nix { };
           catppuccin-userstyles = pkgs.callPackage ./pkgs/catppuccin-userstyles.nix { };
-        }
-      );
-
-      devShells = forAllSystems (
-        system:
-        let
-          pkgs = import inputs.nixpkgs { inherit system; };
-          rust-nightly = inputs.fenix.packages.${system}.complete.withComponents [
-            "cargo"
-            "clippy"
-            "rust-src"
-            "rustc"
-            "rustfmt"
-          ];
-        in
-        {
-          default = pkgs.mkShell {
-            buildInputs = [ rust-nightly ];
-          };
         }
       );
 

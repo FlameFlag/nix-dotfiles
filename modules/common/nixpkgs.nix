@@ -1,4 +1,4 @@
-{ inputs, ... }:
+{ inputs, config, ... }:
 {
   nixpkgs = {
     config.allowUnfree = true;
@@ -10,12 +10,14 @@
         };
       })
       (final: prev: {
-        yt-dlp = final.callPackage ../../pkgs/yt-dlp.nix { yt-dlp = final.unstable.yt-dlp; };
-        yt-dlp-script = final.callPackage ../../pkgs/yt-dlp-script.nix { };
-        gh-hide-comment = final.callPackage ../../pkgs/gh-hide-comment.nix { gh = final.unstable.gh; };
-        claude-statusline = final.callPackage ../../pkgs/claude-statusline.nix {
-          inherit (final.unstable) rustPlatform;
+        eupkgs = inputs.eupkgs.legacyPackages.${prev.stdenv.hostPlatform.system} // {
+          claude-code = final.unstable.callPackage
+            "${inputs.eupkgs}/pkgs/by-name/cl/claude-code/package.nix" { };
         };
+      })
+      (final: prev: {
+        yt-dlp = final.eupkgs.yt-dlp;
+        gh-hide-comment = final.callPackage ../../pkgs/gh-hide-comment.nix { gh = final.unstable.gh; };
         dis = inputs.dis.packages.${prev.stdenvNoCC.hostPlatform.system}.dis.overrideAttrs (old: {
           postInstall = ''
             wrapProgram "$out/bin/dis" \
