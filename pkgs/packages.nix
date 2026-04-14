@@ -152,6 +152,7 @@
         starship
         yazi
         zed-editor
+        vscode
         zellij
         zoxide
         ;
@@ -164,8 +165,6 @@
         yt-dlp-script
         ;
     }
-    # vscode broken on darwin: nixpkgs#507400 added glibc.bin to preFixup unconditionally
-    ++ lib.optionals pkgs.stdenv.hostPlatform.isLinux [ pkgs.unstable.vscode ]
     ++ lib.optionals pkgs.stdenv.hostPlatform.isLinux (
       builtins.attrValues {
         inherit (pkgs.unstable)
