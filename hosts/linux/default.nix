@@ -9,7 +9,6 @@
         nixOS = {
           gnome.enable = true;
           dconf.enable = true;
-          niri.enable = true;
           nvidia.enable = true;
           amd.enable = true;
         };

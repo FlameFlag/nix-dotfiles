@@ -10,7 +10,5 @@ Library/
 .config/anyrun/
 .config/fuzzel/
 .config/mako/
-.config/niri/
 .config/nushell/
-.config/quickshell/
 {{ end }}

@@ -11,17 +11,11 @@
     eupkgs.inputs.nixpkgs.follows = "nixpkgs-unstable";
     eupkgs.url = "github:euvlok/pkgs";
 
-    niri.inputs.nixpkgs.follows = "nixpkgs";
-    niri.url = "github:sodiboo/niri-flake";
-
     nixcord.inputs.nixpkgs.follows = "nixpkgs-unstable";
     nixcord.url = "github:FlameFlag/nixcord";
 
     nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixos-unstable-small";
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.11";
-
-    quickshell.inputs.nixpkgs.follows = "nixpkgs-unstable";
-    quickshell.url = "github:quickshell-mirror/quickshell";
 
     sops-nix.inputs.nixpkgs.follows = "nixpkgs-unstable";
     sops-nix.url = "github:Mic92/sops-nix";
