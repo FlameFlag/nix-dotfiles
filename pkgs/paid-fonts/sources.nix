@@ -11,44 +11,5 @@
       description = "TX-02 font patched with Nerd Font glyphs";
     };
 
-    sohne-mono = {
-      pname = "sohne-mono-nerd-font";
-      version = "1.107";
-      path = "Sohne/OTF";
-      glob = "SohneMono-*";
-      format = "otf";
-      patchNerd = true;
-      description = "Söhne Mono patched with Nerd Font glyphs";
-    };
-
-    sohne = {
-      pname = "sohne-font";
-      version = "1.107";
-      path = "Sohne/OTF";
-      glob = "Sohne-*";
-      format = "otf";
-      patchNerd = false;
-      description = "Söhne font family";
-    };
-
-    sohne-breit = {
-      pname = "sohne-breit-font";
-      version = "1.107";
-      path = "Sohne/OTF";
-      glob = "SohneBreit-*";
-      format = "otf";
-      patchNerd = false;
-      description = "Söhne Breit font family";
-    };
-
-    sohne-schmal = {
-      pname = "sohne-schmal-font";
-      version = "1.107";
-      path = "Sohne/OTF";
-      glob = "SohneSchmal-*";
-      format = "otf";
-      patchNerd = false;
-      description = "Söhne Schmal font family";
-    };
   };
 }
