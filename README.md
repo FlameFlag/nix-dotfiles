@@ -22,12 +22,6 @@ they're very sensible
 enough, Catppuccin has their theme for a bunch of sites. I love consistency, so
 I think it's a must-have
 
-## Scripts
-
-[update.sh](pkgs/update.sh) - A neat bash script
-I have to update any custom modules I have *(e.g
-[catppuccin-userstyles.nix](pkgs/catppuccin-userstyles.nix))*
-
 If you want to build my dotfiles, here's how to do it:
 
 ### NixOS

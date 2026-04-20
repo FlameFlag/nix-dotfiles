@@ -11,8 +11,8 @@
         !include ${config.sops.secrets.github-token.path}
       '';
       sops.secrets.github-token = {
-        mode = "0440";
-        group = if config.nixpkgs.hostPlatform.isDarwin then "staff" else "root";
+        mode = lib.mkDefault "0440";
+        group = lib.mkDefault (if config.nixpkgs.hostPlatform.isDarwin then "staff" else "root");
       };
     })
     ({
