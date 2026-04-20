@@ -5,6 +5,11 @@
 
 set -euo pipefail
 
+if ! command -v git >/dev/null 2>&1; then
+    echo "error: git not found on PATH" >&2
+    exit 1
+fi
+
 readonly YAZI_CONFIG_DIR="$HOME/.config/yazi"
 readonly PLUGINS_DIR="$YAZI_CONFIG_DIR/plugins"
 readonly FLAVORS_DIR="$YAZI_CONFIG_DIR/flavors"
@@ -16,11 +21,6 @@ cleanup() {
     if [[ -d "$TEMP_PLUGINS_DIR" ]]; then
         rm -rf "$TEMP_PLUGINS_DIR"
     fi
-}
-
-is_directory_empty() {
-    local dir=$1
-    [[ -z "$(find "$dir" -mindepth 1 -print -quit 2>/dev/null)" ]]
 }
 
 install_plugin() {
@@ -64,12 +64,10 @@ main() {
 
     trap cleanup EXIT
 
-    if is_directory_empty "$TEMP_PLUGINS_DIR"; then
-        echo "Downloading plugins repository..."
-        git clone --depth 1 --single-branch --no-tags --quiet \
-            "$YAZI_PLUGINS_REPO" "$TEMP_PLUGINS_DIR"
-        rm -rf "$TEMP_PLUGINS_DIR/.git"
-    fi
+    echo "Downloading plugins repository..."
+    git clone --depth 1 --single-branch --no-tags --quiet \
+        "$YAZI_PLUGINS_REPO" "$TEMP_PLUGINS_DIR"
+    rm -rf "$TEMP_PLUGINS_DIR/.git"
 
     declare -a official_plugins=(
         "diff"

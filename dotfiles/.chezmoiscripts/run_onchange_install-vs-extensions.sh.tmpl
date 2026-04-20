@@ -1,3 +1,4 @@
+{{ if lookPath "code" -}}
 #!/usr/bin/env bash
 #
 # Author: FlameFlag
@@ -5,6 +6,12 @@
 
 set -euo pipefail
 
+installed=$(code --list-extensions 2>/dev/null | sort -fu)
+
 while read -r extension; do
-    code --install-extension "$extension" --force
+    [[ -z "$extension" ]] && continue
+    if ! grep -qixF "$extension" <<<"$installed"; then
+        code --install-extension "$extension" --force
+    fi
 done < {{ joinPath .chezmoi.sourceDir "dot_config/Code/User/vscode-extensions.txt" | quote }}
+{{ end -}}

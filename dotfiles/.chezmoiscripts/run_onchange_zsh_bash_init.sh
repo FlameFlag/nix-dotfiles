@@ -19,12 +19,14 @@ for dir in "${dirs[@]}"; do
     mkdir -p "$dir"
 done
 
+has() { command -v "$1" >/dev/null 2>&1; }
+
 # Generate init files for zsh and bash
 for shell in zsh bash; do
-    starship init "$shell" > "$HOME/.cache/starship/init.$shell"
-    zoxide init "$shell" > "$HOME/.cache/zoxide/init.$shell"
-    atuin init "$shell" --disable-up-arrow > "$HOME/.cache/atuin/init.$shell"
-    tv init "$shell" > "$HOME/.cache/television/init.$shell"
+    has starship && starship init "$shell" > "$HOME/.cache/starship/init.$shell"
+    has zoxide   && zoxide init "$shell" > "$HOME/.cache/zoxide/init.$shell"
+    has atuin    && atuin init "$shell" --disable-up-arrow > "$HOME/.cache/atuin/init.$shell"
+    has tv       && tv init "$shell" > "$HOME/.cache/television/init.$shell"
 done
 
 # Completion commands: (command args...) — last arg is the output file basename
@@ -51,6 +53,10 @@ for shell in zsh bash; do
     for entry in "${completions[@]}"; do
         # Replace SHELL placeholder
         cmd="${entry//SHELL/$shell}"
+
+        # Skip if the tool isn't installed (first word of the command)
+        tool="${cmd%% *}"
+        has "$tool" || continue
 
         # Determine the output name (last word = tool name)
         # Special case: "rustup completions <shell> cargo" -> cargo
