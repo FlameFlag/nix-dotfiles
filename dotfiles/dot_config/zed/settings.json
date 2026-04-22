@@ -13,10 +13,38 @@
   ],
   "theme": {
     "mode": "system",
-    "light": "Catppuccin Latte (blue)",
-    "dark": "Catppuccin Frappé (blue)"
+    "light": "Catppuccin Latte (pink)",
+    "dark": "Catppuccin Frappé (pink)"
   },
-  "icon_theme": "Catppuccin Latte",
+  "icon_theme": {
+    "mode": "system",
+    "light": "Catppuccin Latte",
+    "dark": "Catppuccin Frappé"
+  },
+  "auto_install_extensions": {
+    "bash": true,
+    "catppuccin": true,
+    "catppuccin-icons": true,
+    "html": true
+  },
+  "ui_font_family": ".SystemUIFont",
+  "buffer_font_family": "TX02 Nerd Font",
+  "buffer_font_fallbacks": ["TX02 Nerd Font", "TX-02"],
+  "terminal": {
+    "font_family": "TX02 Nerd Font",
+    "font_size": 15,
+    "line_height": "standard",
+    "shell": {
+      "with_arguments": {
+        "program": "/run/current-system/sw/bin/nu",
+        "args": ["--login"]
+      }
+    },
+    "env": {
+      "COLORTERM": "truecolor",
+      "LESS": "-R"
+    }
+  },
   "disable_ai": true,
   "auto_update": false,
   "telemetry": {
@@ -56,7 +84,7 @@
       }
     },
     "HTML": {
-      "language_servers": ["html-language-server"],
+      "language_servers": ["vscode-html-language-server"],
       "formatter": {
         "external": {
           "command": "prettier",
@@ -85,12 +113,12 @@
         }
       }
     },
-    "Bash": {
+    "Shell Script": {
       "language_servers": ["bash-language-server"],
       "formatter": {
         "external": {
           "command": "shfmt",
-          "arguments": ["-i", "2"]
+          "arguments": ["--filename", "{buffer_path}", "--indent", "2"]
         }
       }
     },

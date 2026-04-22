@@ -5,6 +5,10 @@ $env.TRANSIENT_PROMPT_INDICATOR_VI_NORMAL = ""
 $env.TRANSIENT_PROMPT_MULTILINE_INDICATOR = ""
 $env.TRANSIENT_PROMPT_COMMAND_RIGHT = ^starship module time
 
+hide-env --ignore-errors NO_COLOR
+$env.COLORTERM = "truecolor"
+$env.LESS = "-R"
+
 source {{ .chezmoi.homeDir }}/.cache/starship/init.nu
 source {{ .chezmoi.homeDir }}/.cache/zoxide/init.nu
 
