@@ -14,20 +14,17 @@ let
     type
     ;
 
+  workspaceNumbers = map toString (lib.range 1 9);
+
   generateKeybindings =
-    prefix: super: modifiers: range:
-    builtins.listToAttrs (
-      builtins.genList (
-        x:
-        let
-          num = toString (x + 1);
-          modifierStr = builtins.concatStringsSep "" modifiers;
-        in
-        {
-          name = "${prefix}-${num}";
-          value = mkArray [ "${super}${modifierStr}${num}" ];
-        }
-      ) range
+    prefix: super: modifiers:
+    let
+      modifierStr = lib.concatStrings modifiers;
+    in
+    lib.listToAttrs (
+      map (
+        num: lib.nameValuePair "${prefix}-${num}" (mkArray [ "${super}${modifierStr}${num}" ])
+      ) workspaceNumbers
     );
 in
 {
@@ -131,9 +128,9 @@ in
               `switch-to-application`, which we do not want as it breaks
               everything, so we have to explicitly set it to nothing
             */
-            "org/gnome/shell/keybindings" = lib.genAttrs (map (n: "switch-to-application-${toString n}") (
-              lib.range 1 9
-            )) (_: mkEmptyArray type.string);
+            "org/gnome/shell/keybindings" = lib.genAttrs (map (
+              n: "switch-to-application-${n}"
+            ) workspaceNumbers) (_: mkEmptyArray type.string);
 
             "org/gnome/desktop/wm/keybindings" = {
               maximize = mkArray [ "<Super><Shift>Return" ];
@@ -145,8 +142,8 @@ in
                 "<Super>Tab"
               ];
             }
-            // (generateKeybindings "switch-to-workspace" "<Super>" [ ] 9)
-            // (generateKeybindings "move-to-workspace" "<Super>" [ "<Shift>" ] 9);
+            // generateKeybindings "switch-to-workspace" "<Super>" [ ]
+            // generateKeybindings "move-to-workspace" "<Super>" [ "<Shift>" ];
 
             "org/gnome/shell/app-switcher" = {
               current-workspace-only = mkBoolean false;
