@@ -18,10 +18,9 @@
 
   environment = {
     # Add inputs to legacy (nix2) channels, making legacy nix commands consistent
-    etc = lib.mapAttrs' (name: value: {
-      name = "nix/path/${name}";
-      value.source = value.flake;
-    }) config.nix.registry;
+    etc = lib.mapAttrs' (
+      name: value: lib.nameValuePair "nix/path/${name}" { source = value.flake; }
+    ) config.nix.registry;
   };
 
   # Keyboard layout
@@ -60,31 +59,14 @@
   fonts = {
     fontconfig = {
       defaultFonts = {
-        monospace = [ "Monaspice Kr Nerd Font" ];
-        sansSerif = [ "Noto Nerd Font" ];
-        serif = [ "Noto Nerd Font" ];
-        emoji = [ "Twitter Color Emoji" ];
+        monospace = [ "TX-02 Nerd Font" ];
       };
     };
     packages =
       let
         paidFonts = (pkgs.callPackage ../../pkgs/paid-fonts/build-font.nix { }).packages;
       in
-      builtins.attrValues {
-        Ubuntu = pkgs.nerd-fonts.ubuntu;
-        UbuntuMono = pkgs.nerd-fonts.ubuntu-mono;
-        UbuntuSans = pkgs.nerd-fonts.ubuntu-sans;
-        FiraCode = pkgs.nerd-fonts.fira-code;
-        Monaspace = pkgs.nerd-fonts.monaspace;
-        Noto = pkgs.nerd-fonts.noto;
-
-        inherit (pkgs)
-          noto-fonts-cjk-sans
-          noto-fonts-color-emoji
-          twemoji-color-font
-          ;
-      }
-      ++ builtins.attrValues paidFonts;
+      builtins.attrValues paidFonts;
   };
 
   # https://wiki.nixos.org/wiki/FAQ#When_do_I_update_stateVersion
