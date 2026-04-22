@@ -1,0 +1,5 @@
+{
+  "extensions": [
+    "/run/current-system/sw/bin/agent-statusline-pi.ts"
+  ]
+}
