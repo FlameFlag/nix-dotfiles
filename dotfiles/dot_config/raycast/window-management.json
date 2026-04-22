@@ -1,0 +1,10 @@
+{
+  "hotkeys": {
+    "builtin_command_windowManagementBottomHalf": "Shift-Control-Option-Command-1",
+    "builtin_command_windowManagementLeftHalf": "Shift-Control-Option-Command-0",
+    "builtin_command_windowManagementMaximize": "Shift-Control-Option-Command-42",
+    "builtin_command_windowManagementMaximizeAlmost": "Shift-Control-Option-Command-36",
+    "builtin_command_windowManagementRightHalf": "Shift-Control-Option-Command-2",
+    "builtin_command_windowManagementTopHalf": "Shift-Control-Option-Command-13"
+  }
+}

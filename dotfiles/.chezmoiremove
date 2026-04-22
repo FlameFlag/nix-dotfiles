@@ -2,4 +2,5 @@
 dot_config/Code
 dot_config/ghostty
 dot_config/nushell
+dot_config/raycast/ai/providers.yaml
 {{- end }}
