@@ -1,10 +1,4 @@
-{
-  inputs,
-  pkgs,
-  lib,
-  config,
-  ...
-}:
+{ pkgs, lib, ... }:
 {
   environment.systemPackages =
     builtins.attrValues {
@@ -22,7 +16,6 @@
         ;
 
       # Anything Language Related
-      inherit (pkgs.unstable.dotnetCorePackages) sdk_10_0-bin;
       inherit (pkgs.unstable) bun deno nodejs_25;
       inherit (pkgs.unstable) nuget-to-json;
       inherit (pkgs.unstable) go golangci-lint gopls;
@@ -31,10 +24,8 @@
         cargo
         rustc
         rustfmt
-        rustlings
         rustup
         ;
-      inherit (pkgs.unstable) zls zig;
 
       uutils-coreutils-noprefix = (lib.hiPrio pkgs.unstable.uutils-coreutils-noprefix);
       uutils-diffutils = (lib.hiPrio pkgs.unstable.uutils-diffutils);
@@ -73,7 +64,7 @@
       # Media
       inherit (pkgs) dis;
       inherit (pkgs.unstable)
-        ffmpeg-full
+        ffmpeg
         imagemagick
         mediainfo
         ;
@@ -151,16 +142,19 @@
         nushell
         starship
         yazi
-        zed-editor
+        # zed-editor
         vscode
         zellij
         zoxide
+        opencode
         ;
 
       inherit (pkgs.eupkgs)
+        agent-statusline
+        agent-statusline-pi
+        web-search-pi
+        codex
         claude-code
-        claude-statusline
-        opencode
         yt-dlp
         yt-dlp-script
         ;
