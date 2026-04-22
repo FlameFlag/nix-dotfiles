@@ -6,7 +6,7 @@
     nix-darwin.url = "github:nix-darwin/nix-darwin/nix-darwin-25.11";
 
     dis.inputs.nixpkgs.follows = "nixpkgs-unstable";
-    dis.url = "github:FlameFlag/dis/v11.2.1";
+    dis.url = "github:FlameFlag/dis/v11.3.0";
 
     eupkgs.inputs.nixpkgs.follows = "nixpkgs-unstable";
     eupkgs.url = "github:euvlok/pkgs";
@@ -24,13 +24,15 @@
   outputs =
     inputs:
     let
+      inherit (inputs.nixpkgs) lib;
+
       systems = [
         "aarch64-darwin"
         "aarch64-linux"
         "x86_64-linux"
       ];
 
-      forAllSystems = f: inputs.nixpkgs.lib.genAttrs systems (system: f system);
+      forAllSystems = lib.genAttrs systems;
     in
     {
       packages = forAllSystems (
