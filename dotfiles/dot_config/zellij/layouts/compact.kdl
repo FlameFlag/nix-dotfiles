@@ -1,9 +1,9 @@
 layout {
     default_tab_template {
-        children
+        pane
         pane size=1 borderless=true {
             plugin location="https://github.com/dj95/zjstatus/releases/latest/download/zjstatus.wasm" {
-                format_left   "{mode} #[fg=#f4b8e4,bold]{session}"
+                format_left   "{mode} #[fg=magenta,bold]flame"
                 format_center "{tabs}"
                 format_right  "{datetime}"
                 format_space  ""
@@ -11,23 +11,23 @@ layout {
                 border_enabled  "false"
                 hide_frame_for_single_pane "false"
 
-                mode_normal   "#[bg=#8caaee,fg=#292c3c] NORMAL "
-                mode_locked   "#[bg=#e5c890,fg=#292c3c] LOCKED "
-                mode_tab      "#[bg=#a6d189,fg=#292c3c] TAB "
-                mode_pane     "#[bg=#99d1db,fg=#292c3c] PANE "
-                mode_resize   "#[bg=#f4b8e4,fg=#292c3c] RESIZE "
-                mode_session  "#[bg=#e78284,fg=#292c3c] SESSION "
-                mode_scroll       "#[bg=#a6d189,fg=#292c3c] SCROLL "
-                mode_search       "#[bg=#babbf1,fg=#292c3c] SEARCH "
-                mode_move         "#[bg=#ef9f76,fg=#292c3c] MOVE "
-                mode_rename_tab   "#[bg=#a6d189,fg=#292c3c] RENAME TAB "
-                mode_rename_pane  "#[bg=#99d1db,fg=#292c3c] RENAME PANE "
-                mode_enter_search "#[bg=#babbf1,fg=#292c3c] SEARCH "
+                mode_normal   "#[bg=blue,fg=white] NORMAL "
+                mode_locked   "#[bg=yellow,fg=white] LOCKED "
+                mode_tab      "#[bg=green,fg=white] TAB "
+                mode_pane     "#[bg=cyan,fg=white] PANE "
+                mode_resize   "#[bg=magenta,fg=white] RESIZE "
+                mode_session  "#[bg=red,fg=white] SESSION "
+                mode_scroll       "#[bg=green,fg=white] SCROLL "
+                mode_search       "#[bg=blue,fg=white] SEARCH "
+                mode_move         "#[bg=orange,fg=white] MOVE "
+                mode_rename_tab   "#[bg=green,fg=white] RENAME TAB "
+                mode_rename_pane  "#[bg=cyan,fg=white] RENAME PANE "
+                mode_enter_search "#[bg=blue,fg=white] SEARCH "
 
-                tab_normal    "#[fg=#949cbb]{name} "
-                tab_active    "#[fg=#c6d0f5,bold]{name} "
+                tab_normal    "#[fg=bg]{name} "
+                tab_active    "#[fg=white,bold]{name} "
 
-                datetime      "#[fg=#949cbb] {format} "
+                datetime      "#[fg=bg] {format} "
                 datetime_format "%Y-%m-%d %H:%M:%S"
                 datetime_timezone "Europe/Sofia"
             }

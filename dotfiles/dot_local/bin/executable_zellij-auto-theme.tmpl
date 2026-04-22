@@ -1,0 +1,36 @@
+#!/usr/bin/env zsh
+set -euo pipefail
+
+theme="catppuccin-frappe"
+default_fg="#c6d0f5"
+default_bg="#303446"
+
+{{- if eq .chezmoi.os "darwin" }}
+if ! defaults read -g AppleInterfaceStyle >/dev/null 2>&1; then
+  theme="catppuccin-latte"
+  default_fg="#4c4f69"
+  default_bg="#eff1f5"
+fi
+{{- else }}
+if command -v gsettings >/dev/null 2>&1; then
+  color_scheme="$(gsettings get org.gnome.desktop.interface color-scheme 2>/dev/null || true)"
+  if [[ "$color_scheme" != *"dark"* ]]; then
+    theme="catppuccin-latte"
+    default_fg="#4c4f69"
+    default_bg="#eff1f5"
+  fi
+fi
+{{- end }}
+
+export ZELLIJ_DEFAULT_FG="$default_fg"
+export ZELLIJ_DEFAULT_BG="$default_bg"
+export ZELLIJ_SOCKET_DIR="/tmp/zellij-$UID"
+
+mkdir -p "$ZELLIJ_SOCKET_DIR"
+
+session_name="g$(date +%s)-$RANDOM"
+exec zellij options \
+  --theme "$theme" \
+  --default-layout compact \
+  --attach-to-session false \
+  --session-name "$session_name"

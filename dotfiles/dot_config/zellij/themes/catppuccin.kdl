@@ -9,8 +9,8 @@ themes {
     magenta "#ea76cb" // Pink
     orange "#fe640b" // Peach
     cyan "#04a5e5" // Sky
-    black "#e6e9ef" // Mantle
-    white "#4c4f69" // Text
+    black "#4c4f69" // Text
+    white "#eff1f5" // Base
   }
 
   catppuccin-frappe {
