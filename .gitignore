@@ -6,12 +6,20 @@ Thumbs.db
 
 .devenv/
 .direnv/
+.venv/
 result
 
 # IDEs
 **/.idea/
 **/.vs/
 **/.vscode/
+!/.vscode/
+!/.vscode/settings.json
 **/packages/
+node_modules/
+
+# Python
+**/__pycache__/
+*.py[cod]
 
 **/target/
