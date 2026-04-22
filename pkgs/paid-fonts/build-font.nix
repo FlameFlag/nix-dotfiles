@@ -17,7 +17,7 @@ let
     let
       ext = fontDef.format;
       fontDir = if ext == "otf" then "opentype" else "truetype";
-      fileGlob = if fontDef ? glob then fontDef.glob else "*.${ext}";
+      fileGlob = fontDef.glob or "*.${ext}";
     in
     pkgs.stdenvNoCC.mkDerivation {
       inherit (fontDef) pname version;
