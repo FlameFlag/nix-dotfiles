@@ -7,23 +7,13 @@
 }:
 
 let
-  capitalizeFirst =
-    str:
-    let
-      first = builtins.substring 0 1 str;
-      rest = builtins.substring 1 (builtins.stringLength str) str;
-    in
-    (lib.strings.toUpper first) + rest;
-
-  normalizedFlavor = capitalizeFirst (
-    builtins.replaceStrings [ "frappe" ] [ "frappé" ] (lib.strings.toLower flavor)
+  normalizedFlavor = lib.toSentenceCase (
+    lib.replaceStrings [ "frappe" ] [ "frappé" ] (lib.toLower flavor)
   );
-  normalizedAccent = capitalizeFirst (lib.strings.toLower accent);
+  normalizedAccent = lib.toSentenceCase accent;
 in
-assert
-  builtins.replaceStrings [ "é" ] [ "e" ] (lib.strings.toLower normalizedFlavor)
-  == lib.strings.toLower flavor;
-assert lib.strings.toLower accent == lib.strings.toLower normalizedAccent;
+assert lib.replaceStrings [ "é" ] [ "e" ] (lib.toLower normalizedFlavor) == lib.toLower flavor;
+assert lib.toLower accent == lib.toLower normalizedAccent;
 
 pkgs.stdenvNoCC.mkDerivation (finalAttrs: {
   pname = "catppuccin-userstyles";
@@ -36,7 +26,7 @@ pkgs.stdenvNoCC.mkDerivation (finalAttrs: {
     hash = "sha256-6f0Hke125ToDQZOaq4V9sgNEKtaVaoGtjGn02aWuntQ=";
   };
 
-  buildInputs = builtins.attrValues { inherit (pkgs) deno; };
+  buildInputs = [ pkgs.deno ];
 
   # Set up temporary directories that Deno can write to
   # See: https://docs.deno.com/runtime/getting_started/setup_your_environment/#deno_dir-environment-variable
