@@ -16,30 +16,13 @@
 )
 
 (defsrc
-  esc caps a s d f e h j k l scln o spc my_side_button my_extra_button
-)
-
-(defvar hold-timeout 240)
-(defvar left-hand-keys (q w e r t a s d f g z x c v b))
-(defvar right-hand-keys (y u i o p h j k l scln n m , . /))
-(defvar tap-timeout 220)
-(defvar toggle-hold-time 500)
-(deflayer base
-  caps esc @a @s @d @f e h @j @k @l scln @o-mods-on spc vold volu
-)
-
-(deflayer base-no-mods
-  caps esc a s d f e h j k l scln @o-mods-off spc vold volu
+  esc caps my_side_button my_extra_button
 )
 
 (defalias
-  o-mods-on (tap-hold 500 220 o (layer-switch base-no-mods))
-  o-mods-off (tap-hold 500 220 o (layer-switch base))
-  a (tap-hold-release-keys 240 220 a lmet (q w e r t a s d f g z x c v b))
-  d (tap-hold-release-keys 240 220 d lctl (q w e r t a s d f g z x c v b))
-  f (tap-hold-release-keys 240 220 f lsft (q w e r t a s d f g z x c v b))
-  j (tap-hold 240 220 j rsft)
-  k (tap-hold 240 220 k rctl)
-  l (tap-hold 240 220 l ralt)
-  s (tap-hold-release-keys 240 220 s lalt (q w e r t a s d f g z x c v b))
+  caps-hyper (tap-hold 1500 1500 esc (multi lmet lctl lalt lsft))
+)
+
+(deflayer base
+  caps @caps-hyper vold volu
 )

@@ -1,0 +1,857 @@
+From e72a577e4116d63d40e77c1b26c6d1e97cf63c6c Mon Sep 17 00:00:00 2001
+From: FlameFlag <git@ps1.sh>
+Date: Sun, 26 Apr 2026 20:12:38 +0300
+Subject: [PATCH] fix(macos): sync caps led and use raw mouse tap
+
+---
+ src/oskbd/macos.rs | 733 ++++++++++++++++++++++++++++++++++++---------
+ 1 file changed, 594 insertions(+), 139 deletions(-)
+
+diff --git a/src/oskbd/macos.rs b/src/oskbd/macos.rs
+index f0e203c..91ccda5 100644
+--- a/src/oskbd/macos.rs
++++ b/src/oskbd/macos.rs
+@@ -11,29 +11,37 @@ use super::*;
+ use crate::kanata::CalculatedMouseMove;
+ use crate::oskbd::KeyEvent;
+ use anyhow::anyhow;
+-use core_foundation::base::{CFType, TCFType};
++use core_foundation::array::{CFArray, CFArrayRef};
++use core_foundation::base::{
++    CFAllocatorRef, CFIndex, CFRelease, CFType, TCFType, kCFAllocatorDefault,
++};
+ use core_foundation::boolean::CFBoolean;
+ use core_foundation::dictionary::{CFDictionary, CFDictionaryRef};
++use core_foundation::mach_port::{CFMachPort, CFMachPortRef};
++use core_foundation::number::CFNumber;
+ use core_foundation::runloop::{CFRunLoop, kCFRunLoopCommonModes};
++use core_foundation::set::CFSetRef;
+ use core_foundation::string::{CFString, CFStringRef};
+ use core_graphics::base::CGFloat;
+ use core_graphics::display::{CGDisplay, CGPoint};
+ use core_graphics::event::{
+-    CGEvent, CGEventTap, CGEventTapLocation, CGEventTapOptions, CGEventTapPlacement, CGEventType,
++    CGEvent, CGEventTapLocation, CGEventTapOptions, CGEventTapPlacement, CGEventType,
+     CGMouseButton, EventField,
+ };
+ use core_graphics::event_source::{CGEventSource, CGEventSourceStateID};
++use core_graphics::sys::CGEventRef;
+ use kanata_parser::cfg::MappedKeys;
+ use kanata_parser::custom_action::*;
+ use kanata_parser::keys::*;
+ use karabiner_driverkit::*;
+-use objc::runtime::Class;
++use objc::runtime::{Class, Object};
+ use objc::{msg_send, sel, sel_impl};
+ use std::collections::HashMap;
+ use std::convert::TryFrom;
+ use std::fmt;
+ use std::io;
+ use std::io::Error;
++use std::os::raw::c_void;
+ use std::sync::OnceLock;
+ use std::sync::atomic::{AtomicBool, Ordering};
+ use std::sync::mpsc::SyncSender as Sender;
+@@ -54,6 +62,22 @@ const MOUSE_OSCODES: [OsCode; 9] = [
+     OsCode::MouseWheelRight,
+ ];
+ 
++type CGEventTapProxy = *const c_void;
++type RawCGEventTapCallback = unsafe extern "C" fn(
++    proxy: CGEventTapProxy,
++    event_type: u32,
++    event: CGEventRef,
++    user_info: *const c_void,
++) -> CGEventRef;
++
++const NX_SYSDEFINED: u32 = 14;
++const NX_SUBTYPE_AUX_MOUSE_BUTTONS: i16 = 7;
++const NX_SUBTYPE_AUX_CONTROL_BUTTONS: i16 = 8;
++
++fn event_mask_bit(event_type: u32) -> u64 {
++    1_u64 << event_type
++}
++
+ /// Sender stashed by the first `start_mouse_listener` call so that
+ /// `ensure_mouse_listener_installed_after_reload` can install the tap on a
+ /// later live reload without needing the original `event_loop` context.
+@@ -207,6 +231,72 @@ extern "C" fn karabiner_sigabrt_handler(_sig: libc::c_int) {
+ unsafe extern "C" {
+     fn IOHIDCheckAccess(request: u32) -> u32;
+     fn IOHIDRequestAccess(request: u32) -> bool;
++
++    fn CGEventTapCreate(
++        tap: CGEventTapLocation,
++        place: CGEventTapPlacement,
++        options: CGEventTapOptions,
++        events_of_interest: u64,
++        callback: RawCGEventTapCallback,
++        user_info: *const c_void,
++    ) -> CFMachPortRef;
++    fn CGEventTapEnable(tap: CFMachPortRef, enable: bool);
++    fn CGEventGetIntegerValueField(event: CGEventRef, field: u32) -> i64;
++
++    fn IOServiceMatching(name: *const libc::c_char) -> CFDictionaryRef;
++    fn IOServiceGetMatchingService(
++        main_port: libc::mach_port_t,
++        matching: CFDictionaryRef,
++    ) -> libc::mach_port_t;
++    fn IOServiceOpen(
++        service: libc::mach_port_t,
++        owning_task: libc::task_t,
++        connect_type: u32,
++        connect: *mut libc::mach_port_t,
++    ) -> libc::kern_return_t;
++    fn IOServiceClose(connect: libc::mach_port_t) -> libc::kern_return_t;
++    fn IOObjectRelease(object: libc::mach_port_t) -> libc::kern_return_t;
++    fn IOHIDGetModifierLockState(
++        handle: libc::mach_port_t,
++        selector: libc::c_int,
++        state: *mut bool,
++    ) -> libc::kern_return_t;
++    fn IOHIDSetModifierLockState(
++        handle: libc::mach_port_t,
++        selector: libc::c_int,
++        state: bool,
++    ) -> libc::kern_return_t;
++
++    fn IOHIDManagerCreate(allocator: CFAllocatorRef, options: u32) -> IOHIDManagerRef;
++    fn IOHIDManagerSetDeviceMatchingMultiple(manager: IOHIDManagerRef, multiple: CFArrayRef);
++    fn IOHIDManagerOpen(manager: IOHIDManagerRef, options: u32) -> libc::kern_return_t;
++    fn IOHIDManagerClose(manager: IOHIDManagerRef, options: u32) -> libc::kern_return_t;
++    fn IOHIDManagerCopyDevices(manager: IOHIDManagerRef) -> CFSetRef;
++    fn IOHIDDeviceOpen(device: IOHIDDeviceRef, options: u32) -> libc::kern_return_t;
++    fn IOHIDDeviceClose(device: IOHIDDeviceRef, options: u32) -> libc::kern_return_t;
++    fn IOHIDDeviceCopyMatchingElements(
++        device: IOHIDDeviceRef,
++        matching: CFDictionaryRef,
++        options: u32,
++    ) -> CFArrayRef;
++    fn IOHIDElementGetLogicalMin(element: IOHIDElementRef) -> CFIndex;
++    fn IOHIDElementGetLogicalMax(element: IOHIDElementRef) -> CFIndex;
++    fn IOHIDValueCreateWithIntegerValue(
++        allocator: CFAllocatorRef,
++        element: IOHIDElementRef,
++        time_stamp: u64,
++        value: CFIndex,
++    ) -> IOHIDValueRef;
++    fn IOHIDDeviceSetValue(
++        device: IOHIDDeviceRef,
++        element: IOHIDElementRef,
++        value: IOHIDValueRef,
++    ) -> libc::kern_return_t;
++    fn CFSetGetCount(set: CFSetRef) -> CFIndex;
++    fn CFSetGetValues(set: CFSetRef, values: *mut *const c_void);
++    fn CFArrayGetCount(array: CFArrayRef) -> CFIndex;
++    fn CFArrayGetValueAtIndex(array: CFArrayRef, idx: CFIndex) -> *const c_void;
++    fn mach_absolute_time() -> u64;
+ }
+ 
+ // ApplicationServices bindings for the Accessibility TCC gate.
+@@ -236,6 +326,21 @@ const K_IOHID_REQUEST_TYPE_LISTEN_EVENT: u32 = 1;
+ const K_IOHID_ACCESS_TYPE_GRANTED: u32 = 0;
+ const K_IOHID_ACCESS_TYPE_DENIED: u32 = 1;
+ const K_IOHID_ACCESS_TYPE_UNKNOWN: u32 = 2;
++/// `kIOHIDParamConnectType` from `<IOKit/hidsystem/IOHIDShared.h>`.
++const K_IOHID_PARAM_CONNECT_TYPE: u32 = 1;
++/// `kIOHIDCapsLockState` from `<IOKit/hidsystem/IOHIDParameter.h>`.
++const K_IOHID_CAPS_LOCK_STATE: libc::c_int = 1;
++const KERN_SUCCESS: libc::kern_return_t = 0;
++const K_HID_PAGE_GENERIC_DESKTOP: i32 = 0x01;
++const K_HID_USAGE_GD_KEYBOARD: i32 = 0x06;
++const K_HID_PAGE_LEDS: i32 = 0x08;
++const K_HID_USAGE_LED_CAPS_LOCK: i32 = 0x02;
++const K_IOHID_ELEMENT_TYPE_OUTPUT: i32 = 129;
++
++type IOHIDManagerRef = *mut c_void;
++type IOHIDDeviceRef = *mut c_void;
++type IOHIDElementRef = *mut c_void;
++type IOHIDValueRef = *mut c_void;
+ 
+ #[derive(Copy, Clone, Debug, Eq, PartialEq)]
+ pub enum AccessibilityPermissionStatus {
+@@ -366,6 +471,248 @@ fn ensure_accessibility_permission() -> Result<(), anyhow::Error> {
+     }
+ }
+ 
++fn with_hid_system_connect<T>(f: impl FnOnce(libc::mach_port_t) -> T) -> Result<T, io::Error> {
++    let service_name = c"IOHIDSystem";
++    let service = unsafe {
++        let matching = IOServiceMatching(service_name.as_ptr());
++        if matching.is_null() {
++            return Err(io::Error::other("IOServiceMatching(IOHIDSystem) failed"));
++        }
++
++        // IOServiceGetMatchingService consumes the matching dictionary.
++        IOServiceGetMatchingService(0, matching)
++    };
++
++    if service == 0 {
++        return Err(io::Error::other("IOHIDSystem service not found"));
++    }
++
++    let mut connect = 0;
++    let open_result = unsafe {
++        let kr = IOServiceOpen(
++            service,
++            libc::mach_task_self(),
++            K_IOHID_PARAM_CONNECT_TYPE,
++            &mut connect,
++        );
++        IOObjectRelease(service);
++        kr
++    };
++    if open_result != KERN_SUCCESS {
++        return Err(io::Error::other(format!(
++            "IOServiceOpen(IOHIDSystem) failed: {open_result:#x}"
++        )));
++    }
++
++    let result = f(connect);
++    unsafe {
++        IOServiceClose(connect);
++    }
++    Ok(result)
++}
++
++fn get_caps_lock_state() -> Result<bool, io::Error> {
++    with_hid_system_connect(|connect| {
++        let mut state = false;
++        let kr = unsafe { IOHIDGetModifierLockState(connect, K_IOHID_CAPS_LOCK_STATE, &mut state) };
++        if kr == KERN_SUCCESS {
++            Ok(state)
++        } else {
++            Err(io::Error::other(format!(
++                "IOHIDGetModifierLockState(caps) failed: {kr:#x}"
++            )))
++        }
++    })?
++}
++
++fn set_caps_lock_state(state: bool) -> Result<(), io::Error> {
++    with_hid_system_connect(|connect| {
++        let kr = unsafe { IOHIDSetModifierLockState(connect, K_IOHID_CAPS_LOCK_STATE, state) };
++        if kr == KERN_SUCCESS {
++            Ok(())
++        } else {
++            Err(io::Error::other(format!(
++                "IOHIDSetModifierLockState(caps={state}) failed: {kr:#x}"
++            )))
++        }
++    })?
++}
++
++fn cf_number(value: i32) -> CFNumber {
++    CFNumber::from(value)
++}
++
++fn keyboard_matching_dictionary() -> CFDictionary<CFString, CFNumber> {
++    CFDictionary::from_CFType_pairs(&[
++        (
++            CFString::from_static_string("DeviceUsagePage"),
++            cf_number(K_HID_PAGE_GENERIC_DESKTOP),
++        ),
++        (
++            CFString::from_static_string("DeviceUsage"),
++            cf_number(K_HID_USAGE_GD_KEYBOARD),
++        ),
++    ])
++}
++
++fn caps_lock_led_element_matching_dictionary() -> CFDictionary<CFString, CFNumber> {
++    CFDictionary::from_CFType_pairs(&[
++        (
++            CFString::from_static_string("UsagePage"),
++            cf_number(K_HID_PAGE_LEDS),
++        ),
++        (
++            CFString::from_static_string("Usage"),
++            cf_number(K_HID_USAGE_LED_CAPS_LOCK),
++        ),
++        (
++            CFString::from_static_string("Type"),
++            cf_number(K_IOHID_ELEMENT_TYPE_OUTPUT),
++        ),
++    ])
++}
++
++fn set_physical_caps_lock_leds(state: bool) -> Result<(), io::Error> {
++    let manager = unsafe { IOHIDManagerCreate(kCFAllocatorDefault, 0) };
++    if manager.is_null() {
++        return Err(io::Error::other("IOHIDManagerCreate failed"));
++    }
++
++    let result = (|| {
++        let keyboard_match = keyboard_matching_dictionary();
++        let match_array = CFArray::from_CFTypes(&[keyboard_match.as_CFType()]);
++        unsafe {
++            IOHIDManagerSetDeviceMatchingMultiple(manager, match_array.as_concrete_TypeRef());
++        }
++
++        let kr = unsafe { IOHIDManagerOpen(manager, 0) };
++        if kr != KERN_SUCCESS {
++            return Err(io::Error::other(format!(
++                "IOHIDManagerOpen(keyboards) failed: {kr:#x}"
++            )));
++        }
++
++        let devices = unsafe { IOHIDManagerCopyDevices(manager) };
++        if devices.is_null() {
++            unsafe {
++                IOHIDManagerClose(manager, 0);
++            }
++            return Ok(());
++        }
++
++        let led_match = caps_lock_led_element_matching_dictionary();
++        let mut first_error: Option<io::Error> = None;
++        let mut updated_count = 0usize;
++
++        let device_count = unsafe { CFSetGetCount(devices) };
++        let mut device_values = vec![std::ptr::null(); device_count.max(0) as usize];
++        unsafe {
++            CFSetGetValues(devices, device_values.as_mut_ptr());
++        }
++
++        for device in device_values {
++            let device = device as IOHIDDeviceRef;
++            if device.is_null() {
++                continue;
++            }
++
++            let open_kr = unsafe { IOHIDDeviceOpen(device, 0) };
++            let device_was_opened = open_kr == KERN_SUCCESS;
++            if !device_was_opened {
++                log::trace!(
++                    "failed to open HID keyboard while setting Caps Lock LED; \
++                     attempting LED write anyway: {open_kr:#x}"
++                );
++            }
++
++            let elements = unsafe {
++                IOHIDDeviceCopyMatchingElements(device, led_match.as_concrete_TypeRef(), 0)
++            };
++            if elements.is_null() {
++                if device_was_opened {
++                    unsafe {
++                        IOHIDDeviceClose(device, 0);
++                    }
++                }
++                continue;
++            }
++
++            let element_count = unsafe { CFArrayGetCount(elements) };
++            for i in 0..element_count {
++                let element = unsafe { CFArrayGetValueAtIndex(elements, i) as IOHIDElementRef };
++                if element.is_null() {
++                    continue;
++                }
++
++                let value = if state {
++                    unsafe { IOHIDElementGetLogicalMax(element) }
++                } else {
++                    unsafe { IOHIDElementGetLogicalMin(element) }
++                };
++                let hid_value = unsafe {
++                    IOHIDValueCreateWithIntegerValue(
++                        kCFAllocatorDefault,
++                        element,
++                        mach_absolute_time(),
++                        value,
++                    )
++                };
++                if hid_value.is_null() {
++                    continue;
++                }
++
++                let set_kr = unsafe { IOHIDDeviceSetValue(device, element, hid_value) };
++                unsafe {
++                    CFRelease(hid_value as _);
++                }
++
++                if set_kr == KERN_SUCCESS {
++                    updated_count += 1;
++                } else if first_error.is_none() {
++                    first_error = Some(io::Error::other(format!(
++                        "IOHIDDeviceSetValue(Caps Lock LED={state}) failed: {set_kr:#x}"
++                    )));
++                }
++            }
++
++            unsafe {
++                CFRelease(elements as _);
++                if device_was_opened {
++                    IOHIDDeviceClose(device, 0);
++                }
++            }
++        }
++
++        unsafe {
++            CFRelease(devices as _);
++            IOHIDManagerClose(manager, 0);
++        }
++
++        if updated_count == 0
++            && let Some(error) = first_error
++        {
++            Err(error)
++        } else {
++            Ok(())
++        }
++    })();
++
++    unsafe {
++        CFRelease(manager as _);
++    }
++
++    result
++}
++
++fn toggle_caps_lock_state_and_led() -> Result<(), io::Error> {
++    let new_state = !get_caps_lock_state()?;
++    set_caps_lock_state(new_state)?;
++    if let Err(error) = set_physical_caps_lock_leds(new_state) {
++        log::warn!("failed to update physical Caps Lock LED: {error}");
++    }
++    Ok(())
++}
++
+ /// Install a `SIGABRT` handler that adds an actionable hint about
+ /// Karabiner setup issues *after* libc++abi prints its own
+ /// uncaught-exception message, and enter the "Karabiner startup phase"
+@@ -954,6 +1301,19 @@ impl KbdOut {
+     }
+ 
+     pub fn write_key(&mut self, key: OsCode, value: KeyValue) -> Result<(), io::Error> {
++        if key == OsCode::KEY_CAPSLOCK {
++            let result = match value {
++                KeyValue::Press | KeyValue::Repeat | KeyValue::Tap => {
++                    toggle_caps_lock_state_and_led()
++                }
++                KeyValue::Release | KeyValue::WakeUp => Ok(()),
++            };
++            if result.is_ok() {
++                self.record_output_transition_after_write(key, value);
++            }
++            return result;
++        }
++
+         if let Ok(event) = InputEvent::try_from(KeyEvent { value, code: key }) {
+             match self.write(event) {
+                 Ok(()) => {
+@@ -973,6 +1333,9 @@ impl KbdOut {
+             log::debug!("couldn't write unrecognized OsCode {code}");
+             return Err(io::Error::other("OsCode not recognized!"));
+         };
++        if key == OsCode::KEY_CAPSLOCK {
++            return self.write_key(key, value);
++        }
+         if let Ok(event) = InputEvent::try_from(KeyEvent { value, code: key }) {
+             match self.write(event) {
+                 Ok(()) => Ok(()),
+@@ -1266,15 +1629,38 @@ impl TryFrom<(CGEventType, i64)> for KeyEvent {
+     }
+ }
+ 
+-/// Decode a `ScrollWheel` `CGEvent` into a kanata `KeyEvent`. A scroll event
+-/// may carry both axes simultaneously (diagonal scroll on a trackpad); we
+-/// pick the dominant axis with vertical winning ties, matching how Linux
+-/// processes one `REL_WHEEL`/`REL_HWHEEL` at a time. The axis/sign convention
+-/// mirrors `OsKbdOut::scroll`.
+-fn scroll_event_to_key_event(event: &CGEvent) -> Option<KeyEvent> {
++fn key_event_from_mouse_event(event_type: u32, button_number: i64) -> Option<KeyEvent> {
+     use OsCode::*;
+-    let dy = event.get_integer_value_field(EventField::SCROLL_WHEEL_EVENT_DELTA_AXIS_1);
+-    let dx = event.get_integer_value_field(EventField::SCROLL_WHEEL_EVENT_DELTA_AXIS_2);
++    let (code, value) = match event_type {
++        x if x == CGEventType::LeftMouseDown as u32 => (BTN_LEFT, KeyValue::Press),
++        x if x == CGEventType::LeftMouseUp as u32 => (BTN_LEFT, KeyValue::Release),
++        x if x == CGEventType::RightMouseDown as u32 => (BTN_RIGHT, KeyValue::Press),
++        x if x == CGEventType::RightMouseUp as u32 => (BTN_RIGHT, KeyValue::Release),
++        x if x == CGEventType::OtherMouseDown as u32 || x == CGEventType::OtherMouseUp as u32 => {
++            let code = match button_number {
++                2 => BTN_MIDDLE,
++                3 => BTN_SIDE,
++                4 => BTN_EXTRA,
++                _ => return None,
++            };
++            let value = if event_type == CGEventType::OtherMouseDown as u32 {
++                KeyValue::Press
++            } else {
++                KeyValue::Release
++            };
++            (code, value)
++        }
++        _ => return None,
++    };
++    Some(KeyEvent { code, value })
++}
++
++fn raw_scroll_event_to_key_event(event: CGEventRef) -> Option<KeyEvent> {
++    use OsCode::*;
++    let dy =
++        unsafe { CGEventGetIntegerValueField(event, EventField::SCROLL_WHEEL_EVENT_DELTA_AXIS_1) };
++    let dx =
++        unsafe { CGEventGetIntegerValueField(event, EventField::SCROLL_WHEEL_EVENT_DELTA_AXIS_2) };
+     let code = if dy.abs() >= dx.abs() {
+         match dy.signum() {
+             1 => MouseWheelDown,
+@@ -1294,6 +1680,154 @@ fn scroll_event_to_key_event(event: &CGEvent) -> Option<KeyEvent> {
+     })
+ }
+ 
++fn send_mapped_mouse_button_event(
++    tx: &Sender<KeyEvent>,
++    event_type: u32,
++    button_number: i64,
++) -> bool {
++    let mut key_event = match key_event_from_mouse_event(event_type, button_number) {
++        Some(ev) => ev,
++        None => return false,
++    };
++
++    if !crate::kanata::MAPPED_KEYS.lock().contains(&key_event.code) {
++        return false;
++    }
++
++    match key_event.value {
++        KeyValue::Release => {
++            crate::kanata::PRESSED_KEYS.lock().remove(&key_event.code);
++        }
++        KeyValue::Press => {
++            let mut pressed_keys = crate::kanata::PRESSED_KEYS.lock();
++            if pressed_keys.contains(&key_event.code) {
++                key_event.value = KeyValue::Repeat;
++            } else {
++                pressed_keys.insert(key_event.code);
++            }
++        }
++        _ => {}
++    }
++
++    log::debug!("mouse tap: {key_event:?}");
++
++    if let Err(e) = tx.try_send(key_event) {
++        log::warn!("mouse tap: failed to send event: {e}");
++        return false;
++    }
++
++    true
++}
++
++fn mapped_aux_button_bits() -> u64 {
++    let mapped_keys = crate::kanata::MAPPED_KEYS.lock();
++    let mut bits = 0;
++    if mapped_keys.contains(&OsCode::BTN_MIDDLE) {
++        bits |= 1_u64 << 2;
++    }
++    if mapped_keys.contains(&OsCode::BTN_SIDE) {
++        bits |= 1_u64 << 3;
++    }
++    if mapped_keys.contains(&OsCode::BTN_EXTRA) {
++        bits |= 1_u64 << 4;
++    }
++    bits
++}
++
++fn aux_mouse_button_change(event: CGEventRef) -> Option<(u64, u64)> {
++    let ns_event_class = Class::get("NSEvent")?;
++    let ns_event: *mut Object = unsafe { msg_send![ns_event_class, eventWithCGEvent: event] };
++    if ns_event.is_null() {
++        return None;
++    }
++
++    let event_type: i64 = unsafe { msg_send![ns_event, type] };
++    if event_type != NX_SYSDEFINED as i64 {
++        return None;
++    }
++
++    let subtype: i16 = unsafe { msg_send![ns_event, subtype] };
++    if !matches!(
++        subtype,
++        NX_SUBTYPE_AUX_MOUSE_BUTTONS | NX_SUBTYPE_AUX_CONTROL_BUTTONS
++    ) {
++        return None;
++    }
++
++    let changed_buttons: i64 = unsafe { msg_send![ns_event, data1] };
++    let button_state: i64 = unsafe { msg_send![ns_event, data2] };
++    Some((changed_buttons as u64, button_state as u64))
++}
++
++unsafe extern "C" fn raw_mouse_event_tap_callback(
++    _proxy: CGEventTapProxy,
++    event_type: u32,
++    event: CGEventRef,
++    _user_info: *const c_void,
++) -> CGEventRef {
++    let tx = match MOUSE_TAP_TX.get() {
++        Some(tx) => tx,
++        None => return event,
++    };
++
++    if matches!(
++        event_type,
++        x if x == CGEventType::MouseMoved as u32
++            || x == CGEventType::LeftMouseDragged as u32
++            || x == CGEventType::RightMouseDragged as u32
++            || x == CGEventType::OtherMouseDragged as u32
++    ) {
++        let mmk_slot = match MOUSE_MOVEMENT_KEY.get() {
++            Some(slot) => slot,
++            None => return event,
++        };
++        if let Some(code) = *mmk_slot.lock() {
++            let fake = KeyEvent {
++                code,
++                value: KeyValue::Tap,
++            };
++            if let Err(e) = tx.try_send(fake) {
++                log::trace!("mouse tap (movement): drop synthetic tap: {e}");
++            }
++        }
++        return event;
++    }
++
++    if event_type == CGEventType::ScrollWheel as u32 {
++        let Some(key_event) = raw_scroll_event_to_key_event(event) else {
++            return event;
++        };
++        if !crate::kanata::MAPPED_KEYS.lock().contains(&key_event.code) {
++            return event;
++        }
++        log::debug!("mouse tap (wheel): {key_event:?}");
++        if let Err(e) = tx.try_send(key_event) {
++            log::warn!("mouse tap: failed to send wheel event: {e}");
++            return event;
++        }
++        return std::ptr::null_mut();
++    }
++
++    if event_type == NX_SYSDEFINED {
++        let Some((changed_buttons, _button_state)) = aux_mouse_button_change(event) else {
++            return event;
++        };
++        if changed_buttons & mapped_aux_button_bits() != 0 {
++            log::debug!("mouse tap: suppress aux-button system event changed={changed_buttons:#x}");
++            return std::ptr::null_mut();
++        }
++        return event;
++    }
++
++    let button_number =
++        unsafe { CGEventGetIntegerValueField(event, EventField::MOUSE_EVENT_BUTTON_NUMBER) };
++    if send_mapped_mouse_button_event(tx, event_type, button_number) {
++        std::ptr::null_mut()
++    } else {
++        event
++    }
++}
++
+ /// Start a CGEventTap on a background thread to intercept mouse button events
+ /// and (optionally) cursor movement events. macOS equivalent of the Windows
+ /// mouse hook in `windows/llhook.rs` plus the cursor-movement branch of the
+@@ -1359,151 +1893,72 @@ pub fn start_mouse_listener(
+     let spawn_result = std::thread::Builder::new()
+         .name("mouse-event-tap".into())
+         .spawn(move || {
+-            let events_of_interest = vec![
+-                CGEventType::LeftMouseDown,
+-                CGEventType::LeftMouseUp,
+-                CGEventType::RightMouseDown,
+-                CGEventType::RightMouseUp,
+-                CGEventType::OtherMouseDown,
+-                CGEventType::OtherMouseUp,
+-                CGEventType::ScrollWheel,
+-                CGEventType::MouseMoved,
+-                CGEventType::LeftMouseDragged,
+-                CGEventType::RightMouseDragged,
+-                CGEventType::OtherMouseDragged,
+-            ];
+-
+-            // Tap at the *session* location, not HID. HID taps sit upstream of
++            // Tap at the *annotated session* location, not HID. HID taps sit upstream of
+             // the window server and coalesce with raw HID delivery; on some
+             // Bluetooth mice this either freezes the cursor entirely
+             // (issue #739) or pins it to the screen edges because relative
+             // movement deltas race with the tap thread (issue #1636, Logitech
+-            // M720 and friends). Session taps sit downstream of the window
+-            // server and see post-acceleration button/wheel/movement events,
++            // M720 and friends). Annotated-session taps sit downstream of the
++            // window server and see post-acceleration button/wheel/movement events,
+             // which is everything kanata actually needs and does not interfere
+-            // with cursor delivery. Note: *posting* synthetic mouse events
+-            // still uses the HID location; that's unrelated and intentional.
+-            let tap = match CGEventTap::new(
+-                CGEventTapLocation::Session,
+-                CGEventTapPlacement::HeadInsertEventTap,
+-                CGEventTapOptions::Default,
+-                events_of_interest,
+-                // Callback receives &CGEvent; return Some(clone) to pass through,
+-                // None to suppress the event.
+-                move |_proxy, event_type, event| {
+-                    // Cursor movement (incl. drags while a button is held).
+-                    // Always pass through — never suppress, or the cursor freezes.
+-                    if matches!(
+-                        event_type,
+-                        CGEventType::MouseMoved
+-                            | CGEventType::LeftMouseDragged
+-                            | CGEventType::RightMouseDragged
+-                            | CGEventType::OtherMouseDragged
+-                    ) {
+-                        // The Arc is stashed before this tap is created, so
+-                        // `get()` is `Some` in practice. Fall back to a plain
+-                        // pass-through if not, rather than panicking on the
+-                        // hot path.
+-                        let mmk_slot = match MOUSE_MOVEMENT_KEY.get() {
+-                            Some(slot) => slot,
+-                            None => return Some(event.clone()),
+-                        };
+-                        if let Some(code) = *mmk_slot.lock() {
+-                            let fake = KeyEvent {
+-                                code,
+-                                value: KeyValue::Tap,
+-                            };
+-                            if let Err(e) = tx.try_send(fake) {
+-                                // Drops are expected under high movement rates;
+-                                // the user only needs one tap to refresh their
+-                                // hold timer, so this is not user-visible.
+-                                log::trace!("mouse tap (movement): drop synthetic tap: {e}");
+-                            }
+-                        }
+-                        return Some(event.clone());
+-                    }
+-
+-                    if matches!(event_type, CGEventType::ScrollWheel) {
+-                        let Some(key_event) = scroll_event_to_key_event(event) else {
+-                            return Some(event.clone());
+-                        };
+-                        if !crate::kanata::MAPPED_KEYS.lock().contains(&key_event.code) {
+-                            return Some(event.clone());
+-                        }
+-                        log::debug!("mouse tap (wheel): {key_event:?}");
+-                        if let Err(e) = tx.try_send(key_event) {
+-                            log::warn!("mouse tap: failed to send wheel event: {e}");
+-                            return Some(event.clone());
+-                        }
+-                        return None;
+-                    }
+-
+-                    let button_number =
+-                        event.get_integer_value_field(EventField::MOUSE_EVENT_BUTTON_NUMBER);
+-                    let mut key_event = match KeyEvent::try_from((event_type, button_number)) {
+-                        Ok(ev) => ev,
+-                        Err(()) => return Some(event.clone()),
+-                    };
+-
+-                    if !crate::kanata::MAPPED_KEYS.lock().contains(&key_event.code) {
+-                        return Some(event.clone());
+-                    }
+-
+-                    // Track pressed state to convert duplicate presses into repeats,
+-                    // matching the keyboard event loop behavior.
+-                    match key_event.value {
+-                        KeyValue::Release => {
+-                            crate::kanata::PRESSED_KEYS.lock().remove(&key_event.code);
+-                        }
+-                        KeyValue::Press => {
+-                            let mut pressed_keys = crate::kanata::PRESSED_KEYS.lock();
+-                            if pressed_keys.contains(&key_event.code) {
+-                                key_event.value = KeyValue::Repeat;
+-                            } else {
+-                                pressed_keys.insert(key_event.code);
+-                            }
+-                        }
+-                        _ => {}
+-                    }
+-
+-                    log::debug!("mouse tap: {key_event:?}");
+-
+-                    if let Err(e) = tx.try_send(key_event) {
+-                        log::warn!("mouse tap: failed to send event: {e}");
+-                        return Some(event.clone());
+-                    }
+-
+-                    // Suppress the original event so it doesn't reach the system.
+-                    None
+-                },
+-            ) {
+-                Ok(tap) => tap,
+-                Err(()) => {
+-                    log::error!(
+-                        "Failed to create mouse event tap. \
+-                         Ensure kanata has Accessibility or Input Monitoring permission \
+-                         in System Settings > Privacy & Security."
+-                    );
+-                    // Release the install claim so a future live reload can
+-                    // retry once the user grants permission.
+-                    MOUSE_TAP_INSTALLED.store(false, Ordering::Release);
+-                    return;
+-                }
++            // with cursor delivery. Using the annotated-session tap also lets a
++            // root launchd daemon suppress M4/M5 before browsers interpret them
++            // as Back/Forward in the user's GUI session. Note: *posting*
++            // synthetic mouse events still uses the HID location; that's
++            // unrelated and intentional.
++            let events_of_interest = event_mask_bit(CGEventType::LeftMouseDown as u32)
++                | event_mask_bit(CGEventType::LeftMouseUp as u32)
++                | event_mask_bit(CGEventType::RightMouseDown as u32)
++                | event_mask_bit(CGEventType::RightMouseUp as u32)
++                | event_mask_bit(CGEventType::OtherMouseDown as u32)
++                | event_mask_bit(CGEventType::OtherMouseUp as u32)
++                | event_mask_bit(CGEventType::ScrollWheel as u32)
++                | event_mask_bit(CGEventType::MouseMoved as u32)
++                | event_mask_bit(CGEventType::LeftMouseDragged as u32)
++                | event_mask_bit(CGEventType::RightMouseDragged as u32)
++                | event_mask_bit(CGEventType::OtherMouseDragged as u32)
++                | event_mask_bit(NX_SYSDEFINED);
++
++            let tap_ref = unsafe {
++                CGEventTapCreate(
++                    CGEventTapLocation::AnnotatedSession,
++                    CGEventTapPlacement::HeadInsertEventTap,
++                    CGEventTapOptions::Default,
++                    events_of_interest,
++                    raw_mouse_event_tap_callback,
++                    std::ptr::null(),
++                )
+             };
++            if tap_ref.is_null() {
++                log::error!(
++                    "Failed to create mouse event tap. \
++                     Ensure kanata has Accessibility or Input Monitoring permission \
++                     in System Settings > Privacy & Security."
++                );
++                // Release the install claim so a future live reload can
++                // retry once the user grants permission.
++                MOUSE_TAP_INSTALLED.store(false, Ordering::Release);
++                return;
++            }
++
++            let tap = unsafe { CFMachPort::wrap_under_create_rule(tap_ref) };
+ 
+-            let Ok(loop_source) = tap.mach_port.create_runloop_source(0) else {
++            let Ok(loop_source) = tap.create_runloop_source(0) else {
+                 log::error!("failed to create CFRunLoop source for mouse event tap");
+                 MOUSE_TAP_INSTALLED.store(false, Ordering::Release);
+                 return;
+             };
++
+             // Safety: kCFRunLoopCommonModes is an extern static from CoreFoundation.
+             // Accessing it requires unsafe but is always valid in a running process.
+             let mode = unsafe { kCFRunLoopCommonModes };
+             CFRunLoop::get_current().add_source(&loop_source, mode);
+-            tap.enable();
++            unsafe {
++                CGEventTapEnable(tap.as_concrete_TypeRef(), true);
++            }
+             // MOUSE_TAP_INSTALLED was already set by the caller via
+             // compare_exchange before this thread was spawned.
+-            log::info!("Mouse event tap installed and active.");
++            log::info!("Annotated-session mouse event tap installed and active.");
+             CFRunLoop::run_current();
+         });
+ 
+-- 
+2.53.0
+

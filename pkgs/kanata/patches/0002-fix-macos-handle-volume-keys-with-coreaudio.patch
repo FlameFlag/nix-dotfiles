@@ -1,0 +1,405 @@
+From c7b5cdda12cdcbe40a8db247d13980951ff0f5e2 Mon Sep 17 00:00:00 2001
+From: FlameFlag <git@ps1.sh>
+Date: Sun, 26 Apr 2026 20:12:54 +0300
+Subject: [PATCH] fix(macos): handle volume keys with CoreAudio
+
+---
+ src/oskbd/macos.rs | 315 +++++++++++++++++++++++++++++++++++++++++++--
+ 1 file changed, 307 insertions(+), 8 deletions(-)
+
+diff --git a/src/oskbd/macos.rs b/src/oskbd/macos.rs
+index 91ccda5..d62fa23 100644
+--- a/src/oskbd/macos.rs
++++ b/src/oskbd/macos.rs
+@@ -266,6 +266,15 @@ unsafe extern "C" {
+         selector: libc::c_int,
+         state: bool,
+     ) -> libc::kern_return_t;
++    fn IOHIDPostEvent(
++        connect: libc::mach_port_t,
++        event_type: u32,
++        location: IOGPoint,
++        event_data: *const NXEventDataCompound,
++        event_data_version: u32,
++        event_flags: u32,
++        options: u32,
++    ) -> libc::kern_return_t;
+ 
+     fn IOHIDManagerCreate(allocator: CFAllocatorRef, options: u32) -> IOHIDManagerRef;
+     fn IOHIDManagerSetDeviceMatchingMultiple(manager: IOHIDManagerRef, multiple: CFArrayRef);
+@@ -321,12 +330,14 @@ unsafe extern "C" {
+ /// `IOHIDRequestType::kIOHIDRequestTypeListenEvent` from
+ /// `<IOKit/hid/IOHIDLib.h>`: the request type that maps to the Input
+ /// Monitoring TCC service.
++const K_IOHID_REQUEST_TYPE_POST_EVENT: u32 = 0;
+ const K_IOHID_REQUEST_TYPE_LISTEN_EVENT: u32 = 1;
+ /// `IOHIDAccessType` values from `<IOKit/hid/IOHIDLib.h>`.
+ const K_IOHID_ACCESS_TYPE_GRANTED: u32 = 0;
+ const K_IOHID_ACCESS_TYPE_DENIED: u32 = 1;
+ const K_IOHID_ACCESS_TYPE_UNKNOWN: u32 = 2;
+ /// `kIOHIDParamConnectType` from `<IOKit/hidsystem/IOHIDShared.h>`.
++const K_IOHID_SERVER_CONNECT_TYPE: u32 = 0;
+ const K_IOHID_PARAM_CONNECT_TYPE: u32 = 1;
+ /// `kIOHIDCapsLockState` from `<IOKit/hidsystem/IOHIDParameter.h>`.
+ const K_IOHID_CAPS_LOCK_STATE: libc::c_int = 1;
+@@ -336,6 +347,25 @@ const K_HID_USAGE_GD_KEYBOARD: i32 = 0x06;
+ const K_HID_PAGE_LEDS: i32 = 0x08;
+ const K_HID_USAGE_LED_CAPS_LOCK: i32 = 0x02;
+ const K_IOHID_ELEMENT_TYPE_OUTPUT: i32 = 129;
++const K_NX_EVENT_DATA_VERSION: u32 = 2;
++const K_NX_KEY_STATE_DOWN: i32 = 0xA;
++const K_NX_KEY_STATE_UP: i32 = 0xB;
++const K_NX_KEYTYPE_SOUND_UP: i32 = 0;
++const K_NX_KEYTYPE_SOUND_DOWN: i32 = 1;
++
++#[repr(C)]
++#[derive(Copy, Clone)]
++struct IOGPoint {
++    x: i16,
++    y: i16,
++}
++
++#[repr(C)]
++struct NXEventDataCompound {
++    reserved: i16,
++    subtype: i16,
++    misc: [i32; 11],
++}
+ 
+ type IOHIDManagerRef = *mut c_void;
+ type IOHIDDeviceRef = *mut c_void;
+@@ -472,6 +502,13 @@ fn ensure_accessibility_permission() -> Result<(), anyhow::Error> {
+ }
+ 
+ fn with_hid_system_connect<T>(f: impl FnOnce(libc::mach_port_t) -> T) -> Result<T, io::Error> {
++    with_hid_system_connect_type(K_IOHID_PARAM_CONNECT_TYPE, f)
++}
++
++fn with_hid_system_connect_type<T>(
++    connect_type: u32,
++    f: impl FnOnce(libc::mach_port_t) -> T,
++) -> Result<T, io::Error> {
+     let service_name = c"IOHIDSystem";
+     let service = unsafe {
+         let matching = IOServiceMatching(service_name.as_ptr());
+@@ -489,18 +526,13 @@ fn with_hid_system_connect<T>(f: impl FnOnce(libc::mach_port_t) -> T) -> Result<
+ 
+     let mut connect = 0;
+     let open_result = unsafe {
+-        let kr = IOServiceOpen(
+-            service,
+-            libc::mach_task_self(),
+-            K_IOHID_PARAM_CONNECT_TYPE,
+-            &mut connect,
+-        );
++        let kr = IOServiceOpen(service, libc::mach_task_self(), connect_type, &mut connect);
+         IOObjectRelease(service);
+         kr
+     };
+     if open_result != KERN_SUCCESS {
+         return Err(io::Error::other(format!(
+-            "IOServiceOpen(IOHIDSystem) failed: {open_result:#x}"
++            "IOServiceOpen(IOHIDSystem, connect_type={connect_type}) failed: {open_result:#x}"
+         )));
+     }
+ 
+@@ -538,6 +570,62 @@ fn set_caps_lock_state(state: bool) -> Result<(), io::Error> {
+     })?
+ }
+ 
++fn post_hid_aux_key(key_type: i32, pressed: bool) -> Result<(), io::Error> {
++    let status = unsafe { IOHIDCheckAccess(K_IOHID_REQUEST_TYPE_POST_EVENT) };
++    if status == K_IOHID_ACCESS_TYPE_UNKNOWN {
++        unsafe {
++            IOHIDRequestAccess(K_IOHID_REQUEST_TYPE_POST_EVENT);
++        }
++    } else if status == K_IOHID_ACCESS_TYPE_DENIED {
++        return Err(io::Error::other(
++            "macOS IOHID post-event permission is denied",
++        ));
++    }
++
++    with_hid_system_connect_type(K_IOHID_SERVER_CONNECT_TYPE, |connect| {
++        let key_state = if pressed {
++            K_NX_KEY_STATE_DOWN
++        } else {
++            K_NX_KEY_STATE_UP
++        };
++        let event_data = NXEventDataCompound {
++            reserved: 0,
++            subtype: NX_SUBTYPE_AUX_CONTROL_BUTTONS,
++            misc: [
++                (key_type << 16) | (key_state << 8),
++                -1,
++                0,
++                0,
++                0,
++                0,
++                0,
++                0,
++                0,
++                0,
++                0,
++            ],
++        };
++        let kr = unsafe {
++            IOHIDPostEvent(
++                connect,
++                NX_SYSDEFINED,
++                IOGPoint { x: 0, y: 0 },
++                &event_data,
++                K_NX_EVENT_DATA_VERSION,
++                0,
++                0,
++            )
++        };
++        if kr == KERN_SUCCESS {
++            Ok(())
++        } else {
++            Err(io::Error::other(format!(
++                "IOHIDPostEvent(aux key={key_type}, pressed={pressed}) failed: {kr:#x}"
++            )))
++        }
++    })?
++}
++
+ fn cf_number(value: i32) -> CFNumber {
+     CFNumber::from(value)
+ }
+@@ -1240,6 +1328,178 @@ fn drop_if_sink_disconnected(
+     }
+ }
+ 
++type AudioObjectID = u32;
++type AudioObjectPropertySelector = u32;
++type AudioObjectPropertyScope = u32;
++type AudioObjectPropertyElement = u32;
++type OSStatus = i32;
++
++#[repr(C)]
++struct AudioObjectPropertyAddress {
++    selector: AudioObjectPropertySelector,
++    scope: AudioObjectPropertyScope,
++    element: AudioObjectPropertyElement,
++}
++
++const fn fourcc(bytes: &[u8; 4]) -> u32 {
++    ((bytes[0] as u32) << 24)
++        | ((bytes[1] as u32) << 16)
++        | ((bytes[2] as u32) << 8)
++        | bytes[3] as u32
++}
++
++const K_AUDIO_OBJECT_SYSTEM_OBJECT: AudioObjectID = 1;
++const K_AUDIO_OBJECT_PROPERTY_ELEMENT_MAIN: AudioObjectPropertyElement = 0;
++const K_AUDIO_HARDWARE_PROPERTY_DEFAULT_OUTPUT_DEVICE: AudioObjectPropertySelector =
++    fourcc(b"dOut");
++const K_AUDIO_DEVICE_PROPERTY_VOLUME_SCALAR: AudioObjectPropertySelector = fourcc(b"volm");
++const K_AUDIO_OBJECT_PROPERTY_SCOPE_GLOBAL: AudioObjectPropertyScope = fourcc(b"glob");
++const K_AUDIO_DEVICE_PROPERTY_SCOPE_OUTPUT: AudioObjectPropertyScope = fourcc(b"outp");
++
++#[link(name = "CoreAudio", kind = "framework")]
++unsafe extern "C" {
++    fn AudioObjectHasProperty(
++        object_id: AudioObjectID,
++        address: *const AudioObjectPropertyAddress,
++    ) -> u8;
++    fn AudioObjectGetPropertyData(
++        object_id: AudioObjectID,
++        address: *const AudioObjectPropertyAddress,
++        qualifier_data_size: u32,
++        qualifier_data: *const c_void,
++        data_size: *mut u32,
++        data: *mut c_void,
++    ) -> OSStatus;
++    fn AudioObjectSetPropertyData(
++        object_id: AudioObjectID,
++        address: *const AudioObjectPropertyAddress,
++        qualifier_data_size: u32,
++        qualifier_data: *const c_void,
++        data_size: u32,
++        data: *const c_void,
++    ) -> OSStatus;
++}
++
++fn coreaudio_error(operation: &str, status: OSStatus) -> io::Error {
++    io::Error::other(format!("{operation} failed with OSStatus {status}"))
++}
++
++fn coreaudio_get_default_output_device() -> Result<AudioObjectID, io::Error> {
++    let address = AudioObjectPropertyAddress {
++        selector: K_AUDIO_HARDWARE_PROPERTY_DEFAULT_OUTPUT_DEVICE,
++        scope: K_AUDIO_OBJECT_PROPERTY_SCOPE_GLOBAL,
++        element: K_AUDIO_OBJECT_PROPERTY_ELEMENT_MAIN,
++    };
++    let mut device: AudioObjectID = 0;
++    let mut size = std::mem::size_of::<AudioObjectID>() as u32;
++    let status = unsafe {
++        AudioObjectGetPropertyData(
++            K_AUDIO_OBJECT_SYSTEM_OBJECT,
++            &address,
++            0,
++            std::ptr::null(),
++            &mut size,
++            &mut device as *mut AudioObjectID as *mut c_void,
++        )
++    };
++    if status == 0 {
++        Ok(device)
++    } else {
++        Err(coreaudio_error(
++            "AudioObjectGetPropertyData(default output)",
++            status,
++        ))
++    }
++}
++
++fn coreaudio_volume_address(element: AudioObjectPropertyElement) -> AudioObjectPropertyAddress {
++    AudioObjectPropertyAddress {
++        selector: K_AUDIO_DEVICE_PROPERTY_VOLUME_SCALAR,
++        scope: K_AUDIO_DEVICE_PROPERTY_SCOPE_OUTPUT,
++        element,
++    }
++}
++
++fn coreaudio_get_volume(
++    device: AudioObjectID,
++    element: AudioObjectPropertyElement,
++) -> Result<f32, io::Error> {
++    let address = coreaudio_volume_address(element);
++    if unsafe { AudioObjectHasProperty(device, &address) } == 0 {
++        return Err(io::Error::other("volume property unavailable"));
++    }
++    let mut volume = 0.0_f32;
++    let mut size = std::mem::size_of::<f32>() as u32;
++    let status = unsafe {
++        AudioObjectGetPropertyData(
++            device,
++            &address,
++            0,
++            std::ptr::null(),
++            &mut size,
++            &mut volume as *mut f32 as *mut c_void,
++        )
++    };
++    if status == 0 {
++        Ok(volume)
++    } else {
++        Err(coreaudio_error(
++            "AudioObjectGetPropertyData(volume)",
++            status,
++        ))
++    }
++}
++
++fn coreaudio_set_volume(
++    device: AudioObjectID,
++    element: AudioObjectPropertyElement,
++    volume: f32,
++) -> Result<(), io::Error> {
++    let address = coreaudio_volume_address(element);
++    if unsafe { AudioObjectHasProperty(device, &address) } == 0 {
++        return Ok(());
++    }
++    let status = unsafe {
++        AudioObjectSetPropertyData(
++            device,
++            &address,
++            0,
++            std::ptr::null(),
++            std::mem::size_of::<f32>() as u32,
++            &volume as *const f32 as *const c_void,
++        )
++    };
++    if status == 0 {
++        Ok(())
++    } else {
++        Err(coreaudio_error(
++            "AudioObjectSetPropertyData(volume)",
++            status,
++        ))
++    }
++}
++
++fn adjust_default_output_volume(delta: f32) -> Result<(), io::Error> {
++    let device = coreaudio_get_default_output_device()?;
++    let current = coreaudio_get_volume(device, K_AUDIO_OBJECT_PROPERTY_ELEMENT_MAIN)
++        .or_else(|_| coreaudio_get_volume(device, 1))
++        .or_else(|_| coreaudio_get_volume(device, 2))?;
++    let next = (current + delta).clamp(0.0, 1.0);
++
++    let mut set_any = false;
++    for element in [K_AUDIO_OBJECT_PROPERTY_ELEMENT_MAIN, 1, 2] {
++        if coreaudio_set_volume(device, element, next).is_ok() {
++            set_any = true;
++        }
++    }
++
++    if set_any {
++        Ok(())
++    } else {
++        Err(io::Error::other("no writable output volume property found"))
++    }
++}
++
+ #[cfg(all(not(feature = "simulated_output"), not(feature = "passthru_ahk")))]
+ impl KbdOut {
+     pub fn new() -> Result<Self, io::Error> {
+@@ -1301,6 +1561,43 @@ impl KbdOut {
+     }
+ 
+     pub fn write_key(&mut self, key: OsCode, value: KeyValue) -> Result<(), io::Error> {
++        if matches!(key, OsCode::KEY_VOLUMEUP | OsCode::KEY_VOLUMEDOWN) {
++            let key_type = match key {
++                OsCode::KEY_VOLUMEUP => K_NX_KEYTYPE_SOUND_UP,
++                OsCode::KEY_VOLUMEDOWN => K_NX_KEYTYPE_SOUND_DOWN,
++                _ => unreachable!(),
++            };
++            let pressed = matches!(value, KeyValue::Press | KeyValue::Repeat | KeyValue::Tap);
++            match post_hid_aux_key(key_type, pressed) {
++                Ok(()) => {
++                    self.record_output_transition_after_write(key, value);
++                    return Ok(());
++                }
++                Err(error) => {
++                    static WARNED_MEDIA_KEY_POST_FAILURE: AtomicBool = AtomicBool::new(false);
++                    if !WARNED_MEDIA_KEY_POST_FAILURE.swap(true, Ordering::Relaxed) {
++                        log::warn!(
++                            "failed to post macOS media key event; falling back to CoreAudio + OSDUIHelper: {error}"
++                        );
++                    } else {
++                        log::debug!("failed to post macOS media key event for {key:?}: {error}");
++                    }
++                    if !pressed {
++                        return Ok(());
++                    }
++                }
++            }
++
++            let delta = match key {
++                OsCode::KEY_VOLUMEUP => 0.0625,
++                OsCode::KEY_VOLUMEDOWN => -0.0625,
++                _ => unreachable!(),
++            };
++            adjust_default_output_volume(delta)?;
++            self.record_output_transition_after_write(key, value);
++            return Ok(());
++        }
++
+         if key == OsCode::KEY_CAPSLOCK {
+             let result = match value {
+                 KeyValue::Press | KeyValue::Repeat | KeyValue::Tap => {
+@@ -1333,7 +1630,9 @@ impl KbdOut {
+             log::debug!("couldn't write unrecognized OsCode {code}");
+             return Err(io::Error::other("OsCode not recognized!"));
+         };
+-        if key == OsCode::KEY_CAPSLOCK {
++        if key == OsCode::KEY_CAPSLOCK
++            || matches!(key, OsCode::KEY_VOLUMEUP | OsCode::KEY_VOLUMEDOWN)
++        {
+             return self.write_key(key, value);
+         }
+         if let Ok(event) = InputEvent::try_from(KeyEvent { value, code: key }) {
+-- 
+2.53.0
+
