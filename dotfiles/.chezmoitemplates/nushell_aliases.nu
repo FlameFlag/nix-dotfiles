@@ -18,9 +18,8 @@ alias mp4-cut = yt-dlp-script mp4-cut
 
 # Agents Aliases
 alias cc = claude --allow-dangerously-skip-permissions
-alias oc = opencode
-alias c = claude --allow-dangerously-skip-permissions
-alias o = opencode
+alias oo = opencode
+alias cx = codex-zellij-theme
 
 alias update = nix flake update --flake (readlink -f /etc/nixos/)
 

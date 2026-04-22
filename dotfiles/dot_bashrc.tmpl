@@ -1,4 +1,4 @@
-# --- Ghostty terminfo fallback (remote SSH hosts without xterm-ghostty) ---
+# Fall back to a common terminfo entry on remote hosts without Ghostty support.
 if [[ "$TERM" == "xterm-ghostty" ]] && ! infocmp xterm-ghostty &>/dev/null; then
   export TERM=xterm-256color
 fi
@@ -70,15 +70,14 @@ alias mp3-cut="yt-dlp-script mp3-cut"
 alias mp4="yt-dlp-script mp4"
 alias mp4-cut="yt-dlp-script mp4-cut"
 
-# Claude / AI
+# Agents Aliases
 alias cc="claude --allow-dangerously-skip-permissions"
-alias c="claude --allow-dangerously-skip-permissions"
-alias oc="opencode"
-alias o="opencode"
+alias oo="opencode"
+alias cx="codex-zellij-theme"
 
 # Nix
 alias update="nix flake update --flake \$(readlink -f /etc/nixos/)"
-alias cza="chezmoi apply --force"
+alias cza="chezmoi apply --force --no-pager"
 
 # yazi with cwd sync
 function yy() {
