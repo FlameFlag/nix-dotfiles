@@ -12,6 +12,12 @@ const script: typeof ChezmoiScript = await import(
 const domain = "com.raycast.macos";
 const raycastBin = "/Applications/Raycast.app/Contents/MacOS/Raycast";
 
+type RaycastPaths = {
+  config: string;
+  db: string;
+  sqlHelper: string;
+};
+
 function escapeRegExp(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
@@ -67,41 +73,53 @@ async function waitForRaycastToQuit(attempt = 0): Promise<void> {
   await waitForRaycastToQuit(attempt + 1);
 }
 
-async function generate() {
-  const context = script.chezmoiContext();
-  const config = join(
-    context.sourceDir,
-    "dot_config/raycast/window-management.json",
-  );
-  const db = join(
-    context.homeDir,
-    "Library/Application Support/com.raycast.macos/raycast-enc.sqlite",
-  );
-  const sqlHelper = join(
-    context.sourceDir,
-    ".chezmoitemplates/raycast_window_management_sql.py",
-  );
-
+async function ensureRaycastDefaults() {
   await arrayAddOnce("onboarding_completedTaskIdentifiers", "windowManagement");
   await arrayAddOnce(
     "commandsPreferencesExpandedItemIds",
     "builtin_package_windowManagement",
   );
+}
 
-  if (!(await Bun.file(config).exists())) {
-    script.consola.warn(
-      `Raycast window-management config not found: ${config}`,
-    );
-    return;
-  }
-  if (!(await Bun.file(db).exists())) {
-    script.consola.warn(`Raycast database not found: ${db}`);
-    return;
-  }
-  if (!(await Bun.file(raycastBin).exists())) {
-    throw new Error(`Raycast binary not found: ${raycastBin}`);
-  }
+function raycastPaths(): RaycastPaths {
+  const context = script.chezmoiContext();
+  return {
+    config: join(
+      context.sourceDir,
+      "dot_config/raycast/window-management.json",
+    ),
+    db: join(
+      context.homeDir,
+      "Library/Application Support/com.raycast.macos/raycast-enc.sqlite",
+    ),
+    sqlHelper: join(
+      context.sourceDir,
+      ".chezmoitemplates/raycast_window_management_sql.py",
+    ),
+  };
+}
 
+async function fileExists(path: string, missingMessage: string) {
+  if (await Bun.file(path).exists()) return true;
+  script.consola.warn(missingMessage);
+  return false;
+}
+
+async function canApplyConfig({ config, db }: RaycastPaths) {
+  const hasConfig = await fileExists(
+    config,
+    `Raycast window-management config not found: ${config}`,
+  );
+  const hasDb = await fileExists(db, `Raycast database not found: ${db}`);
+  return hasConfig && hasDb;
+}
+
+async function assertRaycastInstalled() {
+  if (await Bun.file(raycastBin).exists()) return;
+  throw new Error(`Raycast binary not found: ${raycastBin}`);
+}
+
+async function databaseKey() {
   const databaseKey = (
     await script.commandTextOr(
       script.commandArgs(
@@ -117,31 +135,56 @@ async function generate() {
   ).trim();
   if (!databaseKey)
     throw new Error("Raycast database key not found in Keychain");
+  return databaseKey;
+}
 
+async function databasePassword() {
+  const key = await databaseKey();
   const salt = await extractSalt();
   if (!salt)
     throw new Error(
       `Could not extract Raycast database salt from ${raycastBin}`,
     );
+  return script.sha256Text(`${key}${salt}`);
+}
+
+async function applyConfig(paths: RaycastPaths) {
+  script.consola.info("Applying Raycast window-management settings...");
+  await script.commandWithInput(
+    script.commandArgs(paths.sqlHelper, paths.db, paths.config),
+    await databasePassword(),
+    20_000,
+  );
+}
+
+function warningMessage(error: unknown) {
+  return error instanceof Error
+    ? error.message
+    : "Timed out applying Raycast window-management settings";
+}
+
+async function tryApplyConfig(paths: RaycastPaths) {
+  try {
+    await applyConfig(paths);
+  } catch (error) {
+    script.consola.warn(warningMessage(error));
+  }
+}
+
+async function restartRaycastIfNeeded(wasRunning: boolean) {
+  if (!wasRunning) return;
+  await script.commandQuiet(script.commandArgs("open", "-ga", "Raycast"));
+}
+
+async function generate() {
+  await ensureRaycastDefaults();
+  const paths = raycastPaths();
+  if (!(await canApplyConfig(paths))) return;
+  await assertRaycastInstalled();
 
   const wasRunning = await quitRaycastIfRunning();
-  script.consola.info("Applying Raycast window-management settings...");
-  try {
-    await script.commandWithInput(
-      script.commandArgs(sqlHelper, db, config),
-      script.sha256Text(`${databaseKey}${salt}`),
-      20_000,
-    );
-  } catch (error) {
-    script.consola.warn(
-      error instanceof Error
-        ? error.message
-        : "Timed out applying Raycast window-management settings",
-    );
-  }
-  if (wasRunning) {
-    await script.commandQuiet(script.commandArgs("open", "-ga", "Raycast"));
-  }
+  await tryApplyConfig(paths);
+  await restartRaycastIfNeeded(wasRunning);
 }
 
 if (script.chezmoiContext().os === "darwin") {

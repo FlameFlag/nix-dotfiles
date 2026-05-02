@@ -93,6 +93,7 @@ type ChezmoiEnvName =
   | "CHEZMOI_VERSION_VERSION"
   | "CHEZMOI_WORKING_TREE";
 type EnvName = ChezmoiEnvName | "HOME";
+type ParsedChezmoiEnv = ReturnType<typeof parseChezmoiEnv>;
 
 export type ChezmoiContext = {
   arch: ChezmoiArch | undefined;
@@ -150,8 +151,8 @@ function chezmoiOS(): ChezmoiOs {
   return process.platform === "win32" ? "windows" : process.platform;
 }
 
-export function chezmoiContext(): ChezmoiContext {
-  const parsedEnv = cleanEnv(
+function parseChezmoiEnv() {
+  return cleanEnv(
     process.env,
     {
       CHEZMOI: bool({ default: false }),
@@ -179,8 +180,15 @@ export function chezmoiContext(): ChezmoiContext {
     },
     { reporter: throwReporter },
   );
+}
+
+function envOrHome(value: string | undefined, homeDir: string) {
+  return value ?? homeDir;
+}
+
+function contextFromEnv(parsedEnv: ParsedChezmoiEnv): ChezmoiContext {
+  const homeDir = envOrHome(parsedEnv.CHEZMOI_HOME_DIR, parsedEnv.HOME);
   const sourceDir = parsedEnv.CHEZMOI_SOURCE_DIR;
-  const homeDir = parsedEnv.CHEZMOI_HOME_DIR ?? parsedEnv.HOME;
   return {
     arch: parsedEnv.CHEZMOI_ARCH as ChezmoiArch | undefined,
     cacheDir: parsedEnv.CHEZMOI_CACHE_DIR,
@@ -202,6 +210,10 @@ export function chezmoiContext(): ChezmoiContext {
     username: parsedEnv.CHEZMOI_USERNAME,
     verbose: parsedEnv.CHEZMOI_VERBOSE,
     version: parsedEnv.CHEZMOI_VERSION_VERSION,
-    workingTree: parsedEnv.CHEZMOI_WORKING_TREE ?? sourceDir,
+    workingTree: envOrHome(parsedEnv.CHEZMOI_WORKING_TREE, sourceDir),
   };
+}
+
+export function chezmoiContext(): ChezmoiContext {
+  return contextFromEnv(parseChezmoiEnv());
 }

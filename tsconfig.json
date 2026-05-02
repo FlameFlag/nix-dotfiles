@@ -11,6 +11,8 @@
   },
   "include": [
     "dotfiles/.chezmoi-lib/**/*.ts",
-    "dotfiles/.chezmoiscripts/**/*.ts"
+    "dotfiles/.chezmoiscripts/**/*.ts",
+    "dotfiles/dot_pi/agent/extensions/**/*.ts",
+    "scripts/**/*.ts"
   ]
 }
