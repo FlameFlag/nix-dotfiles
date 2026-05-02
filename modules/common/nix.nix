@@ -20,25 +20,6 @@ in
     })
     ({
       nix = {
-        distributedBuilds = true;
-        buildMachines = [
-          {
-            hostName = "naxe";
-            protocol = "ssh-ng";
-            system = "x86_64-linux";
-            sshUser = "naxecode";
-            sshKey = "/etc/nix/builder_ed25519";
-            maxJobs = 4;
-            speedFactor = 1;
-            supportedFeatures = [
-              "big-parallel"
-              "benchmark"
-              "nixos-test"
-            ];
-            publicHostKey = "c3NoLWVkMjU1MTkgQUFBQUMzTnphQzFsWkRJMU5URTVBQUFBSUdKbTZHa3ltRTF5bDF1eUhvNTFqSGVkckRVdHVGMGZNSThST2FOdUdnZFM=";
-          }
-        ];
-
         settings = {
           trusted-users = [
             "flame"
