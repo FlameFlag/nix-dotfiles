@@ -22,6 +22,10 @@ let
         inherit src;
         hash = "sha256-LYx0vNy42OPt+dnCU6Ni6myMsMuIlRyuGon6R1yPpHw=";
       };
+      # This unreleased kanata commit has upstream unit tests that try to parse
+      # configs in a way that fails in the Nix build sandbox. The failure is in
+      # checkPhase, not installCheckPhase, so disable checks for this override.
+      doCheck = false;
       doInstallCheck = false;
     });
 in
