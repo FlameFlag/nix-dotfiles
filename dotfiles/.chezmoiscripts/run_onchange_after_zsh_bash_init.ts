@@ -162,7 +162,7 @@ async function generate() {
           .map((completion) =>
             script.writeTextIfChanged(
               join(outdir, `${prefix}${completion.command.name}`),
-              completion.result.stdout.toString(),
+              completion.result.stdout,
             ),
           ),
       );

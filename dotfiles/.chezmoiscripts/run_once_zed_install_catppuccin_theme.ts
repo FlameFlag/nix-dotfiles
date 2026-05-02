@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
 
-import { cp, mkdtemp, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { cp, rm } from "node:fs/promises";
+import ky from "ky";
 import { join } from "pathe";
 import * as v from "valibot";
 import type * as ChezmoiScript from "../.chezmoi-lib/script.ts";
@@ -18,45 +18,31 @@ const repositories = {
 } as const;
 const themeFile = "catppuccin-pink.json";
 const githubReleaseSchema = v.object({ tag_name: v.string() });
-const fetchTimeoutMs = 15_000;
-
-function fetchWithTimeout(url: string | URL, init?: RequestInit) {
-  return fetch(url, { ...init, signal: AbortSignal.timeout(fetchTimeoutMs) });
-}
+const http = ky.create({
+  headers: process.env.GITHUB_TOKEN
+    ? { Authorization: `Bearer ${process.env.GITHUB_TOKEN}` }
+    : undefined,
+  timeout: 15_000,
+});
 
 async function fetchLatestTag(repository: string) {
-  const headers = new Headers({ Accept: "application/vnd.github+json" });
-  if (process.env.GITHUB_TOKEN) {
-    headers.set("Authorization", `Bearer ${process.env.GITHUB_TOKEN}`);
-  }
   script.consola.info(`Fetching latest ${repository} release...`);
-  const response = await fetchWithTimeout(
-    `https://api.github.com/repos/${repository}/releases/latest`,
-    { headers },
-  );
-  if (!response.ok) {
-    throw new Error(
-      `failed to fetch latest ${repository} release: ${response.status} ${response.statusText}`,
-    );
-  }
-  const json = v.safeParse(githubReleaseSchema, await response.json());
-  return json.success ? json.output.tag_name : undefined;
+  return v.parse(
+    githubReleaseSchema,
+    await http
+      .get(`https://api.github.com/repos/${repository}/releases/latest`, {
+        headers: { Accept: "application/vnd.github+json" },
+      })
+      .json<unknown>(),
+  ).tag_name;
 }
 
 async function downloadText(url: string) {
-  const response = await fetchWithTimeout(url);
-  if (!response.ok) {
-    throw new Error(`failed to download ${url}: ${response.status} ${response.statusText}`);
-  }
-  return await response.text();
+  return await http.get(url).text();
 }
 
 async function downloadFile(url: string, path: string) {
-  const response = await fetchWithTimeout(url);
-  if (!response.ok) {
-    throw new Error(`failed to download ${url}: ${response.status} ${response.statusText}`);
-  }
-  await Bun.write(path, response);
+  await Bun.write(path, await http.get(url).blob());
 }
 
 async function installTheme(latestTag: string) {
@@ -79,10 +65,9 @@ async function installTheme(latestTag: string) {
 async function installIcons(latestTag: string) {
   const context = script.chezmoiContext();
   const zedConfigDir = join(context.homeDir, ".config/zed");
-  const tempDir = await mkdtemp(join(tmpdir(), "catppuccin-zed-icons-"));
-  const archivePath = join(tempDir, "zed-icons.tar.gz");
 
-  try {
+  await script.withTempDir(async (tempDir) => {
+    const archivePath = join(tempDir, "zed-icons.tar.gz");
     script.consola.info("Downloading Catppuccin Zed icon theme...");
     await downloadFile(
       `https://codeload.github.com/${repositories.icons}/tar.gz/${latestTag}`,
@@ -107,17 +92,12 @@ async function installIcons(latestTag: string) {
       recursive: true,
     });
     script.consola.success(`Icon theme installed to ${zedConfigDir}`);
-  } finally {
-    await rm(tempDir, { force: true, recursive: true });
-  }
+  });
 }
 
 const [themeTag, iconsTag] = await Promise.all([
   fetchLatestTag(repositories.theme),
   fetchLatestTag(repositories.icons),
 ]);
-if (!themeTag) throw new Error("could not resolve latest Catppuccin Zed tag");
-if (!iconsTag)
-  throw new Error("could not resolve latest Catppuccin Zed Icons tag");
 await installTheme(themeTag);
 await installIcons(iconsTag);

@@ -1,8 +1,10 @@
-export type NonEmptyString = string & {
-  readonly __nonEmptyString: unique symbol;
-};
+import type { ReporterOptions } from "envalid";
+import { bool, cleanEnv, makeValidator, str } from "envalid";
+import type { LiteralUnion, Tagged } from "type-fest";
 
-export type ChezmoiArch =
+export type NonEmptyString = Tagged<string, "NonEmptyString">;
+
+export type ChezmoiArch = LiteralUnion<
   | "386"
   | "amd64"
   | "arm"
@@ -16,10 +18,11 @@ export type ChezmoiArch =
   | "ppc64le"
   | "riscv64"
   | "s390x"
-  | "wasm"
-  | (string & {});
+  | "wasm",
+  string
+>;
 
-export type ChezmoiCommand =
+export type ChezmoiCommand = LiteralUnion<
   | "add"
   | "apply"
   | "cat"
@@ -43,10 +46,11 @@ export type ChezmoiCommand =
   | "target-path"
   | "unmanaged"
   | "update"
-  | "verify"
-  | (string & {});
+  | "verify",
+  string
+>;
 
-export type ChezmoiOs =
+export type ChezmoiOs = LiteralUnion<
   | "aix"
   | "android"
   | "darwin"
@@ -61,8 +65,9 @@ export type ChezmoiOs =
   | "plan9"
   | "solaris"
   | "wasip1"
-  | "windows"
-  | (string & {});
+  | "windows",
+  string
+>;
 
 type ChezmoiEnvName =
   | "CHEZMOI"
@@ -121,52 +126,82 @@ export function env(name: EnvName): NonEmptyString {
   return value as NonEmptyString;
 }
 
+const safeInteger = makeValidator<number>((value) => {
+  const number = Number(value);
+  if (!Number.isSafeInteger(number)) {
+    throw new Error(`Invalid safe integer: "${value}"`);
+  }
+  return number;
+});
+
+function throwReporter<T>({ errors }: ReporterOptions<T>) {
+  const messages = Object.entries(errors).map(
+    ([name, error]) =>
+      `${name}: ${error instanceof Error ? error.message : "invalid value"}`,
+  );
+  if (messages.length > 0) {
+    throw new Error(messages.join("\n"));
+  }
+}
+
 function chezmoiOS(): ChezmoiOs {
   const value = process.env.CHEZMOI_OS;
   if (value) return value;
   return process.platform === "win32" ? "windows" : process.platform;
 }
 
-function booleanEnv(name: ChezmoiEnvName) {
-  const value = process.env[name]?.toLowerCase();
-  return value === "1" || value === "true";
-}
-
-function optionalEnv(name: EnvName): string | undefined {
-  return process.env[name];
-}
-
-function numberEnv(name: ChezmoiEnvName): number | undefined {
-  const value = process.env[name];
-  if (!value) return undefined;
-  const number = Number(value);
-  return Number.isSafeInteger(number) ? number : undefined;
-}
-
 export function chezmoiContext(): ChezmoiContext {
-  const sourceDir = env("CHEZMOI_SOURCE_DIR");
-  const homeDir = process.env.CHEZMOI_HOME_DIR ?? env("HOME");
+  const parsedEnv = cleanEnv(
+    process.env,
+    {
+      CHEZMOI: bool({ default: false }),
+      CHEZMOI_ARCH: str({ default: undefined }),
+      CHEZMOI_CACHE_DIR: str({ default: undefined }),
+      CHEZMOI_COMMAND: str({ default: undefined }),
+      CHEZMOI_COMMAND_DIR: str({ default: undefined }),
+      CHEZMOI_CONFIG_FILE: str({ default: undefined }),
+      CHEZMOI_DEST_DIR: str({ default: undefined }),
+      CHEZMOI_EXECUTABLE: str({ default: undefined }),
+      CHEZMOI_GID: safeInteger({ default: undefined }),
+      CHEZMOI_GROUP: str({ default: undefined }),
+      CHEZMOI_HOME_DIR: str({ default: undefined }),
+      CHEZMOI_NO_PAGER: bool({ default: false }),
+      CHEZMOI_OS: str({ default: undefined }),
+      CHEZMOI_RAW_HOME_DIR: str({ default: undefined }),
+      CHEZMOI_SOURCE_DIR: str(),
+      CHEZMOI_SOURCE_FILE: str(),
+      CHEZMOI_UID: safeInteger({ default: undefined }),
+      CHEZMOI_USERNAME: str({ default: undefined }),
+      CHEZMOI_VERBOSE: bool({ default: false }),
+      CHEZMOI_VERSION_VERSION: str({ default: undefined }),
+      CHEZMOI_WORKING_TREE: str({ default: undefined }),
+      HOME: str(),
+    },
+    { reporter: throwReporter },
+  );
+  const sourceDir = parsedEnv.CHEZMOI_SOURCE_DIR;
+  const homeDir = parsedEnv.CHEZMOI_HOME_DIR ?? parsedEnv.HOME;
   return {
-    arch: optionalEnv("CHEZMOI_ARCH") as ChezmoiArch | undefined,
-    cacheDir: optionalEnv("CHEZMOI_CACHE_DIR"),
-    command: optionalEnv("CHEZMOI_COMMAND") as ChezmoiCommand | undefined,
-    commandDir: optionalEnv("CHEZMOI_COMMAND_DIR"),
-    configFile: optionalEnv("CHEZMOI_CONFIG_FILE"),
-    destDir: process.env.CHEZMOI_DEST_DIR ?? homeDir,
-    executable: optionalEnv("CHEZMOI_EXECUTABLE"),
-    gid: numberEnv("CHEZMOI_GID"),
-    group: optionalEnv("CHEZMOI_GROUP"),
+    arch: parsedEnv.CHEZMOI_ARCH as ChezmoiArch | undefined,
+    cacheDir: parsedEnv.CHEZMOI_CACHE_DIR,
+    command: parsedEnv.CHEZMOI_COMMAND as ChezmoiCommand | undefined,
+    commandDir: parsedEnv.CHEZMOI_COMMAND_DIR,
+    configFile: parsedEnv.CHEZMOI_CONFIG_FILE,
+    destDir: parsedEnv.CHEZMOI_DEST_DIR ?? homeDir,
+    executable: parsedEnv.CHEZMOI_EXECUTABLE,
+    gid: parsedEnv.CHEZMOI_GID,
+    group: parsedEnv.CHEZMOI_GROUP,
     homeDir,
-    isChezmoi: booleanEnv("CHEZMOI"),
-    noPager: booleanEnv("CHEZMOI_NO_PAGER"),
-    sourceFile: env("CHEZMOI_SOURCE_FILE"),
+    isChezmoi: parsedEnv.CHEZMOI,
+    noPager: parsedEnv.CHEZMOI_NO_PAGER,
+    sourceFile: parsedEnv.CHEZMOI_SOURCE_FILE,
     sourceDir,
     os: chezmoiOS(),
-    rawHomeDir: process.env.CHEZMOI_RAW_HOME_DIR ?? homeDir,
-    uid: numberEnv("CHEZMOI_UID"),
-    username: optionalEnv("CHEZMOI_USERNAME"),
-    verbose: booleanEnv("CHEZMOI_VERBOSE"),
-    version: optionalEnv("CHEZMOI_VERSION_VERSION"),
-    workingTree: process.env.CHEZMOI_WORKING_TREE ?? sourceDir,
+    rawHomeDir: parsedEnv.CHEZMOI_RAW_HOME_DIR ?? homeDir,
+    uid: parsedEnv.CHEZMOI_UID,
+    username: parsedEnv.CHEZMOI_USERNAME,
+    verbose: parsedEnv.CHEZMOI_VERBOSE,
+    version: parsedEnv.CHEZMOI_VERSION_VERSION,
+    workingTree: parsedEnv.CHEZMOI_WORKING_TREE ?? sourceDir,
   };
 }
