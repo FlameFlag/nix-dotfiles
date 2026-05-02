@@ -48,7 +48,6 @@ in
         kanata-with-cmd = final.kanata.override { withCmd = true; };
         gh-hide-comment = final.callPackage ../../pkgs/gh-hide-comment.nix {
           gh = final.unstable.gh;
-          nushell = final.unstable.nushell;
         };
         dis = inputs.dis.packages.${prev.stdenvNoCC.hostPlatform.system}.dis.overrideAttrs (old: {
           postInstall = ''

@@ -15,6 +15,7 @@
     "typescript": "^6.0.3"
   },
   "dependencies": {
+    "@stricli/core": "^1.2.6",
     "consola": "^3.4.2",
     "envalid": "^8.1.1",
     "execa": "^9.6.1",

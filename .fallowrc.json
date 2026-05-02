@@ -2,7 +2,9 @@
   "$schema": "https://raw.githubusercontent.com/fallow-rs/fallow/main/schema.json",
   "entry": [
     "dotfiles/.chezmoiscripts/*.ts",
-    "dotfiles/dot_pi/agent/extensions/*.ts"
+    "dotfiles/dot_pi/agent/extensions/*.ts",
+    "scripts/gh-hide-comment.ts",
+    "scripts/*.test.ts"
   ],
   "dynamicallyLoaded": ["dotfiles/.chezmoi-lib/**/*.ts"],
   "ignoreDependencies": [
@@ -30,10 +32,5 @@
     "maxCognitive": 10,
     "maxCrap": 20
   },
-  "ignorePatterns": [
-    "**/*.tmpl",
-    "**/.DS_Store",
-    "node_modules/**",
-    "scripts/hide-comment.gql"
-  ]
+  "ignorePatterns": ["**/*.tmpl", "**/.DS_Store", "node_modules/**"]
 }
