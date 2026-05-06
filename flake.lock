@@ -7,16 +7,15 @@
         ]
       },
       "locked": {
-        "lastModified": 1777134202,
-        "narHash": "sha256-326TBRT4OwRvCk2dVoZL0oGOlPDH4VNICWR52rjEzJs=",
+        "lastModified": 1778157079,
+        "narHash": "sha256-opocbtj8GHr3YGosgbpTogpyYyTG90FxlcVOAxbzYHw=",
         "owner": "FlameFlag",
         "repo": "dis",
-        "rev": "cc16facc6f95c60fffad33e520fe1c8fbef5dddb",
+        "rev": "d134fb75ffd69dc9524d40a184eeff6055715b3c",
         "type": "github"
       },
       "original": {
         "owner": "FlameFlag",
-        "ref": "v11.3.0",
         "repo": "dis",
         "type": "github"
       }

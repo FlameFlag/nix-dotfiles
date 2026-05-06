@@ -6,7 +6,7 @@
     nix-darwin.url = "github:nix-darwin/nix-darwin/nix-darwin-25.11";
 
     dis.inputs.nixpkgs.follows = "nixpkgs-unstable";
-    dis.url = "github:FlameFlag/dis/v11.3.0";
+    dis.url = "github:FlameFlag/dis";
 
     eupkgs.inputs.nixpkgs.follows = "nixpkgs-unstable";
     eupkgs.url = "github:euvlok/pkgs";
