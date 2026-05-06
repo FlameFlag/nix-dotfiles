@@ -49,6 +49,14 @@ in
         gh-hide-comment = final.callPackage ../../pkgs/gh-hide-comment.nix {
           gh = final.unstable.gh;
         };
+        ghidra-mcp-headless = final.callPackage ../../pkgs/ghidra-mcp-headless.nix {
+          inherit (final.unstable)
+            ghidra
+            jdk21
+            maven
+            python313
+            ;
+        };
         dis = inputs.dis.packages.${prev.stdenvNoCC.hostPlatform.system}.dis.overrideAttrs (old: {
           postInstall = ''
             wrapProgram "$out/bin/dis" \

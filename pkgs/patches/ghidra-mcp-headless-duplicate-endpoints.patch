@@ -1,0 +1,51 @@
+--- a/src/main/java/com/xebyte/headless/GhidraMCPHeadlessServer.java
++++ b/src/main/java/com/xebyte/headless/GhidraMCPHeadlessServer.java
+@@ -558,25 +558,33 @@
+      */
+     private com.sun.net.httpserver.HttpContext safeContext(
+             String path, com.sun.net.httpserver.HttpHandler handler) {
+-        return server.createContext(path, exchange -> {
+-            if (!isAuthExempt(path)) {
+-                com.xebyte.core.SecurityConfig sec = com.xebyte.core.SecurityConfig.getInstance();
+-                if (sec.isAuthEnabled()) {
+-                    String authHeader = exchange.getRequestHeaders().getFirst("Authorization");
+-                    if (!sec.matchesBearerAuth(authHeader)) {
+-                        byte[] body = "{\"error\": \"Unauthorized\"}".getBytes(StandardCharsets.UTF_8);
+-                        exchange.getResponseHeaders().set("Content-Type", "application/json");
+-                        exchange.getResponseHeaders().set("WWW-Authenticate", "Bearer");
+-                        exchange.sendResponseHeaders(401, body.length);
+-                        try (OutputStream os = exchange.getResponseBody()) {
+-                            os.write(body);
++        try {
++            return server.createContext(path, exchange -> {
++                if (!isAuthExempt(path)) {
++                    com.xebyte.core.SecurityConfig sec = com.xebyte.core.SecurityConfig.getInstance();
++                    if (sec.isAuthEnabled()) {
++                        String authHeader = exchange.getRequestHeaders().getFirst("Authorization");
++                        if (!sec.matchesBearerAuth(authHeader)) {
++                            byte[] body = "{\"error\": \"Unauthorized\"}".getBytes(StandardCharsets.UTF_8);
++                            exchange.getResponseHeaders().set("Content-Type", "application/json");
++                            exchange.getResponseHeaders().set("WWW-Authenticate", "Bearer");
++                            exchange.sendResponseHeaders(401, body.length);
++                            try (OutputStream os = exchange.getResponseBody()) {
++                                os.write(body);
++                            }
++                            return;
+                         }
+-                        return;
+                     }
+                 }
++                handler.handle(exchange);
++            });
++        } catch (IllegalArgumentException e) {
++            if (e.getMessage() != null && e.getMessage().contains("cannot add context")) {
++                System.err.println("Skipping duplicate MCP endpoint: " + path);
++                return null;
+             }
+-            handler.handle(exchange);
+-        });
++            throw e;
++        }
+     }
+ 
+     /**

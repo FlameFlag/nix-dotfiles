@@ -1,0 +1,11 @@
+--- a/bridge_mcp_ghidra.py
++++ b/bridge_mcp_ghidra.py
+@@ -913,7 +913,7 @@ def _build_tool_function(endpoint: str, http_method: str, params_schema: dict):
+ 
+     sig_params = required_params + optional_params
+     # Add dry_run parameter for POST (write) endpoints
+-    if http_method == "POST":
++    if http_method == "POST" and "dry_run" not in properties:
+         sig_params.append(
+             inspect.Parameter(
+                 "dry_run",

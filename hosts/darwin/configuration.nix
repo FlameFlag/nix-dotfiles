@@ -20,6 +20,15 @@
   services.tailscale.enable = true;
   services.tailscale.package = pkgs.unstable.tailscale;
 
+  services.ghidra-mcp = {
+    enable = true;
+    httpHost = "127.0.0.1";
+    httpPort = 8089;
+    mcpHost = "127.0.0.1";
+    mcpPort = 8090;
+    allowScripts = true;
+  };
+
   sops = {
     age.keyFile = "/Users/${config.system.primaryUser}/Library/Application Support/sops/age/keys.txt";
     defaultSopsFile = ../../secrets/secrets.yaml;
