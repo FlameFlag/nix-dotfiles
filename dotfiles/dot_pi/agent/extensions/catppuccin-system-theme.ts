@@ -1,4 +1,7 @@
-import { execa } from "execa";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
+
+const execFileAsync = promisify(execFile);
 
 const darkTheme = "catppuccin-frappe";
 const lightTheme = "catppuccin-latte";
@@ -22,8 +25,12 @@ async function commandSucceeds(
   file: string,
   args: readonly string[] = [],
 ): Promise<boolean> {
-  const result = await execa(file, args, { reject: false });
-  return result.exitCode === 0;
+  try {
+    await execFileAsync(file, args);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 async function isDarwinDarkMode(): Promise<boolean> {
@@ -35,14 +42,16 @@ async function isDarwinDarkMode(): Promise<boolean> {
 }
 
 async function isGnomeDarkMode(): Promise<boolean> {
-  const result = await execa(
-    "gsettings",
-    ["get", "org.gnome.desktop.interface", "color-scheme"],
-    { reject: false },
-  );
-  return result.exitCode === 0
-    ? result.stdout.toLowerCase().includes("dark")
-    : true;
+  try {
+    const { stdout } = await execFileAsync("gsettings", [
+      "get",
+      "org.gnome.desktop.interface",
+      "color-scheme",
+    ]);
+    return stdout.toLowerCase().includes("dark");
+  } catch {
+    return true;
+  }
 }
 
 async function isDarkMode(): Promise<boolean> {

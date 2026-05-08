@@ -146,15 +146,9 @@
         vscode
         zellij
         zoxide
-        opencode
-        # codex
         ;
 
       inherit (pkgs.eupkgs)
-        agent-statusline
-        agent-statusline-pi
-        web-search-pi
-        claude-code
         yt-dlp
         yt-dlp-script
         ;
