@@ -110,6 +110,10 @@ let
     tree
     ty
     uv
+    zig
+    zig-shell-completions
+    zls
+    zon2nix
   ]);
 
   mediaPackages = [
