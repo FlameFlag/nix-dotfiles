@@ -1,6 +1,5 @@
 _: {
   imports = [
-    ../../pkgs/packages.nix
     ../common
     ../common/nixcord
     ./gnome.nix
