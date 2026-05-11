@@ -1,0 +1,5 @@
+#!/usr/bin/env sh
+
+[ "$(uname -s 2>/dev/null)" = "Darwin" ] || exit 0
+
+exec zig run -lc "$CHEZMOI_SOURCE_DIR/.chezmoiscripts-zig/run_onchange_after_raycast_window_management.zig" -- "$@"

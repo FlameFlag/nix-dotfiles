@@ -22,12 +22,6 @@ indent = { tab-width = 4, unit = "    " }
 language-servers = ["deno"]
 
 [[language]]
-name = "typescript"
-auto-format = true
-indent = { tab-width = 4, unit = "    " }
-language-servers = ["deno"]
-
-[[language]]
 name = "css"
 auto-format = true
 language-servers = ["deno"]
@@ -77,9 +71,6 @@ lineWidth = 100
 indentWidth = 2
 [language-server.deno.config.javascript.format.options]
 indentWidth = 4
-[language-server.deno.config.typescript.format.options]
-indentWidth = 4
-
 [language-server.yaml-language-server]
 command = "yaml-language-server"
 args = ["--stdio"]

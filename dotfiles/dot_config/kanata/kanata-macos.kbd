@@ -1,0 +1,16 @@
+(defcfg
+  process-unmapped-keys yes
+  log-layer-changes yes
+)
+
+(defsrc
+  esc caps lctl lmet rmet rctl
+)
+
+(defalias
+  caps-hyper (tap-hold-press 200 200 esc (multi lmet lctl lalt lsft))
+)
+
+(deflayer base
+  caps @caps-hyper lmet lctl rctl rmet
+)

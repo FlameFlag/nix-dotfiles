@@ -1,0 +1,2 @@
+#!/usr/bin/env sh
+exec zig run -lc "$CHEZMOI_SOURCE_DIR/.chezmoiscripts-zig/run_once_zed_install_catppuccin_theme.zig" -- "$@"

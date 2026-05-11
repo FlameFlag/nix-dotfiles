@@ -8,6 +8,10 @@
           inherit (prev.stdenvNoCC.hostPlatform) system;
           inherit (prev) config;
         };
+        zigPkgs = import inputs.nixpkgs-zig {
+          inherit (prev.stdenvNoCC.hostPlatform) system;
+          inherit (prev) config;
+        };
       })
       (final: prev: {
         eupkgs = final.unstable.extend inputs.eupkgs.overlays.default;
@@ -17,6 +21,7 @@
         kanata-with-cmd = final.kanata.override { withCmd = true; };
         gh-hide-comment = final.callPackage ../../pkgs/gh-hide-comment.nix {
           gh = final.unstable.gh;
+          zig = final.zigPkgs.zig;
         };
         ghidra-mcp-headless = final.callPackage ../../pkgs/ghidra-mcp-headless.nix {
           inherit (final.unstable)

@@ -106,6 +106,7 @@ let
     prettier
     ruff
     rustup
+    sqlcipher
     smartmontools
     tree
     ty

@@ -15,6 +15,7 @@
     nixcord.url = "github:FlameFlag/nixcord";
 
     nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixos-unstable-small";
+    nixpkgs-zig.url = "github:NixOS/nixpkgs";
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.11";
 
     sops-nix.inputs.nixpkgs.follows = "nixpkgs-unstable";
@@ -39,9 +40,12 @@
         system:
         let
           pkgs = import inputs.nixpkgs { inherit system; };
+          zigPkgs = import inputs.nixpkgs-zig { inherit system; };
         in
         {
-          gh-hide-comment = pkgs.callPackage ./pkgs/gh-hide-comment.nix { };
+          gh-hide-comment = pkgs.callPackage ./pkgs/gh-hide-comment.nix {
+            zig = zigPkgs.zig;
+          };
           catppuccin-userstyles = pkgs.callPackage ./pkgs/catppuccin-userstyles.nix { };
         }
       );

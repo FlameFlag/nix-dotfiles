@@ -8,6 +8,7 @@ let
   user = config.system.primaryUser;
   kanataApp = "/Applications/Kanata.app";
   kanataStableBinary = "${kanataApp}/Contents/MacOS/kanata";
+  kanataConfig = ../../dotfiles/dot_config/kanata/kanata-macos.kbd;
   kanataSigningIdentity = "Kanata Local Code Signing";
   kanataSigningKeychain = "/Library/Keychains/System.keychain";
   kanataSigningOpenSslConfig = pkgs.writeText "kanata-codesign-openssl.cnf" ''
@@ -38,25 +39,6 @@ let
     Crashed = true;
     SuccessfulExit = false;
   };
-
-  kanataConfig = pkgs.writeText "kanata-macos.kbd" ''
-    (defcfg
-      process-unmapped-keys yes
-      log-layer-changes yes
-    )
-
-    (defsrc
-      esc caps lctl lmet rmet rctl mbck mfwd
-    )
-
-    (defalias
-      caps-hyper (tap-hold-press 200 1500 esc (multi lmet lctl lalt lsft))
-    )
-
-    (deflayer base
-      caps @caps-hyper lmet lctl rctl rmet vold volu
-    )
-  '';
 in
 {
   environment.systemPackages = [
@@ -103,7 +85,6 @@ in
       kanataStableBinary
       "--cfg"
       (toString kanataConfig)
-      "--no-wait"
     ];
     RunAtLoad = true;
     KeepAlive = keepAliveUnlessStopped;
@@ -121,17 +102,6 @@ in
       '';
       serviceConfig.RunAtLoad = true;
       serviceConfig.StartInterval = 0;
-    };
-
-    zero-capslock-delay.serviceConfig = {
-      ProgramArguments = [
-        "/usr/bin/hidutil"
-        "property"
-        "--set"
-        "{\"CapsLockDelayOverride\":0}"
-      ];
-      RunAtLoad = true;
-      StartInterval = 0;
     };
 
     atuin-daemon.serviceConfig = {

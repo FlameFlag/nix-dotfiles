@@ -1,0 +1,2 @@
+#!/usr/bin/env sh
+exec zig run -lc "$CHEZMOI_SOURCE_DIR/.chezmoiscripts-zig/run_onchange_after_zsh_bash_init.zig" -- "$@"

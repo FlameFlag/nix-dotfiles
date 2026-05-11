@@ -179,6 +179,21 @@
         "type": "github"
       }
     },
+    "nixpkgs-zig": {
+      "locked": {
+        "lastModified": 1778543275,
+        "narHash": "sha256-PJvflMfd4Yj97CCNIMPH3YllFHkRZWjxVZM3mUOmKFA=",
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "7cb1bb271458a5faeedbaac3095a8ad91c18a415",
+        "type": "github"
+      },
+      "original": {
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
     "root": {
       "inputs": {
         "dis": "dis",
@@ -187,6 +202,7 @@
         "nixcord": "nixcord",
         "nixpkgs": "nixpkgs",
         "nixpkgs-unstable": "nixpkgs-unstable",
+        "nixpkgs-zig": "nixpkgs-zig",
         "sops-nix": "sops-nix"
       }
     },
