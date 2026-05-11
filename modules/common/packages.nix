@@ -95,6 +95,8 @@ let
     golangci-lint
     gopls
     hyperfine
+    git-filter-repo
+    git-lfs
     nix-prefetch-github
     nixpkgs-review
     nodejs_25
