@@ -12,7 +12,6 @@
     ./programs.nix
     ./services.nix
     ./sound.nix
-    ./systemd.nix
     ./users.nix
   ];
 

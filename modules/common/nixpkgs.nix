@@ -23,6 +23,9 @@
           gh = final.unstable.gh;
           zig = final.zigPkgs.zig;
         };
+        lenovo-con-mode = final.callPackage ../../pkgs/lenovo-con-mode.nix {
+          zig = final.zigPkgs.zig;
+        };
         ghidra-mcp-headless = final.callPackage ../../pkgs/ghidra-mcp-headless.nix {
           inherit (final.unstable)
             ghidra

@@ -48,6 +48,11 @@
           };
           catppuccin-userstyles = pkgs.callPackage ./pkgs/catppuccin-userstyles.nix { };
         }
+        // lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux {
+          lenovo-con-mode = pkgs.callPackage ./pkgs/lenovo-con-mode.nix {
+            zig = zigPkgs.zig;
+          };
+        }
       );
 
       nixosModules.default = import ./modules/nixos;
