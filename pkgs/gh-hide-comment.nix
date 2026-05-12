@@ -12,7 +12,7 @@ stdenv.mkDerivation {
   version = "0.1.0";
 
   src = lib.fileset.toSource {
-    root = ../.;
+    root = ../scripts/gh-hide-comment;
     fileset = ../scripts/gh-hide-comment;
   };
 
@@ -21,27 +21,13 @@ stdenv.mkDerivation {
     zig
   ];
 
-  dontConfigure = true;
+  strictDeps = true;
 
-  buildPhase = ''
-    runHook preBuild
+  doCheck = true;
 
-    export ZIG_GLOBAL_CACHE_DIR="$TMPDIR/zig-global-cache"
-    zig build-exe \
-      -lc \
-      -O ReleaseSafe \
-      --cache-dir "$TMPDIR/zig-cache" \
-      --global-cache-dir "$ZIG_GLOBAL_CACHE_DIR" \
-      -femit-bin=gh-hide-comment \
-      scripts/gh-hide-comment/main.zig
-
-    runHook postBuild
-  '';
-
-  installPhase = ''
-    runHook preInstall
-
-    install -Dm755 gh-hide-comment "$out/libexec/gh-hide-comment/gh-hide-comment"
+  postInstall = ''
+    install -Dm755 "$out/bin/gh-hide-comment" "$out/libexec/gh-hide-comment/gh-hide-comment"
+    rm "$out/bin/gh-hide-comment"
     makeWrapper "$out/libexec/gh-hide-comment/gh-hide-comment" "$out/bin/gh-hide-comment" \
       --set SSL_CERT_FILE "${cacert}/etc/ssl/certs/ca-bundle.crt" \
       --prefix PATH : ${
@@ -49,8 +35,6 @@ stdenv.mkDerivation {
           gh
         ]
       }
-
-    runHook postInstall
   '';
 
   meta = {
