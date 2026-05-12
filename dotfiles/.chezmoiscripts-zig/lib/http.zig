@@ -9,14 +9,13 @@ pub const Auth = enum {
     github,
 };
 
+const user_agent = "nix-dotfiles-zig-scripts";
+
 pub fn extraHeaders(auth: Auth) []const std.http.Header {
     return switch (auth) {
-        .none => &.{
-            .{ .name = "user-agent", .value = "nix-dotfiles-zig-scripts" },
-        },
+        .none => &.{},
         .github => &.{
             .{ .name = "accept", .value = "application/vnd.github+json" },
-            .{ .name = "user-agent", .value = "nix-dotfiles-zig-scripts" },
         },
     };
 }
@@ -57,6 +56,7 @@ pub const Client = struct {
             .location = .{ .url = url },
             .method = .GET,
             .response_writer = &body.writer,
+            .headers = .{ .user_agent = .{ .override = user_agent } },
             .extra_headers = extraHeaders(auth),
             .privileged_headers = if (auth_header) |header| &.{
                 .{ .name = "authorization", .value = header },
@@ -88,6 +88,7 @@ pub const Client = struct {
             .location = .{ .url = url },
             .method = .GET,
             .response_writer = &writer.interface,
+            .headers = .{ .user_agent = .{ .override = user_agent } },
             .extra_headers = extraHeaders(.none),
         });
         try writer.interface.flush();
@@ -122,18 +123,14 @@ pub const Client = struct {
 
 test "plain downloads send only generic headers" {
     const headers = extraHeaders(.none);
-    try std.testing.expectEqual(@as(usize, 1), headers.len);
-    try std.testing.expectEqualStrings("user-agent", headers[0].name);
-    try std.testing.expectEqualStrings("nix-dotfiles-zig-scripts", headers[0].value);
+    try std.testing.expectEqual(@as(usize, 0), headers.len);
 }
 
 test "github api requests send GitHub API accept header" {
     const headers = extraHeaders(.github);
-    try std.testing.expectEqual(@as(usize, 2), headers.len);
+    try std.testing.expectEqual(@as(usize, 1), headers.len);
     try std.testing.expectEqualStrings("accept", headers[0].name);
     try std.testing.expectEqualStrings("application/vnd.github+json", headers[0].value);
-    try std.testing.expectEqualStrings("user-agent", headers[1].name);
-    try std.testing.expectEqualStrings("nix-dotfiles-zig-scripts", headers[1].value);
 }
 
 test "request header names and values satisfy std.http.Client checks" {
