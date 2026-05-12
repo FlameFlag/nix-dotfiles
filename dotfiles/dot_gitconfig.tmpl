@@ -15,7 +15,10 @@ op-ssh-sign
     allowedSignersFile = "{{ .chezmoi.homeDir }}/.ssh/allowed_signers"
 
 [commit]
-    gpgsign = true
+    gpgsign = false
+
+[push]
+    gpgSign = if-asked
 
 [core]
     excludesfile = "{{ .chezmoi.homeDir }}/.gitignore_global"
