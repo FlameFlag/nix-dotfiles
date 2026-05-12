@@ -16,7 +16,7 @@ pub const CommandResult = struct {
 
 /// Returns whether `bin` can be executed directly or found in PATH.
 pub fn hasBin(rt: anytype, bin: []const u8) bool {
-    if (std.mem.indexOfScalar(u8, bin, '/') != null) {
+    if (std.mem.findScalar(u8, bin, '/') != null) {
         std.Io.Dir.cwd().access(rt.io, bin, .{ .execute = true }) catch return false;
         return true;
     }
