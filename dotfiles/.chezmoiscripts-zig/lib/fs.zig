@@ -4,11 +4,13 @@ const std = @import("std");
 ///
 /// Returns whether the file was replaced.
 pub fn writeTextIfChanged(rt: anytype, path: []const u8, contents: []const u8) !bool {
-    if (std.Io.Dir.cwd().access(rt.io, path, .{})) {
-        const current = try std.Io.Dir.cwd().readFileAlloc(rt.io, path, rt.allocator, .limited(64 * 1024 * 1024));
+    if (std.Io.Dir.cwd().readFileAlloc(rt.io, path, rt.allocator, .limited(64 * 1024 * 1024))) |current| {
         defer rt.allocator.free(current);
         if (std.mem.eql(u8, current, contents)) return false;
-    } else |_| {}
+    } else |err| switch (err) {
+        error.FileNotFound => {},
+        else => return err,
+    }
 
     var file = try std.Io.Dir.cwd().createFileAtomic(rt.io, path, .{ .make_path = true, .replace = true });
     defer file.deinit(rt.io);

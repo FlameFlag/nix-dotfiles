@@ -61,6 +61,10 @@ fn installTheme(rt: *script.Runtime, http: *script.http.Client, latest_tag: []co
     }
 }
 
+fn deleteTreeIfExists(rt: *script.Runtime, path: []const u8) !void {
+    try std.Io.Dir.cwd().deleteTree(rt.io, path);
+}
+
 fn installIcons(rt: *script.Runtime, http: *script.http.Client, latest_tag: []const u8) !void {
     const context = try script.chezmoiContext(rt);
     defer context.deinit(rt.allocator);
@@ -74,7 +78,10 @@ fn installIcons(rt: *script.Runtime, http: *script.http.Client, latest_tag: []co
 
     const temp_dir = try script.tempDir(rt);
     defer {
-        std.Io.Dir.cwd().deleteTree(rt.io, temp_dir) catch {};
+        deleteTreeIfExists(rt, temp_dir) catch |err| {
+            rt.stderr.print("warn: failed to remove temporary directory {s}: {s}\n", .{ temp_dir, @errorName(err) }) catch {};
+            rt.stderr.flush() catch {};
+        };
         rt.allocator.free(temp_dir);
     }
 
@@ -89,7 +96,7 @@ fn installIcons(rt: *script.Runtime, http: *script.http.Client, latest_tag: []co
     try script.command(rt, &.{ "tar", "-xzf", archive_path, "-C", temp_dir, "--strip-components=1" });
 
     try std.Io.Dir.cwd().createDirPath(rt.io, icon_themes_dir);
-    try std.Io.Dir.cwd().deleteTree(rt.io, icons_dir);
+    try deleteTreeIfExists(rt, icons_dir);
 
     const src_icon_theme = try std.fs.path.join(rt.allocator, &.{ temp_dir, "icon_themes/catppuccin-icons.json" });
     defer rt.allocator.free(src_icon_theme);

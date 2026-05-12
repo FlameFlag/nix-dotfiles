@@ -15,18 +15,24 @@ pub const CommandResult = struct {
 };
 
 /// Returns whether `bin` can be executed directly or found in PATH.
-pub fn hasBin(rt: anytype, bin: []const u8) bool {
+pub fn hasBin(rt: anytype, bin: []const u8) !bool {
     if (std.mem.findScalar(u8, bin, '/') != null) {
-        std.Io.Dir.cwd().access(rt.io, bin, .{ .execute = true }) catch return false;
+        std.Io.Dir.cwd().access(rt.io, bin, .{ .execute = true }) catch |err| return switch (err) {
+            error.FileNotFound, error.AccessDenied => false,
+            else => err,
+        };
         return true;
     }
 
     const path_env = rt.env.get("PATH") orelse "/usr/local/bin:/bin:/usr/bin";
     var paths = std.mem.tokenizeScalar(u8, path_env, ':');
     while (paths.next()) |dir| {
-        const full_path = std.fs.path.join(rt.allocator, &.{ dir, bin }) catch return false;
+        const full_path = try std.fs.path.join(rt.allocator, &.{ dir, bin });
         defer rt.allocator.free(full_path);
-        std.Io.Dir.cwd().access(rt.io, full_path, .{ .execute = true }) catch continue;
+        std.Io.Dir.cwd().access(rt.io, full_path, .{ .execute = true }) catch |err| switch (err) {
+            error.FileNotFound, error.AccessDenied => continue,
+            else => return err,
+        };
         return true;
     }
     return false;
@@ -100,7 +106,7 @@ pub fn writeCommandTextIfAvailable(
     path: []const u8,
     argv: []const []const u8,
 ) !bool {
-    if (!hasBin(rt, bin)) return false;
+    if (!try hasBin(rt, bin)) return false;
     const output = try commandText(rt, argv);
     defer rt.allocator.free(output);
     return try @import("fs.zig").writeTextIfChanged(rt, path, output);
@@ -121,6 +127,6 @@ test "hasBin rejects missing PATH entries and direct missing paths" {
         .env = &map,
     };
 
-    try std.testing.expect(!hasBin(rt, "definitely-not-a-real-command"));
-    try std.testing.expect(!hasBin(rt, "./definitely-not-a-real-command"));
+    try std.testing.expect(!try hasBin(rt, "definitely-not-a-real-command"));
+    try std.testing.expect(!try hasBin(rt, "./definitely-not-a-real-command"));
 }

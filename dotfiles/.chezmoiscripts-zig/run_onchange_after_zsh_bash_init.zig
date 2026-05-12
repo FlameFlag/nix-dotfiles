@@ -62,7 +62,7 @@ fn run(rt: *script.Runtime) !void {
 
 fn writeInitFiles(rt: *script.Runtime, home_dir: []const u8, shell: Shell) !void {
     for (init_commands) |item| {
-        if (!script.hasBin(rt, item.bin)) continue;
+        if (!try script.hasBin(rt, item.bin)) continue;
         const out = try std.fmt.allocPrint(rt.allocator, "init.{s}", .{@tagName(shell)});
         defer rt.allocator.free(out);
         const path = try std.fs.path.join(rt.allocator, &.{ home_dir, ".cache", item.dir, out });
@@ -82,18 +82,22 @@ fn writeCompletionFiles(rt: *script.Runtime, home_dir: []const u8, shell: Shell)
     defer rt.allocator.free(outdir);
     const prefix = if (shell == .zsh) "_" else "";
 
-    if (script.hasBin(rt, "atuin")) {
+    if (try script.hasBin(rt, "atuin")) {
         var result = try script.commandQuiet(rt, &.{ "atuin", "gen-completions", "--shell", shell_name, "--out-dir", outdir });
-        result.deinit(rt.allocator);
+        defer result.deinit(rt.allocator);
+        if (result.exit_code != 0) try warnCommandFailed(rt, "atuin completions", result.stderr);
     }
 
     for (completion_commands) |item| {
-        if (!script.hasBin(rt, item.bin)) continue;
+        if (!try script.hasBin(rt, item.bin)) continue;
         const argv = try completionArgs(rt, item, shell);
         defer rt.allocator.free(argv);
         var result = try script.commandQuiet(rt, argv);
         defer result.deinit(rt.allocator);
-        if (result.exit_code != 0) continue;
+        if (result.exit_code != 0) {
+            try warnCommandFailed(rt, item.name, result.stderr);
+            continue;
+        }
 
         const filename = try std.fmt.allocPrint(rt.allocator, "{s}{s}", .{ prefix, item.name });
         defer rt.allocator.free(filename);
@@ -101,6 +105,16 @@ fn writeCompletionFiles(rt: *script.Runtime, home_dir: []const u8, shell: Shell)
         defer rt.allocator.free(path);
         _ = try script.writeTextIfChanged(rt, path, result.stdout);
     }
+}
+
+fn warnCommandFailed(rt: *script.Runtime, name: []const u8, stderr: []const u8) !void {
+    const message = std.mem.trim(u8, stderr, " \t\r\n");
+    if (message.len == 0) {
+        try rt.stderr.print("warn: failed to generate {s} completions\n", .{name});
+    } else {
+        try rt.stderr.print("warn: failed to generate {s} completions: {s}\n", .{ name, message });
+    }
+    try rt.stderr.flush();
 }
 
 fn completionArgs(rt: *script.Runtime, item: CompletionCommand, shell: Shell) ![]const []const u8 {

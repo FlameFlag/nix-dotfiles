@@ -77,7 +77,13 @@ pub const Client = struct {
         });
         try writer.interface.flush();
         if (result.status.class() == .client_error or result.status.class() == .server_error) {
-            std.Io.Dir.cwd().deleteFile(self.rt.io, path) catch {};
+            std.Io.Dir.cwd().deleteFile(self.rt.io, path) catch |err| switch (err) {
+                error.FileNotFound => {},
+                else => {
+                    try self.rt.stderr.print("warn: failed to delete partial download {s}: {s}\n", .{ path, @errorName(err) });
+                    try self.rt.stderr.flush();
+                },
+            };
             return error.HttpRequestFailed;
         }
     }

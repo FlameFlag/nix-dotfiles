@@ -32,11 +32,13 @@ fn run(rt: *script.Runtime) !void {
     defer rt.allocator.free(atuin_init);
     _ = try script.writeCommandTextIfAvailable(rt, "atuin", atuin_init, &.{ "atuin", "init", "nu", "--disable-up-arrow" });
 
-    if (std.Io.Dir.cwd().access(rt.io, atuin_init, .{})) {
-        const current = try std.Io.Dir.cwd().readFileAlloc(rt.io, atuin_init, rt.allocator, .limited(64 * 1024 * 1024));
+    if (std.Io.Dir.cwd().readFileAlloc(rt.io, atuin_init, rt.allocator, .limited(64 * 1024 * 1024))) |current| {
         defer rt.allocator.free(current);
         const fixed = try std.mem.replaceOwned(u8, rt.allocator, current, "$cmd e>| complete", "$cmd | complete");
         defer rt.allocator.free(fixed);
         _ = try script.writeTextIfChanged(rt, atuin_init, fixed);
-    } else |_| {}
+    } else |err| switch (err) {
+        error.FileNotFound => {},
+        else => return err,
+    }
 }

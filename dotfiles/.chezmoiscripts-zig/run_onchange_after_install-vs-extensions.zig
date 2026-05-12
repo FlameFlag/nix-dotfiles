@@ -6,16 +6,19 @@ pub fn main(init: std.process.Init) !void {
 }
 
 fn run(rt: *script.Runtime) !void {
-    if (!script.hasBin(rt, "code")) return;
+    if (!try script.hasBin(rt, "code")) return;
 
     const context = try script.chezmoiContext(rt);
     defer context.deinit(rt.allocator);
 
     const extensions_file = try std.fs.path.join(rt.allocator, &.{ context.source_dir, "dot_config/Code/User/vscode-extensions.txt" });
     defer rt.allocator.free(extensions_file);
-    std.Io.Dir.cwd().access(rt.io, extensions_file, .{}) catch return;
+    std.Io.Dir.cwd().access(rt.io, extensions_file, .{}) catch |err| switch (err) {
+        error.FileNotFound => return,
+        else => return err,
+    };
 
-    const listed = try script.commandTextOr(rt, &.{ "code", "--list-extensions" }, "");
+    const listed = try script.commandText(rt, &.{ "code", "--list-extensions" });
     defer rt.allocator.free(listed);
 
     const wanted = try std.Io.Dir.cwd().readFileAlloc(rt.io, extensions_file, rt.allocator, .limited(64 * 1024 * 1024));

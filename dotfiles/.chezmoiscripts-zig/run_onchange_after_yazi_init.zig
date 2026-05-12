@@ -13,7 +13,7 @@ pub fn main(init: std.process.Init) !void {
 }
 
 fn run(rt: *script.Runtime) !void {
-    if (!script.hasBin(rt, "git")) return error.GitNotFound;
+    if (!try script.hasBin(rt, "git")) return error.GitNotFound;
 
     const context = try script.chezmoiContext(rt);
     defer context.deinit(rt.allocator);
@@ -27,7 +27,10 @@ fn run(rt: *script.Runtime) !void {
 
     const temp_dir = try script.tempDir(rt);
     defer {
-        std.Io.Dir.cwd().deleteTree(rt.io, temp_dir) catch {};
+        deleteTreeIfExists(rt, temp_dir) catch |err| {
+            rt.stderr.print("warn: failed to remove temporary directory {s}: {s}\n", .{ temp_dir, @errorName(err) }) catch {};
+            rt.stderr.flush() catch {};
+        };
         rt.allocator.free(temp_dir);
     }
 
@@ -51,7 +54,7 @@ fn run(rt: *script.Runtime) !void {
         defer rt.allocator.free(plugin_name);
         const plugin_dir = try std.fs.path.join(rt.allocator, &.{ plugins_dir, plugin_name });
         defer rt.allocator.free(plugin_dir);
-        try std.Io.Dir.cwd().deleteTree(rt.io, plugin_dir);
+        try deleteTreeIfExists(rt, plugin_dir);
         try rt.stderr.print("info: Installing plugin {s}...\n", .{plugin.name});
         try rt.stderr.flush();
         try script.command(rt, &.{ "git", "clone", "--depth", "1", "--single-branch", "--no-tags", "--quiet", plugin.repo, plugin_dir });
@@ -64,12 +67,16 @@ fn run(rt: *script.Runtime) !void {
     try rt.stderr.flush();
 }
 
+fn deleteTreeIfExists(rt: *script.Runtime, path: []const u8) !void {
+    try std.Io.Dir.cwd().deleteTree(rt.io, path);
+}
+
 fn installPluginDir(rt: *script.Runtime, plugin: []const u8, src: []const u8, plugins_dir: []const u8) !void {
     const plugin_name = try std.fmt.allocPrint(rt.allocator, "{s}.yazi", .{plugin});
     defer rt.allocator.free(plugin_name);
     const dst = try std.fs.path.join(rt.allocator, &.{ plugins_dir, plugin_name });
     defer rt.allocator.free(dst);
-    try std.Io.Dir.cwd().deleteTree(rt.io, dst);
+    try deleteTreeIfExists(rt, dst);
     try rt.stderr.print("info: Installing plugin {s}...\n", .{plugin});
     try rt.stderr.flush();
     try script.command(rt, &.{ "cp", "-R", src, dst });

@@ -225,13 +225,12 @@ fn run(rt: *script.Runtime) !void {
     const paths = try raycastPaths(rt, context);
     defer paths.deinit(rt.allocator);
     if (!try canApplyConfig(rt, paths)) return;
-    if (!fileExists(rt, raycast_bin)) return error.RaycastNotInstalled;
+    if (!try fileExists(rt, raycast_bin)) return error.RaycastNotInstalled;
 
     const was_running = try quitRaycastIfRunning(rt);
-    try tryApplyConfig(rt, paths);
+    try applyConfig(rt, paths);
     if (was_running) {
-        var result = try script.commandQuiet(rt, &.{ "open", "-ga", "Raycast" });
-        result.deinit(rt.allocator);
+        try script.command(rt, &.{ "open", "-ga", "Raycast" });
     }
 }
 
@@ -266,12 +265,12 @@ fn raycastPaths(rt: *script.Runtime, context: anytype) !RaycastPaths {
 
 fn canApplyConfig(rt: *script.Runtime, paths: RaycastPaths) !bool {
     var ok = true;
-    if (!fileExists(rt, paths.config)) {
+    if (!try fileExists(rt, paths.config)) {
         try rt.stderr.print("warn: Raycast window-management config not found: {s}\n", .{paths.config});
         try rt.stderr.flush();
         ok = false;
     }
-    if (!fileExists(rt, paths.db)) {
+    if (!try fileExists(rt, paths.db)) {
         try rt.stderr.print("warn: Raycast database not found: {s}\n", .{paths.db});
         try rt.stderr.flush();
         ok = false;
@@ -279,8 +278,11 @@ fn canApplyConfig(rt: *script.Runtime, paths: RaycastPaths) !bool {
     return ok;
 }
 
-fn fileExists(rt: *script.Runtime, path: []const u8) bool {
-    std.Io.Dir.cwd().access(rt.io, path, .{}) catch return false;
+fn fileExists(rt: *script.Runtime, path: []const u8) !bool {
+    std.Io.Dir.cwd().access(rt.io, path, .{}) catch |err| return switch (err) {
+        error.FileNotFound => false,
+        else => err,
+    };
     return true;
 }
 
@@ -335,8 +337,7 @@ fn quitRaycastIfRunning(rt: *script.Runtime) !bool {
     running.deinit(rt.allocator);
     if (!is_running) return false;
 
-    var quit = try script.commandQuiet(rt, &.{ "osascript", "-e", "tell application \"Raycast\" to quit" });
-    quit.deinit(rt.allocator);
+    try script.command(rt, &.{ "osascript", "-e", "tell application \"Raycast\" to quit" });
     try waitForRaycastToQuit(rt);
     return true;
 }
@@ -351,13 +352,6 @@ fn waitForRaycastToQuit(rt: *script.Runtime) !void {
         try std.Io.sleep(rt.io, .fromMilliseconds(200), .awake);
     }
     return error.RaycastQuitTimedOut;
-}
-
-fn tryApplyConfig(rt: *script.Runtime, paths: RaycastPaths) !void {
-    applyConfig(rt, paths) catch |err| {
-        try rt.stderr.print("warn: Failed to apply Raycast window-management settings: {s}\n", .{@errorName(err)});
-        try rt.stderr.flush();
-    };
 }
 
 fn applyConfig(rt: *script.Runtime, paths: RaycastPaths) !void {
