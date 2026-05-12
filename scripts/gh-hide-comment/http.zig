@@ -68,11 +68,18 @@ pub const Client = struct {
             .method = method,
             .payload = payload,
             .response_writer = &body.writer,
-            .extra_headers = &.{
+            .extra_headers = if (payload != null) &.{
                 .{ .name = "accept", .value = "application/vnd.github+json" },
-                .{ .name = "authorization", .value = auth_header },
                 .{ .name = "x-github-api-version", .value = "2022-11-28" },
                 .{ .name = "content-type", .value = "application/json" },
+                .{ .name = "user-agent", .value = "gh-hide-comment" },
+            } else &.{
+                .{ .name = "accept", .value = "application/vnd.github+json" },
+                .{ .name = "x-github-api-version", .value = "2022-11-28" },
+                .{ .name = "user-agent", .value = "gh-hide-comment" },
+            },
+            .privileged_headers = &.{
+                .{ .name = "authorization", .value = auth_header },
             },
         });
 

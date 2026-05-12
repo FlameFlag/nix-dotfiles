@@ -45,14 +45,19 @@ pub const Client = struct {
             .location = .{ .url = url },
             .method = .GET,
             .response_writer = &body.writer,
-            .extra_headers = if (auth_header) |header| &.{
+            .extra_headers = &.{
                 .{ .name = "accept", .value = "application/vnd.github+json" },
-                .{ .name = "authorization", .value = header },
-            } else &.{
-                .{ .name = "accept", .value = "application/vnd.github+json" },
+                .{ .name = "user-agent", .value = "nix-dotfiles-zig-scripts" },
             },
+            .privileged_headers = if (auth_header) |header| &.{
+                .{ .name = "authorization", .value = header },
+            } else &.{},
         });
-        if (result.status.class() == .client_error or result.status.class() == .server_error) return error.HttpRequestFailed;
+        if (isHttpError(result.status)) {
+            try self.rt.stderr.print("error: HTTP GET {s} returned {d}: {s}\n", .{ url, @intFromEnum(result.status), body.written() });
+            try self.rt.stderr.flush();
+            return error.HttpRequestFailed;
+        }
 
         return try body.toOwnedSlice();
     }
@@ -75,12 +80,12 @@ pub const Client = struct {
             .location = .{ .url = url },
             .method = .GET,
             .response_writer = &writer.interface,
+            .extra_headers = &.{
+                .{ .name = "user-agent", .value = "nix-dotfiles-zig-scripts" },
+            },
         });
         try writer.interface.flush();
-        if (result.status.class() == .client_error or result.status.class() == .server_error) {
-            self.deletePartialDownload(path);
-            return error.HttpRequestFailed;
-        }
+        if (isHttpError(result.status)) return error.HttpRequestFailed;
     }
 
     fn deletePartialDownload(self: *Client, path: []const u8) void {
@@ -91,6 +96,10 @@ pub const Client = struct {
                 self.rt.stderr.flush() catch {};
             },
         };
+    }
+
+    fn isHttpError(status: std.http.Status) bool {
+        return status.class() == .client_error or status.class() == .server_error;
     }
 
     fn githubAuthorizationHeader(self: *Client) !?[]u8 {
