@@ -67,6 +67,7 @@ pub const Client = struct {
 
         var file = try std.Io.Dir.cwd().createFile(self.rt.io, path, .{});
         defer file.close(self.rt.io);
+        errdefer self.deletePartialDownload(path);
 
         var buffer: [8192]u8 = undefined;
         var writer = file.writer(self.rt.io, &buffer);
@@ -77,15 +78,19 @@ pub const Client = struct {
         });
         try writer.interface.flush();
         if (result.status.class() == .client_error or result.status.class() == .server_error) {
-            std.Io.Dir.cwd().deleteFile(self.rt.io, path) catch |err| switch (err) {
-                error.FileNotFound => {},
-                else => {
-                    try self.rt.stderr.print("warn: failed to delete partial download {s}: {s}\n", .{ path, @errorName(err) });
-                    try self.rt.stderr.flush();
-                },
-            };
+            self.deletePartialDownload(path);
             return error.HttpRequestFailed;
         }
+    }
+
+    fn deletePartialDownload(self: *Client, path: []const u8) void {
+        std.Io.Dir.cwd().deleteFile(self.rt.io, path) catch |err| switch (err) {
+            error.FileNotFound => {},
+            else => {
+                self.rt.stderr.print("warn: failed to delete partial download {s}: {s}\n", .{ path, @errorName(err) }) catch {};
+                self.rt.stderr.flush() catch {};
+            },
+        };
     }
 
     fn githubAuthorizationHeader(self: *Client) !?[]u8 {

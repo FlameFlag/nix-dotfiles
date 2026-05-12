@@ -404,11 +404,18 @@ fn applyWindowConfig(rt: *script.Runtime, db: Database, config: WindowConfig) !v
     }
 
     try db.exec("BEGIN");
-    errdefer db.exec("ROLLBACK") catch {};
+    errdefer rollbackWithWarning(rt, db);
     try db.run("UPDATE search SET hotkey = NULL WHERE key LIKE ?", &.{command_prefix ++ "%"});
     try applyHotkeys(db, config.parsed.value.hotkeys);
     try upsertDisabledCommands(rt, db, config.parsed.value.disabledCommands orelse &.{});
     try db.exec("COMMIT");
+}
+
+fn rollbackWithWarning(rt: *script.Runtime, db: Database) void {
+    db.exec("ROLLBACK") catch |err| {
+        rt.stderr.print("warn: failed to roll back Raycast database transaction: {s}\n", .{@errorName(err)}) catch {};
+        rt.stderr.flush() catch {};
+    };
 }
 
 fn loadKnownCommands(rt: *script.Runtime, db: Database) !std.array_hash_map.String(void) {
