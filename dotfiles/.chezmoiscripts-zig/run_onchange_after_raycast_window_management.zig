@@ -6,6 +6,14 @@ const domain = "com.raycast.macos";
 const raycast_bin = "/Applications/Raycast.app/Contents/MacOS/Raycast";
 const extension_id = "builtin_package_windowManagement";
 const command_prefix = "builtin_command_windowManagement";
+const cf_false: u8 = 0;
+const cf_true: u8 = 1;
+const cf_utf8 = 0x08000100;
+const cf_url_posix_path_style = 0;
+const ls_launch_defaults = 0x00000001;
+const ls_launch_dont_switch = 0x00000200;
+const proc_all_pids = 1;
+const proc_pidpathinfo_maxsize = 4096;
 
 const sqlite_ok = 0;
 const sqlite_row = 100;
@@ -14,6 +22,17 @@ const sqlite_transient: ?*const anyopaque = @ptrFromInt(std.math.maxInt(usize));
 
 const sqlite3 = opaque {};
 const sqlite3_stmt = opaque {};
+
+extern fn proc_listpids(type: c_uint, typeinfo: c_uint, buffer: ?*anyopaque, buffersize: c_int) c_int;
+extern fn proc_pidpath(pid: c_int, buffer: [*]u8, buffersize: u32) c_int;
+
+const LSLaunchURLSpec = extern struct {
+    app_url: ?*const anyopaque,
+    item_urls: ?*const anyopaque,
+    pass_thru_params: ?*const anyopaque,
+    launch_flags: u32,
+    async_ref_con: ?*anyopaque,
+};
 
 const RaycastPaths = struct {
     config: []u8,
@@ -36,6 +55,163 @@ const WindowConfig = struct {
 const WindowConfigJson = struct {
     hotkeys: ?std.json.ArrayHashMap(?[]const u8) = null,
     disabledCommands: ?[]const []const u8 = null,
+};
+
+const CoreFoundation = struct {
+    lib: std.DynLib,
+    array_callbacks: *const anyopaque,
+    create_string: *const fn (?*const anyopaque, [*]const u8, isize, u32, u8) callconv(.c) ?*anyopaque,
+    release: *const fn (?*const anyopaque) callconv(.c) void,
+    equal: *const fn (?*const anyopaque, ?*const anyopaque) callconv(.c) u8,
+    get_type_id: *const fn (?*const anyopaque) callconv(.c) usize,
+    array_get_type_id: *const fn () callconv(.c) usize,
+    array_create_mutable: *const fn (?*const anyopaque, isize, ?*const anyopaque) callconv(.c) ?*anyopaque,
+    array_create_mutable_copy: *const fn (?*const anyopaque, isize, ?*const anyopaque) callconv(.c) ?*anyopaque,
+    array_append_value: *const fn (?*anyopaque, ?*const anyopaque) callconv(.c) void,
+    array_get_count: *const fn (?*const anyopaque) callconv(.c) isize,
+    array_get_value_at_index: *const fn (?*const anyopaque, isize) callconv(.c) ?*const anyopaque,
+    preferences_copy_app_value: *const fn (?*const anyopaque, ?*const anyopaque) callconv(.c) ?*anyopaque,
+    preferences_set_app_value: *const fn (?*const anyopaque, ?*const anyopaque, ?*const anyopaque) callconv(.c) void,
+    preferences_app_synchronize: *const fn (?*const anyopaque) callconv(.c) u8,
+    url_create_with_file_system_path: *const fn (?*const anyopaque, ?*const anyopaque, c_int, u8) callconv(.c) ?*anyopaque,
+
+    fn load() !CoreFoundation {
+        var lib = try std.DynLib.open("/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation");
+        errdefer lib.close();
+
+        return .{
+            .lib = lib,
+            .array_callbacks = try dynLookup(*const anyopaque, &lib, "kCFTypeArrayCallBacks"),
+            .create_string = try dynLookup(@TypeOf(@as(CoreFoundation, undefined).create_string), &lib, "CFStringCreateWithBytes"),
+            .release = try dynLookup(@TypeOf(@as(CoreFoundation, undefined).release), &lib, "CFRelease"),
+            .equal = try dynLookup(@TypeOf(@as(CoreFoundation, undefined).equal), &lib, "CFEqual"),
+            .get_type_id = try dynLookup(@TypeOf(@as(CoreFoundation, undefined).get_type_id), &lib, "CFGetTypeID"),
+            .array_get_type_id = try dynLookup(@TypeOf(@as(CoreFoundation, undefined).array_get_type_id), &lib, "CFArrayGetTypeID"),
+            .array_create_mutable = try dynLookup(@TypeOf(@as(CoreFoundation, undefined).array_create_mutable), &lib, "CFArrayCreateMutable"),
+            .array_create_mutable_copy = try dynLookup(@TypeOf(@as(CoreFoundation, undefined).array_create_mutable_copy), &lib, "CFArrayCreateMutableCopy"),
+            .array_append_value = try dynLookup(@TypeOf(@as(CoreFoundation, undefined).array_append_value), &lib, "CFArrayAppendValue"),
+            .array_get_count = try dynLookup(@TypeOf(@as(CoreFoundation, undefined).array_get_count), &lib, "CFArrayGetCount"),
+            .array_get_value_at_index = try dynLookup(@TypeOf(@as(CoreFoundation, undefined).array_get_value_at_index), &lib, "CFArrayGetValueAtIndex"),
+            .preferences_copy_app_value = try dynLookup(@TypeOf(@as(CoreFoundation, undefined).preferences_copy_app_value), &lib, "CFPreferencesCopyAppValue"),
+            .preferences_set_app_value = try dynLookup(@TypeOf(@as(CoreFoundation, undefined).preferences_set_app_value), &lib, "CFPreferencesSetAppValue"),
+            .preferences_app_synchronize = try dynLookup(@TypeOf(@as(CoreFoundation, undefined).preferences_app_synchronize), &lib, "CFPreferencesAppSynchronize"),
+            .url_create_with_file_system_path = try dynLookup(@TypeOf(@as(CoreFoundation, undefined).url_create_with_file_system_path), &lib, "CFURLCreateWithFileSystemPath"),
+        };
+    }
+
+    fn deinit(self: *CoreFoundation) void {
+        self.lib.close();
+    }
+
+    fn string(self: CoreFoundation, value: []const u8) !*anyopaque {
+        return self.create_string(null, value.ptr, @intCast(value.len), cf_utf8, cf_false) orelse error.CoreFoundationFailed;
+    }
+
+    fn arrayAddOnce(self: CoreFoundation, key: []const u8, value: []const u8) !void {
+        const app_id = try self.string(domain);
+        defer self.release(app_id);
+        const key_ref = try self.string(key);
+        defer self.release(key_ref);
+        const value_ref = try self.string(value);
+        defer self.release(value_ref);
+
+        const existing = self.preferences_copy_app_value(key_ref, app_id);
+        defer if (existing) |ref| self.release(ref);
+
+        if (existing) |ref| {
+            if (self.isArray(ref) and self.arrayContains(ref, value_ref)) return;
+        }
+
+        const array = if (existing) |ref|
+            if (self.isArray(ref))
+                self.array_create_mutable_copy(null, 0, ref)
+            else
+                self.array_create_mutable(null, 0, self.array_callbacks)
+        else
+            self.array_create_mutable(null, 0, self.array_callbacks);
+        const mutable_array = array orelse return error.CoreFoundationFailed;
+        defer self.release(mutable_array);
+
+        self.array_append_value(mutable_array, value_ref);
+        self.preferences_set_app_value(key_ref, mutable_array, app_id);
+        if (self.preferences_app_synchronize(app_id) == cf_false) return error.RaycastDefaultsWriteFailed;
+    }
+
+    fn isArray(self: CoreFoundation, ref: *anyopaque) bool {
+        return self.get_type_id(ref) == self.array_get_type_id();
+    }
+
+    fn arrayContains(self: CoreFoundation, array: *anyopaque, value: *anyopaque) bool {
+        const count = self.array_get_count(array);
+        var index: isize = 0;
+        while (index < count) : (index += 1) {
+            const item = self.array_get_value_at_index(array, index) orelse continue;
+            if (self.equal(item, value) != cf_false) return true;
+        }
+        return false;
+    }
+};
+
+const Security = struct {
+    lib: std.DynLib,
+    find_generic_password: *const fn (?*anyopaque, u32, ?[*]const u8, u32, ?[*]const u8, *u32, *?*anyopaque, ?*?*anyopaque) callconv(.c) i32,
+    free_content: *const fn (?*anyopaque, ?*anyopaque) callconv(.c) i32,
+
+    fn load() !Security {
+        var lib = try std.DynLib.open("/System/Library/Frameworks/Security.framework/Security");
+        errdefer lib.close();
+
+        return .{
+            .lib = lib,
+            .find_generic_password = try dynLookup(@TypeOf(@as(Security, undefined).find_generic_password), &lib, "SecKeychainFindGenericPassword"),
+            .free_content = try dynLookup(@TypeOf(@as(Security, undefined).free_content), &lib, "SecKeychainItemFreeContent"),
+        };
+    }
+
+    fn deinit(self: *Security) void {
+        self.lib.close();
+    }
+
+    fn raycastDatabaseKey(self: Security, allocator: script.Allocator) ![]u8 {
+        var password_len: u32 = 0;
+        var password_data: ?*anyopaque = null;
+        const service = "Raycast";
+        const account = "database_key";
+
+        const status = self.find_generic_password(
+            null,
+            service.len,
+            service.ptr,
+            account.len,
+            account.ptr,
+            &password_len,
+            &password_data,
+            null,
+        );
+        if (status != 0) return error.RaycastDatabaseKeyNotFound;
+        defer _ = self.free_content(null, password_data);
+
+        return try copyTrimmedPassword(allocator, password_data, password_len);
+    }
+};
+
+const LaunchServices = struct {
+    lib: std.DynLib,
+    open_from_url_spec: *const fn (*const LSLaunchURLSpec, ?*?*anyopaque) callconv(.c) i32,
+
+    fn load() !LaunchServices {
+        var lib = try std.DynLib.open("/System/Library/Frameworks/CoreServices.framework/CoreServices");
+        errdefer lib.close();
+
+        return .{
+            .lib = lib,
+            .open_from_url_spec = try dynLookup(@TypeOf(@as(LaunchServices, undefined).open_from_url_spec), &lib, "LSOpenFromURLSpec"),
+        };
+    }
+
+    fn deinit(self: *LaunchServices) void {
+        self.lib.close();
+    }
 };
 
 const Database = struct {
@@ -220,9 +396,39 @@ const SqlCipher = struct {
             if (std.DynLib.open(path)) |lib| return lib else |_| {}
         }
 
+        if (try openSqlCipherFromNixStore(rt)) |lib| return lib;
+
         return error.SqlCipherNotFound;
     }
 };
+
+fn openSqlCipherFromNixStore(rt: anytype) !?std.DynLib {
+    var store = std.Io.Dir.openDirAbsolute(rt.io, "/nix/store", .{ .iterate = true }) catch |err| switch (err) {
+        error.FileNotFound => return null,
+        else => return err,
+    };
+    defer store.close(rt.io);
+
+    var iter = store.iterate();
+    while (try iter.next(rt.io)) |entry| {
+        if (entry.kind != .directory or !isSqlCipherNixStoreOutput(entry.name)) continue;
+
+        const path = try std.fmt.allocPrint(rt.allocator, "/nix/store/{s}/lib/libsqlcipher.dylib", .{entry.name});
+        defer rt.allocator.free(path);
+        if (std.DynLib.open(path)) |lib| return lib else |_| {}
+    }
+
+    return null;
+}
+
+fn isSqlCipherNixStoreOutput(name: []const u8) bool {
+    const dash = std.mem.indexOfScalar(u8, name, '-') orelse return false;
+    return std.mem.startsWith(u8, name[dash + 1 ..], "sqlcipher-");
+}
+
+fn dynLookup(comptime T: type, lib: *std.DynLib, comptime name: [:0]const u8) !T {
+    return lib.lookup(T, name) orelse error.DynamicSymbolMissing;
+}
 
 /// Applies Raycast window-management settings on macOS.
 pub fn main(init: std.process.Init) !void {
@@ -245,30 +451,17 @@ fn run(rt: *script.Runtime) !void {
     const was_running = try quitRaycastIfRunning(rt);
     try applyConfig(rt, paths);
     if (was_running) {
-        try script.command(rt, &.{ "open", "-ga", "Raycast" });
+        try openRaycast(rt);
     }
 }
 
 fn ensureRaycastDefaults(rt: *script.Runtime) !void {
-    try arrayAddOnce(rt, "onboarding_completedTaskIdentifiers", "windowManagement");
-    try arrayAddOnce(rt, "commandsPreferencesExpandedItemIds", "builtin_package_windowManagement");
-}
+    _ = rt;
+    var cf = try CoreFoundation.load();
+    defer cf.deinit();
 
-fn arrayContains(rt: *script.Runtime, key: []const u8, value: []const u8) !bool {
-    const output = try script.commandTextOr(rt, &.{ "defaults", "read", domain, key }, "");
-    defer rt.allocator.free(output);
-    var lines = std.mem.splitAny(u8, output, "\r\n");
-    while (lines.next()) |line| {
-        var trimmed = std.mem.trim(u8, line, " \t,");
-        trimmed = std.mem.trim(u8, trimmed, "\"");
-        if (std.mem.eql(u8, trimmed, value)) return true;
-    }
-    return false;
-}
-
-fn arrayAddOnce(rt: *script.Runtime, key: []const u8, value: []const u8) !void {
-    if (try arrayContains(rt, key, value)) return;
-    try script.command(rt, &.{ "defaults", "write", domain, key, "-array-add", value });
+    try cf.arrayAddOnce("onboarding_completedTaskIdentifiers", "windowManagement");
+    try cf.arrayAddOnce("commandsPreferencesExpandedItemIds", "builtin_package_windowManagement");
 }
 
 fn raycastPaths(rt: *script.Runtime, context: anytype) !RaycastPaths {
@@ -305,37 +498,62 @@ fn fileExists(rt: *script.Runtime, path: []const u8) !bool {
 ///
 /// Caller owns returned memory.
 fn databasePassword(rt: *script.Runtime) ![]u8 {
-    const key_raw = try script.commandTextOr(rt, &.{ "security", "find-generic-password", "-s", "Raycast", "-a", "database_key", "-w" }, "");
-    defer rt.allocator.free(key_raw);
-    const key = std.mem.trim(u8, key_raw, " \t\r\n");
-    if (key.len == 0) return error.RaycastDatabaseKeyNotFound;
+    var security = try Security.load();
+    defer security.deinit();
+    const key = try security.raycastDatabaseKey(rt.allocator);
+    defer rt.allocator.free(key);
 
     const salt = try extractSalt(rt);
     defer rt.allocator.free(salt);
-    const joined = try std.fmt.allocPrint(rt.allocator, "{s}{s}", .{ key, salt });
-    defer rt.allocator.free(joined);
+    return try databasePasswordFromParts(rt.allocator, key, salt);
+}
+
+fn copyTrimmedPassword(allocator: script.Allocator, password_data: ?*anyopaque, password_len: u32) ![]u8 {
+    const data = password_data orelse return error.RaycastDatabaseKeyNotFound;
+    const bytes: [*]const u8 = @ptrCast(data);
+    const key = std.mem.trim(u8, bytes[0..password_len], " \t\r\n");
+    if (key.len == 0) return error.RaycastDatabaseKeyNotFound;
+    return try allocator.dupe(u8, key);
+}
+
+fn databasePasswordFromParts(allocator: script.Allocator, key: []const u8, salt: []const u8) ![]u8 {
+    const joined = try std.fmt.allocPrint(allocator, "{s}{s}", .{ key, salt });
+    defer allocator.free(joined);
     var digest: [std.crypto.hash.sha2.Sha256.digest_length]u8 = undefined;
     std.crypto.hash.sha2.Sha256.hash(joined, &digest, .{});
     const hex = std.fmt.bytesToHex(digest, .lower);
-    return try rt.allocator.dupe(u8, &hex);
+    return try allocator.dupe(u8, &hex);
 }
 
 /// Extracts Raycast's database salt from the application binary.
 ///
 /// Caller owns returned memory.
 fn extractSalt(rt: *script.Runtime) ![]u8 {
-    const output = try script.commandText(rt, &.{ "strings", "-a", raycast_bin });
-    defer rt.allocator.free(output);
+    const contents = try std.Io.Dir.cwd().readFileAlloc(rt.io, raycast_bin, rt.allocator, .limited(512 * 1024 * 1024));
+    defer rt.allocator.free(contents);
+    return (try findSaltAfterPassphraseSymbol(rt.allocator, contents)) orelse error.RaycastSaltNotFound;
+}
 
+fn findSaltAfterPassphraseSymbol(allocator: script.Allocator, contents: []const u8) !?[]u8 {
     var previous: []const u8 = "";
-    var lines = std.mem.splitAny(u8, output, "\r\n");
-    while (lines.next()) |line| {
-        if (std.mem.eql(u8, previous, "copyDatabaseEncryptionPassphraseToClipboard()") and isAsciiSalt(line)) {
-            return try rt.allocator.dupe(u8, line);
+    var index: usize = 0;
+    while (index < contents.len) {
+        while (index < contents.len and !isPrintableAscii(contents[index])) : (index += 1) {}
+        const start = index;
+        while (index < contents.len and isPrintableAscii(contents[index])) : (index += 1) {}
+        const string_run = contents[start..index];
+        if (string_run.len >= 4) {
+            if (std.mem.eql(u8, previous, "copyDatabaseEncryptionPassphraseToClipboard()") and isAsciiSalt(string_run)) {
+                return try allocator.dupe(u8, string_run);
+            }
+            previous = string_run;
         }
-        if (line.len > 0) previous = line;
     }
-    return error.RaycastSaltNotFound;
+    return null;
+}
+
+fn isPrintableAscii(char: u8) bool {
+    return char >= ' ' and char <= '~';
 }
 
 fn isAsciiSalt(value: []const u8) bool {
@@ -347,12 +565,16 @@ fn isAsciiSalt(value: []const u8) bool {
 }
 
 fn quitRaycastIfRunning(rt: *script.Runtime) !bool {
-    var running = try script.commandQuiet(rt, &.{ "pgrep", "-qx", "Raycast" });
-    const is_running = running.exit_code == 0;
-    running.deinit(rt.allocator);
-    if (!is_running) return false;
+    const pids = try raycastPids(rt);
+    defer rt.allocator.free(pids);
+    if (pids.len == 0) return false;
 
-    try script.command(rt, &.{ "osascript", "-e", "tell application \"Raycast\" to quit" });
+    for (pids) |pid| {
+        std.posix.kill(pid, .TERM) catch |err| switch (err) {
+            error.ProcessNotFound => {},
+            else => return err,
+        };
+    }
     try waitForRaycastToQuit(rt);
     return true;
 }
@@ -360,13 +582,69 @@ fn quitRaycastIfRunning(rt: *script.Runtime) !bool {
 fn waitForRaycastToQuit(rt: *script.Runtime) !void {
     var attempt: usize = 0;
     while (attempt < 30) : (attempt += 1) {
-        var result = try script.commandQuiet(rt, &.{ "pgrep", "-qx", "Raycast" });
-        const still_running = result.exit_code == 0;
-        result.deinit(rt.allocator);
-        if (!still_running) return;
+        const pids = try raycastPids(rt);
+        defer rt.allocator.free(pids);
+        if (pids.len == 0) return;
         try std.Io.sleep(rt.io, .fromMilliseconds(200), .awake);
     }
     return error.RaycastQuitTimedOut;
+}
+
+fn raycastPids(rt: *script.Runtime) ![]std.posix.pid_t {
+    const initial_bytes = proc_listpids(proc_all_pids, 0, null, 0);
+    if (initial_bytes < 0) return error.ProcessListFailed;
+
+    const initial_count: usize = @intCast(@divTrunc(initial_bytes, @sizeOf(c_int)));
+    const pids = try rt.allocator.alloc(c_int, initial_count + 256);
+    defer rt.allocator.free(pids);
+
+    const byte_count = proc_listpids(proc_all_pids, 0, pids.ptr, @intCast(pids.len * @sizeOf(c_int)));
+    if (byte_count < 0) return error.ProcessListFailed;
+
+    var matches: std.ArrayList(std.posix.pid_t) = .empty;
+    errdefer matches.deinit(rt.allocator);
+
+    const count: usize = @intCast(@divTrunc(byte_count, @sizeOf(c_int)));
+    for (pids[0..@min(count, pids.len)]) |pid| {
+        if (pid <= 0) continue;
+
+        var path_buffer: [proc_pidpathinfo_maxsize]u8 = undefined;
+        const path_len = proc_pidpath(pid, &path_buffer, path_buffer.len);
+        if (path_len <= 0) continue;
+
+        const path = path_buffer[0..@intCast(path_len)];
+        try appendRaycastPidIfPathMatches(rt.allocator, &matches, pid, path);
+    }
+
+    return try matches.toOwnedSlice(rt.allocator);
+}
+
+fn appendRaycastPidIfPathMatches(allocator: script.Allocator, matches: *std.ArrayList(std.posix.pid_t), pid: c_int, path: []const u8) !void {
+    if (!std.mem.eql(u8, path, raycast_bin)) return;
+    try matches.append(allocator, @intCast(pid));
+}
+
+fn openRaycast(rt: *script.Runtime) !void {
+    _ = rt;
+    var cf = try CoreFoundation.load();
+    defer cf.deinit();
+    var launch_services = try LaunchServices.load();
+    defer launch_services.deinit();
+
+    const app_path = try cf.string("/Applications/Raycast.app");
+    defer cf.release(app_path);
+    const app_url = cf.url_create_with_file_system_path(null, app_path, cf_url_posix_path_style, cf_true) orelse return error.CoreFoundationFailed;
+    defer cf.release(app_url);
+
+    const launch_spec: LSLaunchURLSpec = .{
+        .app_url = app_url,
+        .item_urls = null,
+        .pass_thru_params = null,
+        .launch_flags = ls_launch_defaults | ls_launch_dont_switch,
+        .async_ref_con = null,
+    };
+    const status = launch_services.open_from_url_spec(&launch_spec, null);
+    if (status != 0) return error.RaycastLaunchFailed;
 }
 
 fn applyConfig(rt: *script.Runtime, paths: RaycastPaths) !void {
@@ -391,9 +669,7 @@ fn loadConfig(rt: *script.Runtime, path: []const u8) !WindowConfig {
     const contents = try std.Io.Dir.cwd().readFileAlloc(rt.io, path, rt.allocator, .limited(64 * 1024 * 1024));
     defer rt.allocator.free(contents);
 
-    var config: WindowConfig = .{ .parsed = try std.json.parseFromSlice(WindowConfigJson, rt.allocator, contents, .{
-        .ignore_unknown_fields = true,
-    }) };
+    var config = try parseWindowConfig(rt.allocator, contents);
     errdefer config.deinit();
 
     try validateConfig(config);
@@ -401,22 +677,18 @@ fn loadConfig(rt: *script.Runtime, path: []const u8) !WindowConfig {
     return config;
 }
 
+fn parseWindowConfig(allocator: script.Allocator, contents: []const u8) !WindowConfig {
+    return .{ .parsed = try std.json.parseFromSlice(WindowConfigJson, allocator, contents, .{
+        .allocate = .alloc_always,
+        .ignore_unknown_fields = true,
+    }) };
+}
+
 /// Applies only validated commands and commits all database changes together.
 fn applyWindowConfig(rt: *script.Runtime, db: Database, config: WindowConfig) !void {
     var known_commands = try loadKnownCommands(rt, db);
     defer deinitOwnedKeySet(rt.allocator, &known_commands);
-
-    if (config.parsed.value.hotkeys) |hotkeys| {
-        var iterator = hotkeys.map.iterator();
-        while (iterator.next()) |entry| {
-            if (!known_commands.contains(entry.key_ptr.*)) return error.RaycastCommandNotFound;
-        }
-    }
-    if (config.parsed.value.disabledCommands) |disabled_commands| {
-        for (disabled_commands) |command| {
-            if (!known_commands.contains(command)) return error.RaycastCommandNotFound;
-        }
-    }
+    try warnMissingConfiguredCommands(rt, &known_commands, config);
 
     try db.exec("BEGIN");
     errdefer db.rollbackWithWarning();
@@ -441,6 +713,48 @@ fn loadKnownCommands(rt: *script.Runtime, db: Database) !std.array_hash_map.Stri
     }
 
     return known_commands;
+}
+
+fn warnMissingConfiguredCommands(rt: *script.Runtime, known_commands: *const std.array_hash_map.String(void), config: WindowConfig) !void {
+    var missing = try collectMissingConfiguredCommands(rt.allocator, known_commands, config);
+    defer missing.deinit(rt.allocator);
+
+    for (missing.items) |command| {
+        try rt.stderr.print("warn: Raycast command not found in local database yet; update may be skipped: {s}\n", .{command});
+    }
+    if (missing.items.len > 0) try rt.stderr.flush();
+}
+
+fn collectMissingConfiguredCommands(
+    allocator: script.Allocator,
+    known_commands: *const std.array_hash_map.String(void),
+    config: WindowConfig,
+) !std.ArrayList([]const u8) {
+    var missing: std.ArrayList([]const u8) = .empty;
+    errdefer missing.deinit(allocator);
+
+    if (config.parsed.value.hotkeys) |hotkeys| {
+        var iterator = hotkeys.map.iterator();
+        while (iterator.next()) |entry| try appendMissingCommand(allocator, &missing, known_commands, entry.key_ptr.*);
+    }
+    if (config.parsed.value.disabledCommands) |disabled_commands| {
+        for (disabled_commands) |command| try appendMissingCommand(allocator, &missing, known_commands, command);
+    }
+
+    return missing;
+}
+
+fn appendMissingCommand(
+    allocator: script.Allocator,
+    missing: *std.ArrayList([]const u8),
+    known_commands: *const std.array_hash_map.String(void),
+    command: []const u8,
+) !void {
+    if (known_commands.contains(command)) return;
+    for (missing.items) |existing| {
+        if (std.mem.eql(u8, existing, command)) return;
+    }
+    try missing.append(allocator, command);
 }
 
 fn deinitOwnedKeySet(allocator: script.Allocator, set: *std.array_hash_map.String(void)) void {
@@ -501,6 +815,153 @@ test "isAsciiSalt accepts exactly 32 printable ASCII bytes" {
     try std.testing.expect(!isAsciiSalt("0123456789abcdef0123456789ABC\n"));
 }
 
+test "isPrintableAscii matches strings printable runs" {
+    try std.testing.expect(isPrintableAscii(' '));
+    try std.testing.expect(isPrintableAscii('~'));
+    try std.testing.expect(!isPrintableAscii('\n'));
+    try std.testing.expect(!isPrintableAscii(0x7f));
+}
+
+test "findSaltAfterPassphraseSymbol reads printable strings like strings -a" {
+    const contents = "noise\x00copyDatabaseEncryptionPassphraseToClipboard()\x000123456789abcdef0123456789ABCDEF\x00";
+    const salt = try findSaltAfterPassphraseSymbol(std.testing.allocator, contents) orelse return error.TestExpectedSalt;
+    defer std.testing.allocator.free(salt);
+
+    try std.testing.expectEqualStrings("0123456789abcdef0123456789ABCDEF", salt);
+}
+
+test "findSaltAfterPassphraseSymbol rejects missing and invalid salt candidates" {
+    try std.testing.expectEqual(null, try findSaltAfterPassphraseSymbol(std.testing.allocator, "copyDatabaseEncryptionPassphraseToClipboard()\x00short\x00"));
+    try std.testing.expectEqual(null, try findSaltAfterPassphraseSymbol(std.testing.allocator, "before\x000123456789abcdef0123456789ABCDEF\x00"));
+    try std.testing.expectEqual(null, try findSaltAfterPassphraseSymbol(std.testing.allocator, "copyDatabaseEncryptionPassphraseToClipboard()\x000123456789abcdef0123456789ABC\n"));
+}
+
+test "appendRaycastPidIfPathMatches filters exact executable path" {
+    var matches: std.ArrayList(std.posix.pid_t) = .empty;
+    defer matches.deinit(std.testing.allocator);
+
+    try appendRaycastPidIfPathMatches(std.testing.allocator, &matches, 42, "/Applications/Other.app/Contents/MacOS/Raycast");
+    try std.testing.expectEqual(@as(usize, 0), matches.items.len);
+
+    try appendRaycastPidIfPathMatches(std.testing.allocator, &matches, 42, raycast_bin);
+    try std.testing.expectEqual(@as(usize, 1), matches.items.len);
+    try std.testing.expectEqual(@as(std.posix.pid_t, 42), matches.items[0]);
+}
+
+test "copyTrimmedPassword copies keychain bytes and rejects empty secrets" {
+    var key_bytes = "  secret-key\n".*;
+    const key = try copyTrimmedPassword(std.testing.allocator, &key_bytes, key_bytes.len);
+    defer std.testing.allocator.free(key);
+
+    try std.testing.expectEqualStrings("secret-key", key);
+    try std.testing.expectError(error.RaycastDatabaseKeyNotFound, copyTrimmedPassword(std.testing.allocator, null, 0));
+
+    var blank = " \t\r\n".*;
+    try std.testing.expectError(error.RaycastDatabaseKeyNotFound, copyTrimmedPassword(std.testing.allocator, &blank, blank.len));
+}
+
+test "databasePasswordFromParts returns lowercase sha256 hex" {
+    const password = try databasePasswordFromParts(std.testing.allocator, "key", "salt");
+    defer std.testing.allocator.free(password);
+
+    try std.testing.expectEqual(@as(usize, 64), password.len);
+    try std.testing.expectEqualStrings("85d87cc3b60adb89ca20449c6f30967309141595fd13b3bf68f26ffb97b7b2d2", password);
+}
+
+test "isSqlCipherNixStoreOutput matches sqlcipher package outputs" {
+    try std.testing.expect(isSqlCipherNixStoreOutput("8nkcwjjha8v4sw590rasdzmxm0n86lrx-sqlcipher-4.6.1"));
+    try std.testing.expect(isSqlCipherNixStoreOutput("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-sqlcipher-4.6.1-bin"));
+    try std.testing.expect(!isSqlCipherNixStoreOutput("8nkcwjjha8v4sw590rasdzmxm0n86lrx-sqlite-3.50.4"));
+    try std.testing.expect(!isSqlCipherNixStoreOutput("sqlcipher-4.6.1"));
+    try std.testing.expect(!isSqlCipherNixStoreOutput("8nkcwjjha8v4sw590rasdzmxm0n86lrx-my-sqlcipher-4.6.1"));
+}
+
+test "openSqlCipherFromNixStore loads installed Nix SQLCipher library" {
+    if (builtin.os.tag != .macos) return;
+
+    var map = std.process.Environ.Map.init(std.testing.allocator);
+    defer map.deinit();
+    const rt = struct {
+        allocator: script.Allocator,
+        io: std.Io,
+        env: *std.process.Environ.Map,
+    }{
+        .allocator = std.testing.allocator,
+        .io = std.testing.io,
+        .env = &map,
+    };
+
+    var lib = (try openSqlCipherFromNixStore(&rt)) orelse return;
+    defer lib.close();
+    try std.testing.expect(lib.lookup(*const fn () callconv(.c) [*:0]const u8, "sqlite3_libversion") != null);
+}
+
+test "macOS framework symbols load" {
+    if (builtin.os.tag != .macos) return;
+
+    var cf = try CoreFoundation.load();
+    cf.deinit();
+    var security = try Security.load();
+    security.deinit();
+    var launch_services = try LaunchServices.load();
+    launch_services.deinit();
+}
+
+test "CoreFoundation strings and arrays work through dynamic bindings" {
+    if (builtin.os.tag != .macos) return;
+
+    var cf = try CoreFoundation.load();
+    defer cf.deinit();
+
+    const a = try cf.string("alpha");
+    defer cf.release(a);
+    const b = try cf.string("beta");
+    defer cf.release(b);
+    const array = cf.array_create_mutable(null, 0, cf.array_callbacks) orelse return error.CoreFoundationFailed;
+    defer cf.release(array);
+
+    try std.testing.expect(!cf.arrayContains(array, a));
+    cf.array_append_value(array, a);
+    try std.testing.expectEqual(@as(isize, 1), cf.array_get_count(array));
+    try std.testing.expect(cf.arrayContains(array, a));
+    try std.testing.expect(!cf.arrayContains(array, b));
+}
+
+test "LaunchServices creates Raycast app URL spec without launching" {
+    if (builtin.os.tag != .macos) return;
+
+    var cf = try CoreFoundation.load();
+    defer cf.deinit();
+
+    const app_path = try cf.string("/Applications/Raycast.app");
+    defer cf.release(app_path);
+    const app_url = cf.url_create_with_file_system_path(null, app_path, cf_url_posix_path_style, cf_true) orelse return error.CoreFoundationFailed;
+    defer cf.release(app_url);
+
+    const launch_spec: LSLaunchURLSpec = .{
+        .app_url = app_url,
+        .item_urls = null,
+        .pass_thru_params = null,
+        .launch_flags = ls_launch_defaults | ls_launch_dont_switch,
+        .async_ref_con = null,
+    };
+
+    try std.testing.expectEqual(app_url, launch_spec.app_url.?);
+    try std.testing.expect((launch_spec.launch_flags & ls_launch_dont_switch) != 0);
+}
+
+test "proc APIs can inspect current process on macOS" {
+    if (builtin.os.tag != .macos) return;
+
+    const byte_count = proc_listpids(proc_all_pids, 0, null, 0);
+    try std.testing.expect(byte_count > 0);
+
+    var path_buffer: [proc_pidpathinfo_maxsize]u8 = undefined;
+    const path_len = proc_pidpath(std.c.getpid(), &path_buffer, path_buffer.len);
+    try std.testing.expect(path_len > 0);
+    try std.testing.expect(std.mem.indexOfScalar(u8, path_buffer[0..@intCast(path_len)], '/') != null);
+}
+
 test "validateConfig allows only Raycast window-management command keys" {
     const valid_json =
         \\{
@@ -521,4 +982,51 @@ test "validateConfig allows only Raycast window-management command keys" {
     var invalid: WindowConfig = .{ .parsed = try std.json.parseFromSlice(WindowConfigJson, std.testing.allocator, invalid_json, .{}) };
     defer invalid.deinit();
     try std.testing.expectError(error.InvalidRaycastConfig, validateConfig(invalid));
+}
+
+test "parseWindowConfig owns strings after source buffer is freed" {
+    const config_json =
+        \\{
+        \\  "hotkeys": {
+        \\    "builtin_command_windowManagementLeftHalf": "cmd+left"
+        \\  }
+        \\}
+    ;
+    const buffer = try std.testing.allocator.dupe(u8, config_json);
+    var config = try parseWindowConfig(std.testing.allocator, buffer);
+    std.testing.allocator.free(buffer);
+    defer config.deinit();
+
+    var iterator = config.parsed.value.hotkeys.?.map.iterator();
+    const entry = iterator.next() orelse return error.TestExpectedHotkey;
+    try std.testing.expectEqualStrings("builtin_command_windowManagementLeftHalf", entry.key_ptr.*);
+    try std.testing.expectEqualStrings("cmd+left", entry.value_ptr.*.?);
+}
+
+test "collectMissingConfiguredCommands reports unknown local database rows without duplicates" {
+    const config_json =
+        \\{
+        \\  "hotkeys": {
+        \\    "builtin_command_windowManagementLeftHalf": "cmd+left",
+        \\    "builtin_command_windowManagementRightHalf": "cmd+right"
+        \\  },
+        \\  "disabledCommands": [
+        \\    "builtin_command_windowManagementRightHalf",
+        \\    "builtin_command_windowManagementTopHalf"
+        \\  ]
+        \\}
+    ;
+    var config: WindowConfig = .{ .parsed = try std.json.parseFromSlice(WindowConfigJson, std.testing.allocator, config_json, .{}) };
+    defer config.deinit();
+
+    var known_commands: std.array_hash_map.String(void) = .empty;
+    defer known_commands.deinit(std.testing.allocator);
+    try known_commands.put(std.testing.allocator, "builtin_command_windowManagementLeftHalf", {});
+
+    var missing = try collectMissingConfiguredCommands(std.testing.allocator, &known_commands, config);
+    defer missing.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 2), missing.items.len);
+    try std.testing.expectEqualStrings("builtin_command_windowManagementRightHalf", missing.items[0]);
+    try std.testing.expectEqualStrings("builtin_command_windowManagementTopHalf", missing.items[1]);
 }
