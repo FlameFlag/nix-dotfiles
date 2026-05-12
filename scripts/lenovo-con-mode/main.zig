@@ -1,6 +1,10 @@
 const std = @import("std");
+const builtin = @import("builtin");
 
 const conservation_mode_path = "/sys/bus/platform/drivers/ideapad_acpi/VPC2004:00/conservation_mode";
+const dmi_vendor_path = "/sys/class/dmi/id/sys_vendor";
+const dmi_board_vendor_path = "/sys/class/dmi/id/board_vendor";
+const dmi_product_name_path = "/sys/class/dmi/id/product_name";
 
 const Action = enum {
     status,
@@ -36,6 +40,12 @@ fn run(init: std.process.Init) !u8 {
     const action = try parseAction(stderr, args[1..]);
     if (action == null) {
         try printUsage(stdout);
+        return 0;
+    }
+
+    if (!try isSupportedLenovoLinux(init.io, init.gpa)) {
+        try stderr.print("info: Lenovo conservation mode is only supported on Linux Lenovo laptops; skipping.\n", .{});
+        try stderr.flush();
         return 0;
     }
 
@@ -87,6 +97,57 @@ fn printUsage(stdout: *std.Io.Writer) !void {
     , .{conservation_mode_path});
     try stdout.writeByte('\n');
     try stdout.flush();
+}
+
+fn isSupportedLenovoLinux(io: std.Io, allocator: std.mem.Allocator) !bool {
+    if (builtin.os.tag != .linux) return false;
+    if (!try isLenovoMachine(io, allocator)) return false;
+    return sysfsNodeExists(io, conservation_mode_path) catch |err| switch (err) {
+        error.AccessDenied => true,
+        else => return err,
+    };
+}
+
+fn isLenovoMachine(io: std.Io, allocator: std.mem.Allocator) !bool {
+    if (try readTrimmedAbsolute(io, allocator, dmi_vendor_path)) |vendor| {
+        defer allocator.free(vendor);
+        if (isLenovoVendor(vendor)) return true;
+    }
+    if (try readTrimmedAbsolute(io, allocator, dmi_board_vendor_path)) |vendor| {
+        defer allocator.free(vendor);
+        if (isLenovoVendor(vendor)) return true;
+    }
+    if (try readTrimmedAbsolute(io, allocator, dmi_product_name_path)) |product| {
+        defer allocator.free(product);
+        if (std.ascii.findIgnoreCase(product, "lenovo") != null or std.ascii.findIgnoreCase(product, "legion") != null) return true;
+    }
+    return false;
+}
+
+fn readTrimmedAbsolute(io: std.Io, allocator: std.mem.Allocator, path: []const u8) !?[]u8 {
+    var file = std.Io.Dir.openFileAbsolute(io, path, .{}) catch |err| switch (err) {
+        error.FileNotFound, error.AccessDenied => return null,
+        else => return err,
+    };
+    defer file.close(io);
+
+    var buffer: [256]u8 = undefined;
+    const len = try file.readPositionalAll(io, &buffer, 0);
+    const trimmed = std.mem.trim(u8, buffer[0..len], " \t\r\n");
+    return try allocator.dupe(u8, trimmed);
+}
+
+fn sysfsNodeExists(io: std.Io, path: []const u8) !bool {
+    var file = std.Io.Dir.openFileAbsolute(io, path, .{}) catch |err| switch (err) {
+        error.FileNotFound => return false,
+        else => return err,
+    };
+    defer file.close(io);
+    return true;
+}
+
+fn isLenovoVendor(value: []const u8) bool {
+    return std.ascii.findIgnoreCase(value, "lenovo") != null;
 }
 
 fn readMode(io: std.Io, stderr: *std.Io.Writer) !bool {
@@ -159,6 +220,13 @@ test "parse sysfs mode values" {
     try std.testing.expectEqual(false, try parseMode(&stderr, "0"));
     try std.testing.expectEqual(true, try parseMode(&stderr, "1"));
     try std.testing.expectError(error.Failure, parseMode(&stderr, "2"));
+}
+
+test "detect Lenovo vendor strings" {
+    try std.testing.expect(isLenovoVendor("LENOVO"));
+    try std.testing.expect(isLenovoVendor("Lenovo Group Limited"));
+    try std.testing.expect(!isLenovoVendor("Dell Inc."));
+    try std.testing.expect(!isLenovoVendor(""));
 }
 
 test "state labels" {
