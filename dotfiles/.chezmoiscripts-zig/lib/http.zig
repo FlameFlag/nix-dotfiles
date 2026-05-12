@@ -9,6 +9,18 @@ pub const Auth = enum {
     github,
 };
 
+pub fn extraHeaders(auth: Auth) []const std.http.Header {
+    return switch (auth) {
+        .none => &.{
+            .{ .name = "user-agent", .value = "nix-dotfiles-zig-scripts" },
+        },
+        .github => &.{
+            .{ .name = "accept", .value = "application/vnd.github+json" },
+            .{ .name = "user-agent", .value = "nix-dotfiles-zig-scripts" },
+        },
+    };
+}
+
 pub const Client = struct {
     allocator: Allocator,
     rt: *@import("../script.zig").Runtime,
@@ -45,10 +57,7 @@ pub const Client = struct {
             .location = .{ .url = url },
             .method = .GET,
             .response_writer = &body.writer,
-            .extra_headers = &.{
-                .{ .name = "accept", .value = "application/vnd.github+json" },
-                .{ .name = "user-agent", .value = "nix-dotfiles-zig-scripts" },
-            },
+            .extra_headers = extraHeaders(auth),
             .privileged_headers = if (auth_header) |header| &.{
                 .{ .name = "authorization", .value = header },
             } else &.{},
@@ -79,9 +88,7 @@ pub const Client = struct {
             .location = .{ .url = url },
             .method = .GET,
             .response_writer = &writer.interface,
-            .extra_headers = &.{
-                .{ .name = "user-agent", .value = "nix-dotfiles-zig-scripts" },
-            },
+            .extra_headers = extraHeaders(.none),
         });
         try writer.interface.flush();
         if (isHttpError(result.status)) return error.HttpRequestFailed;
@@ -112,3 +119,30 @@ pub const Client = struct {
         self.http.now = now;
     }
 };
+
+test "plain downloads send only generic headers" {
+    const headers = extraHeaders(.none);
+    try std.testing.expectEqual(@as(usize, 1), headers.len);
+    try std.testing.expectEqualStrings("user-agent", headers[0].name);
+    try std.testing.expectEqualStrings("nix-dotfiles-zig-scripts", headers[0].value);
+}
+
+test "github api requests send GitHub API accept header" {
+    const headers = extraHeaders(.github);
+    try std.testing.expectEqual(@as(usize, 2), headers.len);
+    try std.testing.expectEqualStrings("accept", headers[0].name);
+    try std.testing.expectEqualStrings("application/vnd.github+json", headers[0].value);
+    try std.testing.expectEqualStrings("user-agent", headers[1].name);
+    try std.testing.expectEqualStrings("nix-dotfiles-zig-scripts", headers[1].value);
+}
+
+test "request header names and values satisfy std.http.Client checks" {
+    inline for (.{ Auth.none, Auth.github }) |auth| {
+        for (extraHeaders(auth)) |header| {
+            try std.testing.expect(header.name.len != 0);
+            try std.testing.expect(std.mem.findScalar(u8, header.name, ':') == null);
+            try std.testing.expect(std.mem.findPosLinear(u8, header.name, 0, "\r\n") == null);
+            try std.testing.expect(std.mem.findPosLinear(u8, header.value, 0, "\r\n") == null);
+        }
+    }
+}

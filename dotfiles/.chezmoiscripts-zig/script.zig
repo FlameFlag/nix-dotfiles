@@ -26,6 +26,10 @@ pub const hasBin = process.hasBin;
 pub const writeCommandTextIfAvailable = process.writeCommandTextIfAvailable;
 pub const tempDir = fs.tempDir;
 
+test {
+    std.testing.refAllDecls(@This());
+}
+
 /// Runs a chezmoi script with the shared runtime.
 ///
 /// Script errors are logged before being returned.
