@@ -35,6 +35,7 @@ let
     bash
     bat
     btop
+    cachix
     chezmoi
     clipboard-jh
     curl
