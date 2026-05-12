@@ -3,5 +3,9 @@
   "themes": [
     "./themes"
   ],
-  "extensions": []
+  "extensions": [
+    "./extensions/catppuccin-system-theme.ts",
+    "/run/current-system/sw/bin/agent-statusline-pi.ts",
+    "/run/current-system/sw/bin/web-search-pi.ts"
+  ]
 }

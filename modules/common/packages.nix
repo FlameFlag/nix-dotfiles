@@ -86,7 +86,10 @@ let
   ]);
 
   devPackages = [
+    pkgs.eupkgs.agent-statusline
+    pkgs.eupkgs.agent-statusline-pi
     pkgs.gh-hide-comment
+    pkgs.eupkgs.web-search-pi
   ]
   ++ (with pkgs.unstable; [
     bun
