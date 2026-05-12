@@ -61,7 +61,11 @@ const Database = struct {
     }
 
     fn close(self: Database) void {
-        _ = self.sqlcipher.close(self.handle);
+        const rc = self.sqlcipher.close(self.handle);
+        if (rc != sqlite_ok) {
+            self.sqlcipher.stderr.print("warn: SQLCipher close failed: {s}\n", .{self.sqlcipher.errmsg(self.handle)}) catch {};
+            self.sqlcipher.stderr.flush() catch {};
+        }
     }
 
     fn exec(self: Database, sql: [:0]const u8) !void {
@@ -86,9 +90,16 @@ const Database = struct {
 
     fn transaction(self: Database, comptime body: fn (Database) anyerror!void) !void {
         try self.exec("BEGIN");
-        errdefer self.exec("ROLLBACK") catch {};
+        errdefer self.rollbackWithWarning();
         try body(self);
         try self.exec("COMMIT");
+    }
+
+    fn rollbackWithWarning(self: Database) void {
+        self.exec("ROLLBACK") catch |err| {
+            self.sqlcipher.stderr.print("warn: failed to roll back Raycast database transaction: {s}\n", .{@errorName(err)}) catch {};
+            self.sqlcipher.stderr.flush() catch {};
+        };
     }
 };
 
@@ -97,7 +108,11 @@ const Statement = struct {
     handle: ?*sqlite3_stmt,
 
     fn finalize(self: Statement) void {
-        _ = self.db.sqlcipher.finalize(self.handle);
+        const rc = self.db.sqlcipher.finalize(self.handle);
+        if (rc != sqlite_ok) {
+            self.db.sqlcipher.stderr.print("warn: SQLCipher statement finalize failed: {s}\n", .{self.db.sqlcipher.errmsg(self.db.handle)}) catch {};
+            self.db.sqlcipher.stderr.flush() catch {};
+        }
     }
 
     fn bindAll(self: Statement, values: []const ?[]const u8) !void {
@@ -404,18 +419,11 @@ fn applyWindowConfig(rt: *script.Runtime, db: Database, config: WindowConfig) !v
     }
 
     try db.exec("BEGIN");
-    errdefer rollbackWithWarning(rt, db);
+    errdefer db.rollbackWithWarning();
     try db.run("UPDATE search SET hotkey = NULL WHERE key LIKE ?", &.{command_prefix ++ "%"});
     try applyHotkeys(db, config.parsed.value.hotkeys);
     try upsertDisabledCommands(rt, db, config.parsed.value.disabledCommands orelse &.{});
     try db.exec("COMMIT");
-}
-
-fn rollbackWithWarning(rt: *script.Runtime, db: Database) void {
-    db.exec("ROLLBACK") catch |err| {
-        rt.stderr.print("warn: failed to roll back Raycast database transaction: {s}\n", .{@errorName(err)}) catch {};
-        rt.stderr.flush() catch {};
-    };
 }
 
 fn loadKnownCommands(rt: *script.Runtime, db: Database) !std.array_hash_map.String(void) {
