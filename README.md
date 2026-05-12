@@ -29,14 +29,17 @@ If you want to build my dotfiles, here's how to do it:
 ```bash
 chezmoi apply --refresh-externals=always --force
 
-# Override secrets with your own or modify hosts/nixos/users.nix to not use secrets
+# Override secrets with your own or modify hosts/linux/users.nix to not use secrets
 
 # Delete my hardware-configuration.nix and create your own one
-if [ ! -f "hosts/nixos/hardware-configuration.nix" ]; then
+if [ ! -f "hosts/linux/hardware-configuration.nix" ]; then
   nixos-generate-config
-  mv "hardware-configuration.nix" "hosts/nixos/nyx"
+  mv "hardware-configuration.nix" "hosts/linux/hardware-configuration.nix"
   rm "configuration.nix"
 fi
+
+# Optional: disable private paid fonts if you do not have access to the font repo
+# by setting `flame.fonts.paid.enable = false;` in your host config.
 
 nixos-rebuild switch --use-remote-sudo --flake $(readlink -f "/etc/nixos")
 
@@ -48,6 +51,7 @@ nixos-rebuild switch --use-remote-sudo --flake $(readlink -f "/etc/nixos")
 ```bash
 chezmoi apply --refresh-externals=always --force
 
+# This repo uses /etc/nixos as a shared convenience symlink on both NixOS and Darwin.
 sudo ln -s ~/Developer/nix-dotfiles/ "/etc/nixos"
 
 nix run nix-darwin -- switch --flake $(readlink -f "/etc/nixos/")

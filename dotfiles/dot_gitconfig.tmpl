@@ -42,6 +42,3 @@ op-ssh-sign
 
 [credential "smtp://github%40flameflag.dev@smtp.migadu.com:465"]
     helper = "!f() { echo password=$(cat /run/secrets/migadu); }; f"
-
-[credential "https://github.com"]
-    helper = !gh auth git-credential

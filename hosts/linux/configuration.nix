@@ -62,11 +62,12 @@
         monospace = [ "TX-02 Nerd Font" ];
       };
     };
-    packages =
+    packages = lib.optionals config.flame.fonts.paid.enable (
       let
         paidFonts = (pkgs.callPackage ../../pkgs/paid-fonts/build-font.nix { }).packages;
       in
-      builtins.attrValues paidFonts;
+      builtins.attrValues paidFonts
+    );
   };
 
   # https://wiki.nixos.org/wiki/FAQ#When_do_I_update_stateVersion

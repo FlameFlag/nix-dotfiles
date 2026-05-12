@@ -17,7 +17,9 @@ _: {
         '';
         startLimitBurst = 5;
         startLimitIntervalSec = 10;
-        wantedBy = [ "multi-user.target" ];
+        # Intentionally manual: this toggles the current battery conservation
+        # state, so enabling it at boot would flip the setting on every reboot.
+        wantedBy = [ ];
       };
     };
   };
