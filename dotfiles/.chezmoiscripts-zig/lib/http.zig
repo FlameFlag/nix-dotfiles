@@ -62,7 +62,7 @@ pub const Client = struct {
         return try body.toOwnedSlice();
     }
 
-    /// Downloads a URL to `path`, deleting the partial file on HTTP failure.
+    /// Downloads a URL to `path` atomically, leaving any existing file intact on failure.
     pub fn downloadFile(self: *Client, url: []const u8, path: []const u8) !void {
         try self.loadEnvCertBundle();
 
@@ -70,12 +70,11 @@ pub const Client = struct {
             try std.Io.Dir.cwd().createDirPath(self.rt.io, dir);
         }
 
-        var file = try std.Io.Dir.cwd().createFile(self.rt.io, path, .{});
-        defer file.close(self.rt.io);
-        errdefer self.deletePartialDownload(path);
+        var file = try std.Io.Dir.cwd().createFileAtomic(self.rt.io, path, .{ .replace = true });
+        defer file.deinit(self.rt.io);
 
         var buffer: [8192]u8 = undefined;
-        var writer = file.writer(self.rt.io, &buffer);
+        var writer = file.file.writer(self.rt.io, &buffer);
         const result = try self.http.fetch(.{
             .location = .{ .url = url },
             .method = .GET,
@@ -86,16 +85,7 @@ pub const Client = struct {
         });
         try writer.interface.flush();
         if (isHttpError(result.status)) return error.HttpRequestFailed;
-    }
-
-    fn deletePartialDownload(self: *Client, path: []const u8) void {
-        std.Io.Dir.cwd().deleteFile(self.rt.io, path) catch |err| switch (err) {
-            error.FileNotFound => {},
-            else => {
-                self.rt.stderr.print("warn: failed to delete partial download {s}: {s}\n", .{ path, @errorName(err) }) catch {};
-                self.rt.stderr.flush() catch {};
-            },
-        };
+        try file.replace(self.rt.io);
     }
 
     fn isHttpError(status: std.http.Status) bool {
