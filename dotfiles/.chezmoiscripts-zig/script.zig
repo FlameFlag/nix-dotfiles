@@ -15,6 +15,7 @@ const fs = @import("lib/fs.zig");
 const process = @import("lib/process.zig");
 
 pub const http = @import("lib/http.zig");
+pub const macos = @import("lib/macos.zig");
 
 pub const chezmoiContext = env.chezmoiContext;
 pub const writeTextIfChanged = fs.writeTextIfChanged;
