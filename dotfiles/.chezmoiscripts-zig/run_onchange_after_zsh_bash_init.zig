@@ -112,3 +112,30 @@ fn completionArgs(rt: *script.Runtime, item: CompletionCommand, shell: Shell) ![
     try argv.appendSlice(rt.allocator, item.after_shell);
     return try argv.toOwnedSlice(rt.allocator);
 }
+
+test "completionArgs places shell between command-specific arguments" {
+    var env_map = std.process.Environ.Map.init(std.testing.allocator);
+    defer env_map.deinit();
+    var stdout_buffer: [1]u8 = undefined;
+    var stderr_buffer: [1]u8 = undefined;
+    var stdout: std.Io.Writer = .fixed(&stdout_buffer);
+    var stderr: std.Io.Writer = .fixed(&stderr_buffer);
+    var rt: script.Runtime = .{
+        .allocator = std.testing.allocator,
+        .io = std.testing.io,
+        .env = &env_map,
+        .stdout = &stdout,
+        .stderr = &stderr,
+    };
+
+    const argv = try completionArgs(&rt, .{
+        .bin = "rustup",
+        .name = "cargo",
+        .argv0 = "rustup",
+        .before_shell = &.{"completions"},
+        .after_shell = &.{"cargo"},
+    }, .zsh);
+    defer std.testing.allocator.free(argv);
+
+    try std.testing.expectEqualSlices([]const u8, &.{ "rustup", "completions", "zsh", "cargo" }, argv);
+}

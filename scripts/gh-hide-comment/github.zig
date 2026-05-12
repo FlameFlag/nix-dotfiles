@@ -152,3 +152,22 @@ fn graphqlBody(allocator: std.mem.Allocator, id: []const u8, reason: cli.Reason)
         },
     }, .{})});
 }
+
+test "graphqlBody serializes minimizeComment variables" {
+    const body = try graphqlBody(std.testing.allocator, "NODE_id", .duplicate);
+    defer std.testing.allocator.free(body);
+
+    const Parsed = struct {
+        query: []const u8,
+        variables: struct {
+            id: []const u8,
+            reason: []const u8,
+        },
+    };
+    var parsed = try std.json.parseFromSlice(Parsed, std.testing.allocator, body, .{});
+    defer parsed.deinit();
+
+    try std.testing.expect(std.mem.find(u8, parsed.value.query, "minimizeComment") != null);
+    try std.testing.expectEqualStrings("NODE_id", parsed.value.variables.id);
+    try std.testing.expectEqualStrings("DUPLICATE", parsed.value.variables.reason);
+}

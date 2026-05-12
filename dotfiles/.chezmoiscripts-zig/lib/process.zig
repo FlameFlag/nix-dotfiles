@@ -105,3 +105,22 @@ pub fn writeCommandTextIfAvailable(
     defer rt.allocator.free(output);
     return try @import("fs.zig").writeTextIfChanged(rt, path, output);
 }
+
+test "hasBin rejects missing PATH entries and direct missing paths" {
+    var map = std.process.Environ.Map.init(std.testing.allocator);
+    defer map.deinit();
+    try map.put("PATH", "");
+
+    const rt = struct {
+        allocator: Allocator,
+        io: std.Io,
+        env: *std.process.Environ.Map,
+    }{
+        .allocator = std.testing.allocator,
+        .io = std.testing.io,
+        .env = &map,
+    };
+
+    try std.testing.expect(!hasBin(rt, "definitely-not-a-real-command"));
+    try std.testing.expect(!hasBin(rt, "./definitely-not-a-real-command"));
+}

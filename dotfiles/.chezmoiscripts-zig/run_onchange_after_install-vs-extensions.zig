@@ -37,3 +37,12 @@ fn containsLineIgnoreCase(haystack: []const u8, needle: []const u8) bool {
     }
     return false;
 }
+
+test "containsLineIgnoreCase matches whole trimmed lines only" {
+    const installed = "ms-vscode.cpptools\nCatppuccin.catppuccin-vsc\r\n ziglang.vscode-zig  \n";
+
+    try std.testing.expect(containsLineIgnoreCase(installed, "catppuccin.catppuccin-vsc"));
+    try std.testing.expect(containsLineIgnoreCase(installed, "ZIGLANG.VSCODE-ZIG"));
+    try std.testing.expect(!containsLineIgnoreCase(installed, "vscode"));
+    try std.testing.expect(!containsLineIgnoreCase(installed, "missing.extension"));
+}

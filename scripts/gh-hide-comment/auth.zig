@@ -49,3 +49,17 @@ fn ghCliToken(allocator: std.mem.Allocator, io: std.Io, stderr: *std.Io.Writer) 
     try stderr.flush();
     return error.AuthTokenFailed;
 }
+
+test "envToken copies non-empty tokens only" {
+    var map = std.process.Environ.Map.init(std.testing.allocator);
+    defer map.deinit();
+    try map.put("GH_TOKEN", "secret");
+    try map.put("EMPTY", "");
+
+    const value = try envToken(std.testing.allocator, &map, "GH_TOKEN") orelse return error.TestExpectedEnvValue;
+    defer std.testing.allocator.free(value);
+    try std.testing.expectEqualStrings("secret", value);
+
+    try std.testing.expectEqual(null, try envToken(std.testing.allocator, &map, "EMPTY"));
+    try std.testing.expectEqual(null, try envToken(std.testing.allocator, &map, "MISSING"));
+}

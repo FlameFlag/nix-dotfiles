@@ -69,3 +69,69 @@ pub fn chezmoiContext(rt: anytype) !Context {
 fn envOrDup(rt: anytype, name: []const u8, fallback: []const u8) ![]u8 {
     return if (try envOrNull(rt, name)) |env_value| env_value else try rt.allocator.dupe(u8, fallback);
 }
+
+const TestRuntime = struct {
+    allocator: Allocator,
+    env: *std.process.Environ.Map,
+};
+
+fn testRuntime(map: *std.process.Environ.Map) TestRuntime {
+    return .{ .allocator = std.testing.allocator, .env = map };
+}
+
+test "envOrNull duplicates values and returns null for missing keys" {
+    var map = std.process.Environ.Map.init(std.testing.allocator);
+    defer map.deinit();
+    try map.put("PRESENT", "value");
+
+    const rt = testRuntime(&map);
+    const present = try envOrNull(rt, "PRESENT") orelse return error.TestExpectedEnvValue;
+    defer std.testing.allocator.free(present);
+    try std.testing.expectEqualStrings("value", present);
+    try std.testing.expectEqual(null, try envOrNull(rt, "MISSING"));
+}
+
+test "chezmoiContext reads required environment and defaults optional values" {
+    var map = std.process.Environ.Map.init(std.testing.allocator);
+    defer map.deinit();
+    try map.put("HOME", "/home/me");
+    try map.put("CHEZMOI_SOURCE_DIR", "/src/dotfiles");
+
+    const rt = testRuntime(&map);
+    const context = try chezmoiContext(rt);
+    defer context.deinit(std.testing.allocator);
+
+    try std.testing.expectEqualStrings("/home/me", context.home_dir);
+    try std.testing.expectEqualStrings("/src/dotfiles", context.source_dir);
+    try std.testing.expectEqualStrings("", context.source_file);
+    try std.testing.expect(context.os.len > 0);
+}
+
+test "chezmoiContext honors optional environment overrides" {
+    var map = std.process.Environ.Map.init(std.testing.allocator);
+    defer map.deinit();
+    try map.put("HOME", "/home/me");
+    try map.put("CHEZMOI_SOURCE_DIR", "/src/dotfiles");
+    try map.put("CHEZMOI_SOURCE_FILE", "file.tmpl");
+    try map.put("CHEZMOI_HOME_DIR", "/target-home");
+    try map.put("CHEZMOI_OS", "test-os");
+
+    const rt = testRuntime(&map);
+    const context = try chezmoiContext(rt);
+    defer context.deinit(std.testing.allocator);
+
+    try std.testing.expectEqualStrings("/target-home", context.home_dir);
+    try std.testing.expectEqualStrings("file.tmpl", context.source_file);
+    try std.testing.expectEqualStrings("test-os", context.os);
+}
+
+test "chezmoiContext rejects missing or empty required values" {
+    var map = std.process.Environ.Map.init(std.testing.allocator);
+    defer map.deinit();
+
+    const rt = testRuntime(&map);
+    try std.testing.expectError(error.EnvironmentVariableMissing, chezmoiContext(rt));
+
+    try map.put("HOME", "");
+    try std.testing.expectError(error.EmptyEnvironmentVariable, chezmoiContext(rt));
+}

@@ -484,3 +484,32 @@ fn expectSql(rc: c_int, db: ?*sqlite3, sqlcipher: *SqlCipher) !void {
     }
     return error.SqlCipherFailed;
 }
+
+test "isAsciiSalt accepts exactly 32 printable ASCII bytes" {
+    try std.testing.expect(isAsciiSalt("0123456789abcdef0123456789ABCDEF"));
+    try std.testing.expect(!isAsciiSalt("short"));
+    try std.testing.expect(!isAsciiSalt("0123456789abcdef0123456789ABCDE"));
+    try std.testing.expect(!isAsciiSalt("0123456789abcdef0123456789ABC\n"));
+}
+
+test "validateConfig allows only Raycast window-management command keys" {
+    const valid_json =
+        \\{
+        \\  "hotkeys": {
+        \\    "builtin_command_windowManagement_leftHalf": "cmd+left",
+        \\    "builtin_command_windowManagement_rightHalf": null
+        \\  },
+        \\  "disabledCommands": ["builtin_command_windowManagement_center"]
+        \\}
+    ;
+    var valid: WindowConfig = .{ .parsed = try std.json.parseFromSlice(WindowConfigJson, std.testing.allocator, valid_json, .{}) };
+    defer valid.deinit();
+    try validateConfig(valid);
+
+    const invalid_json =
+        \\{"disabledCommands":["builtin_command_otherExtension"]}
+    ;
+    var invalid: WindowConfig = .{ .parsed = try std.json.parseFromSlice(WindowConfigJson, std.testing.allocator, invalid_json, .{}) };
+    defer invalid.deinit();
+    try std.testing.expectError(error.InvalidRaycastConfig, validateConfig(invalid));
+}

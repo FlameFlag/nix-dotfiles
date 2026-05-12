@@ -36,3 +36,28 @@ pub fn tempDir(rt: anytype) ![]u8 {
     try std.Io.Dir.cwd().createDirPath(rt.io, path);
     return path;
 }
+
+test "writeTextIfChanged writes atomically and skips unchanged content" {
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+
+    const allocator = std.testing.allocator;
+    const path = try std.fmt.allocPrint(allocator, ".zig-cache/tmp/{s}/file.txt", .{tmp.sub_path});
+    defer allocator.free(path);
+
+    const rt = struct {
+        allocator: std.mem.Allocator,
+        io: std.Io,
+    }{
+        .allocator = allocator,
+        .io = std.testing.io,
+    };
+
+    try std.testing.expect(try writeTextIfChanged(rt, path, "first"));
+    try std.testing.expect(!try writeTextIfChanged(rt, path, "first"));
+    try std.testing.expect(try writeTextIfChanged(rt, path, "second"));
+
+    const current = try std.Io.Dir.cwd().readFileAlloc(std.testing.io, path, allocator, .limited(1024));
+    defer allocator.free(current);
+    try std.testing.expectEqualStrings("second", current);
+}

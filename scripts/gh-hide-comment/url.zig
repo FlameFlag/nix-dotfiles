@@ -94,3 +94,11 @@ test "parse comment urls" {
     try std.testing.expectEqualStrings("164134155", no_dash.id);
     try std.testing.expectEqual(Comment.Kind.issuecomment, no_dash.kind);
 }
+
+test "reject invalid comment urls" {
+    try std.testing.expectError(error.NotGithubUrl, parse("https://example.com/ziglang/zig/issues/26#issuecomment-164134155"));
+    try std.testing.expectError(error.MissingCommentAnchor, parse("https://github.com/ziglang/zig/issues/26"));
+    try std.testing.expectError(error.InvalidRepoPath, parse("https://github.com/ziglang/zig/tree/main#issuecomment-164134155"));
+    try std.testing.expectError(error.InvalidCommentAnchor, parse("https://github.com/ziglang/zig/issues/26#issuecomment-abc"));
+    try std.testing.expectError(error.InvalidCommentAnchor, parse("https://github.com/ziglang/zig/issues/26#commitcomment-123"));
+}
