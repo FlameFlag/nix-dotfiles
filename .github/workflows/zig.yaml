@@ -1,0 +1,58 @@
+name: Zig
+
+on:
+  pull_request: null
+  push: null
+  workflow_dispatch: null
+
+concurrency:
+  group: "${{ github.workflow }}-${{ github.ref }}"
+  cancel-in-progress: true
+
+jobs:
+  zig:
+    runs-on: ubuntu-latest
+    env:
+      ZIG_URL: https://ziglang.org/download/0.16.0/zig-x86_64-linux-0.16.0.tar.xz
+      ZIG_SHA256: 70e49664a74374b48b51e6f3fdfbf437f6395d42509050588bd49abe52ba3d00
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v5.0.0
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v31.7.0
+        with:
+          github_access_token: "${{ secrets.GITHUB_TOKEN }}"
+
+      - name: Install Zig
+        run: |
+          mkdir -p "$RUNNER_TEMP/zig"
+          curl --fail --location --silent --show-error "$ZIG_URL" --output "$RUNNER_TEMP/zig.tar.xz"
+          echo "$ZIG_SHA256  $RUNNER_TEMP/zig.tar.xz" | sha256sum --check -
+          tar --extract --xz --file "$RUNNER_TEMP/zig.tar.xz" --directory "$RUNNER_TEMP/zig" --strip-components 1
+          echo "$RUNNER_TEMP/zig" >> "$GITHUB_PATH"
+
+      - name: Check Zig version
+        run: test "$(zig version)" = "0.16.0"
+
+      - name: Check Zig formatting
+        run: |
+          zig fmt --check .ziglint.zon build.zig
+          find \
+            lib/zig/chezmoi \
+            dotfiles/.chezmoiscripts \
+            -name '*.zig' \
+            -print0 \
+            | xargs -0 zig fmt --check
+
+      - name: Build Zig linter
+        run: nix build --print-build-logs .#ziglint
+
+      - name: Lint Zig code
+        run: ./result/bin/ziglint
+
+      - name: Check Zig code
+        run: zig build check
+
+      - name: Test Zig code
+        run: zig build test

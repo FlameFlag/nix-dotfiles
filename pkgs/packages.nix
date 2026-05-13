@@ -30,7 +30,7 @@
         rustfmt
         rustup
         ;
-      inherit (pkgs.zigPkgs) zig;
+      inherit (pkgs) zig ziglint;
 
       uutils-coreutils-noprefix = (lib.hiPrio pkgs.unstable.uutils-coreutils-noprefix);
       uutils-diffutils = (lib.hiPrio pkgs.unstable.uutils-diffutils);

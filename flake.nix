@@ -15,8 +15,7 @@
     nixcord.url = "github:FlameFlag/nixcord";
 
     nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixos-unstable-small";
-    nixpkgs-zig.url = "github:NixOS/nixpkgs";
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.11";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.11-small";
 
     sops-nix.inputs.nixpkgs.follows = "nixpkgs-unstable";
     sops-nix.url = "github:Mic92/sops-nix";
@@ -40,18 +39,14 @@
         system:
         let
           pkgs = import inputs.nixpkgs { inherit system; };
-          zigPkgs = import inputs.nixpkgs-zig { inherit system; };
         in
         {
-          gh-hide-comment = pkgs.callPackage ./pkgs/gh-hide-comment.nix {
-            zig = zigPkgs.zig;
-          };
+          gh-hide-comment = pkgs.callPackage ./pkgs/gh-hide-comment.nix { };
           catppuccin-userstyles = pkgs.callPackage ./pkgs/catppuccin-userstyles.nix { };
+          ziglint = pkgs.callPackage ./pkgs/ziglint.nix { };
         }
         // lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux {
-          lenovo-con-mode = pkgs.callPackage ./pkgs/lenovo-con-mode.nix {
-            zig = zigPkgs.zig;
-          };
+          lenovo-con-mode = pkgs.callPackage ./pkgs/lenovo-con-mode.nix { };
         }
       );
 

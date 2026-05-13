@@ -1,8 +1,8 @@
 const std = @import("std");
-const script = @import("script.zig");
+const script = @import("chezmoi");
 
 pub fn main(init: std.process.Init) !void {
-    try script.mainWith(init, run);
+    try script.mainWith(run, init);
 }
 
 fn run(rt: *script.Runtime) !void {
@@ -28,9 +28,17 @@ fn run(rt: *script.Runtime) !void {
     defer rt.allocator.free(zoxide_init);
     _ = try script.writeCommandTextIfAvailable(rt, "zoxide", zoxide_init, &.{ "zoxide", "init", "nushell" });
 
-    const atuin_init = try std.fs.path.join(rt.allocator, &.{ context.home_dir, ".local/share/atuin/init.nu" });
+    const atuin_init = try std.fs.path.join(
+        rt.allocator,
+        &.{ context.home_dir, ".local/share/atuin/init.nu" },
+    );
     defer rt.allocator.free(atuin_init);
-    _ = try script.writeCommandTextIfAvailable(rt, "atuin", atuin_init, &.{ "atuin", "init", "nu", "--disable-up-arrow" });
+    _ = try script.writeCommandTextIfAvailable(
+        rt,
+        "atuin",
+        atuin_init,
+        &.{ "atuin", "init", "nu", "--disable-up-arrow" },
+    );
 
     if (std.Io.Dir.cwd().readFileAlloc(rt.io, atuin_init, rt.allocator, .limited(64 * 1024 * 1024))) |current| {
         defer rt.allocator.free(current);

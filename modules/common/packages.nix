@@ -90,6 +90,7 @@ let
     pkgs.eupkgs.agent-statusline
     pkgs.eupkgs.agent-statusline-pi
     pkgs.gh-hide-comment
+    pkgs.ziglint
     pkgs.eupkgs.web-search-pi
   ]
   ++ (with pkgs.unstable; [

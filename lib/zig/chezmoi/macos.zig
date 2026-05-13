@@ -11,11 +11,12 @@ const ls_launch_defaults = 0x00000001;
 const ls_launch_dont_switch = 0x00000200;
 const proc_all_pids = 1;
 const proc_pidpathinfo_maxsize = 4096;
+const proc_list_growth_slack = 256;
 
 extern fn proc_listpids(type: c_uint, typeinfo: c_uint, buffer: ?*anyopaque, buffersize: c_int) c_int;
 extern fn proc_pidpath(pid: c_int, buffer: [*]u8, buffersize: u32) c_int;
 
-const LSLaunchURLSpec = extern struct {
+const LsLaunchUrlSpec = extern struct {
     app_url: ?*const anyopaque,
     item_urls: ?*const anyopaque,
     pass_thru_params: ?*const anyopaque,
@@ -26,20 +27,46 @@ const LSLaunchURLSpec = extern struct {
 pub const CoreFoundation = struct {
     lib: std.DynLib,
     array_callbacks: *const anyopaque,
-    create_string: *const fn (?*const anyopaque, [*]const u8, isize, u32, u8) callconv(.c) ?*anyopaque,
+    create_string: *const fn (
+        ?*const anyopaque,
+        [*]const u8,
+        isize,
+        u32,
+        u8,
+    ) callconv(.c) ?*anyopaque,
     release: *const fn (?*const anyopaque) callconv(.c) void,
     equal: *const fn (?*const anyopaque, ?*const anyopaque) callconv(.c) u8,
     get_type_id: *const fn (?*const anyopaque) callconv(.c) usize,
     array_get_type_id: *const fn () callconv(.c) usize,
-    array_create_mutable: *const fn (?*const anyopaque, isize, ?*const anyopaque) callconv(.c) ?*anyopaque,
-    array_create_mutable_copy: *const fn (?*const anyopaque, isize, ?*const anyopaque) callconv(.c) ?*anyopaque,
+    array_create_mutable: *const fn (
+        ?*const anyopaque,
+        isize,
+        ?*const anyopaque,
+    ) callconv(.c) ?*anyopaque,
+    array_create_mutable_copy: *const fn (
+        ?*const anyopaque,
+        isize,
+        ?*const anyopaque,
+    ) callconv(.c) ?*anyopaque,
     array_append_value: *const fn (?*anyopaque, ?*const anyopaque) callconv(.c) void,
     array_get_count: *const fn (?*const anyopaque) callconv(.c) isize,
     array_get_value_at_index: *const fn (?*const anyopaque, isize) callconv(.c) ?*const anyopaque,
-    preferences_copy_app_value: *const fn (?*const anyopaque, ?*const anyopaque) callconv(.c) ?*anyopaque,
-    preferences_set_app_value: *const fn (?*const anyopaque, ?*const anyopaque, ?*const anyopaque) callconv(.c) void,
+    preferences_copy_app_value: *const fn (
+        ?*const anyopaque,
+        ?*const anyopaque,
+    ) callconv(.c) ?*anyopaque,
+    preferences_set_app_value: *const fn (
+        ?*const anyopaque,
+        ?*const anyopaque,
+        ?*const anyopaque,
+    ) callconv(.c) void,
     preferences_app_synchronize: *const fn (?*const anyopaque) callconv(.c) u8,
-    url_create_with_file_system_path: *const fn (?*const anyopaque, ?*const anyopaque, c_int, u8) callconv(.c) ?*anyopaque,
+    url_create_with_file_system_path: *const fn (
+        ?*const anyopaque,
+        ?*const anyopaque,
+        c_int,
+        u8,
+    ) callconv(.c) ?*anyopaque,
 
     pub fn load() !CoreFoundation {
         var lib = try std.DynLib.open("/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation");
@@ -47,33 +74,89 @@ pub const CoreFoundation = struct {
 
         return .{
             .lib = lib,
-            .array_callbacks = try dynLookup(*const anyopaque, &lib, "kCFTypeArrayCallBacks"),
-            .create_string = try dynLookup(@TypeOf(@as(CoreFoundation, undefined).create_string), &lib, "CFStringCreateWithBytes"),
-            .release = try dynLookup(@TypeOf(@as(CoreFoundation, undefined).release), &lib, "CFRelease"),
-            .equal = try dynLookup(@TypeOf(@as(CoreFoundation, undefined).equal), &lib, "CFEqual"),
-            .get_type_id = try dynLookup(@TypeOf(@as(CoreFoundation, undefined).get_type_id), &lib, "CFGetTypeID"),
-            .array_get_type_id = try dynLookup(@TypeOf(@as(CoreFoundation, undefined).array_get_type_id), &lib, "CFArrayGetTypeID"),
-            .array_create_mutable = try dynLookup(@TypeOf(@as(CoreFoundation, undefined).array_create_mutable), &lib, "CFArrayCreateMutable"),
-            .array_create_mutable_copy = try dynLookup(@TypeOf(@as(CoreFoundation, undefined).array_create_mutable_copy), &lib, "CFArrayCreateMutableCopy"),
-            .array_append_value = try dynLookup(@TypeOf(@as(CoreFoundation, undefined).array_append_value), &lib, "CFArrayAppendValue"),
-            .array_get_count = try dynLookup(@TypeOf(@as(CoreFoundation, undefined).array_get_count), &lib, "CFArrayGetCount"),
-            .array_get_value_at_index = try dynLookup(@TypeOf(@as(CoreFoundation, undefined).array_get_value_at_index), &lib, "CFArrayGetValueAtIndex"),
-            .preferences_copy_app_value = try dynLookup(@TypeOf(@as(CoreFoundation, undefined).preferences_copy_app_value), &lib, "CFPreferencesCopyAppValue"),
-            .preferences_set_app_value = try dynLookup(@TypeOf(@as(CoreFoundation, undefined).preferences_set_app_value), &lib, "CFPreferencesSetAppValue"),
-            .preferences_app_synchronize = try dynLookup(@TypeOf(@as(CoreFoundation, undefined).preferences_app_synchronize), &lib, "CFPreferencesAppSynchronize"),
-            .url_create_with_file_system_path = try dynLookup(@TypeOf(@as(CoreFoundation, undefined).url_create_with_file_system_path), &lib, "CFURLCreateWithFileSystemPath"),
+            .array_callbacks = try dynLookup(*const anyopaque, "kCFTypeArrayCallBacks", &lib),
+            .create_string = try dynLookup(
+                @TypeOf(@as(CoreFoundation, undefined).create_string),
+                "CFStringCreateWithBytes",
+                &lib,
+            ),
+            .release = try dynLookup(@TypeOf(@as(CoreFoundation, undefined).release), "CFRelease", &lib),
+            .equal = try dynLookup(@TypeOf(@as(CoreFoundation, undefined).equal), "CFEqual", &lib),
+            .get_type_id = try dynLookup(@TypeOf(@as(CoreFoundation, undefined).get_type_id), "CFGetTypeID", &lib),
+            .array_get_type_id = try dynLookup(
+                @TypeOf(@as(CoreFoundation, undefined).array_get_type_id),
+                "CFArrayGetTypeID",
+                &lib,
+            ),
+            .array_create_mutable = try dynLookup(
+                @TypeOf(@as(CoreFoundation, undefined).array_create_mutable),
+                "CFArrayCreateMutable",
+                &lib,
+            ),
+            .array_create_mutable_copy = try dynLookup(
+                @TypeOf(@as(CoreFoundation, undefined).array_create_mutable_copy),
+                "CFArrayCreateMutableCopy",
+                &lib,
+            ),
+            .array_append_value = try dynLookup(
+                @TypeOf(@as(CoreFoundation, undefined).array_append_value),
+                "CFArrayAppendValue",
+                &lib,
+            ),
+            .array_get_count = try dynLookup(
+                @TypeOf(@as(CoreFoundation, undefined).array_get_count),
+                "CFArrayGetCount",
+                &lib,
+            ),
+            .array_get_value_at_index = try dynLookup(
+                @TypeOf(@as(CoreFoundation, undefined).array_get_value_at_index),
+                "CFArrayGetValueAtIndex",
+                &lib,
+            ),
+            .preferences_copy_app_value = try dynLookup(
+                @TypeOf(@as(CoreFoundation, undefined).preferences_copy_app_value),
+                "CFPreferencesCopyAppValue",
+                &lib,
+            ),
+            .preferences_set_app_value = try dynLookup(
+                @TypeOf(@as(CoreFoundation, undefined).preferences_set_app_value),
+                "CFPreferencesSetAppValue",
+                &lib,
+            ),
+            .preferences_app_synchronize = try dynLookup(
+                @TypeOf(@as(CoreFoundation, undefined).preferences_app_synchronize),
+                "CFPreferencesAppSynchronize",
+                &lib,
+            ),
+            .url_create_with_file_system_path = try dynLookup(
+                @TypeOf(@as(CoreFoundation, undefined).url_create_with_file_system_path),
+                "CFURLCreateWithFileSystemPath",
+                &lib,
+            ),
         };
     }
 
     pub fn deinit(self: *CoreFoundation) void {
         self.lib.close();
+        self.* = undefined;
     }
 
     pub fn string(self: CoreFoundation, value: []const u8) !*anyopaque {
-        return self.create_string(null, value.ptr, @intCast(value.len), cf_utf8, cf_false) orelse error.CoreFoundationFailed;
+        return self.create_string(
+            null,
+            value.ptr,
+            @intCast(value.len),
+            cf_utf8,
+            cf_false,
+        ) orelse error.CoreFoundationFailed;
     }
 
-    pub fn addStringToAppArrayPreference(self: CoreFoundation, app_id: []const u8, key: []const u8, value: []const u8) !void {
+    pub fn addStringToAppArrayPreference(
+        self: CoreFoundation,
+        app_id: []const u8,
+        key: []const u8,
+        value: []const u8,
+    ) !void {
         const app_ref = try self.string(app_id);
         defer self.release(app_ref);
         const key_ref = try self.string(key);
@@ -120,7 +203,16 @@ pub const CoreFoundation = struct {
 
 pub const Security = struct {
     lib: std.DynLib,
-    find_generic_password: *const fn (?*anyopaque, u32, ?[*]const u8, u32, ?[*]const u8, *u32, *?*anyopaque, ?*?*anyopaque) callconv(.c) i32,
+    find_generic_password: *const fn (
+        ?*anyopaque,
+        u32,
+        ?[*]const u8,
+        u32,
+        ?[*]const u8,
+        *u32,
+        *?*anyopaque,
+        ?*?*anyopaque,
+    ) callconv(.c) i32,
     free_content: *const fn (?*anyopaque, ?*anyopaque) callconv(.c) i32,
 
     pub fn load() !Security {
@@ -129,16 +221,30 @@ pub const Security = struct {
 
         return .{
             .lib = lib,
-            .find_generic_password = try dynLookup(@TypeOf(@as(Security, undefined).find_generic_password), &lib, "SecKeychainFindGenericPassword"),
-            .free_content = try dynLookup(@TypeOf(@as(Security, undefined).free_content), &lib, "SecKeychainItemFreeContent"),
+            .find_generic_password = try dynLookup(
+                @TypeOf(@as(Security, undefined).find_generic_password),
+                "SecKeychainFindGenericPassword",
+                &lib,
+            ),
+            .free_content = try dynLookup(
+                @TypeOf(@as(Security, undefined).free_content),
+                "SecKeychainItemFreeContent",
+                &lib,
+            ),
         };
     }
 
     pub fn deinit(self: *Security) void {
         self.lib.close();
+        self.* = undefined;
     }
 
-    pub fn genericPassword(self: Security, allocator: Allocator, service: []const u8, account: []const u8) ![]u8 {
+    pub fn genericPassword(
+        self: Security,
+        allocator: Allocator,
+        service: []const u8,
+        account: []const u8,
+    ) ![]u8 {
         var password_len: u32 = 0;
         var password_data: ?*anyopaque = null;
         const status = self.find_generic_password(
@@ -154,13 +260,13 @@ pub const Security = struct {
         if (status != 0) return error.KeychainPasswordNotFound;
         defer _ = self.free_content(null, password_data);
 
-        return try copyTrimmedPassword(allocator, password_data, password_len);
+        return copyTrimmedPassword(allocator, password_data, password_len);
     }
 };
 
 pub const LaunchServices = struct {
     lib: std.DynLib,
-    open_from_url_spec: *const fn (*const LSLaunchURLSpec, ?*?*anyopaque) callconv(.c) i32,
+    open_from_url_spec: *const fn (*const LsLaunchUrlSpec, ?*?*anyopaque) callconv(.c) i32,
 
     pub fn load() !LaunchServices {
         var lib = try std.DynLib.open("/System/Library/Frameworks/CoreServices.framework/CoreServices");
@@ -168,21 +274,35 @@ pub const LaunchServices = struct {
 
         return .{
             .lib = lib,
-            .open_from_url_spec = try dynLookup(@TypeOf(@as(LaunchServices, undefined).open_from_url_spec), &lib, "LSOpenFromURLSpec"),
+            .open_from_url_spec = try dynLookup(
+                @TypeOf(@as(LaunchServices, undefined).open_from_url_spec),
+                "LSOpenFromURLSpec",
+                &lib,
+            ),
         };
     }
 
     pub fn deinit(self: *LaunchServices) void {
         self.lib.close();
+        self.* = undefined;
     }
 
-    pub fn openApplicationNoActivate(self: LaunchServices, cf: CoreFoundation, app_path: []const u8) !void {
+    pub fn openApplicationNoActivate(
+        self: LaunchServices,
+        cf: CoreFoundation,
+        app_path: []const u8,
+    ) !void {
         const app_path_ref = try cf.string(app_path);
         defer cf.release(app_path_ref);
-        const app_url = cf.url_create_with_file_system_path(null, app_path_ref, cf_url_posix_path_style, cf_true) orelse return error.CoreFoundationFailed;
+        const app_url = cf.url_create_with_file_system_path(
+            null,
+            app_path_ref,
+            cf_url_posix_path_style,
+            cf_true,
+        ) orelse return error.CoreFoundationFailed;
         defer cf.release(app_url);
 
-        const launch_spec: LSLaunchURLSpec = .{
+        const launch_spec: LsLaunchUrlSpec = .{
             .app_url = app_url,
             .item_urls = null,
             .pass_thru_params = null,
@@ -194,13 +314,17 @@ pub const LaunchServices = struct {
     }
 };
 
-pub fn pidsForExecutablePath(io: std.Io, allocator: Allocator, executable_path: []const u8) ![]std.posix.pid_t {
+pub fn pidsForExecutablePath(
+    allocator: Allocator,
+    io: std.Io,
+    executable_path: []const u8,
+) ![]std.posix.pid_t {
     _ = io;
     const initial_bytes = proc_listpids(proc_all_pids, 0, null, 0);
     if (initial_bytes < 0) return error.ProcessListFailed;
 
     const initial_count: usize = @intCast(@divTrunc(initial_bytes, @sizeOf(c_int)));
-    const pids = try allocator.alloc(c_int, initial_count + 256);
+    const pids = try allocator.alloc(c_int, initial_count + proc_list_growth_slack);
     defer allocator.free(pids);
 
     const byte_count = proc_listpids(proc_all_pids, 0, pids.ptr, @intCast(pids.len * @sizeOf(c_int)));
@@ -221,7 +345,7 @@ pub fn pidsForExecutablePath(io: std.Io, allocator: Allocator, executable_path: 
         try appendPidIfPathMatches(allocator, &matches, pid, path, executable_path);
     }
 
-    return try matches.toOwnedSlice(allocator);
+    return matches.toOwnedSlice(allocator);
 }
 
 fn appendPidIfPathMatches(
@@ -240,10 +364,10 @@ fn copyTrimmedPassword(allocator: Allocator, password_data: ?*anyopaque, passwor
     const bytes: [*]const u8 = @ptrCast(data);
     const key = std.mem.trim(u8, bytes[0..password_len], " \t\r\n");
     if (key.len == 0) return error.KeychainPasswordNotFound;
-    return try allocator.dupe(u8, key);
+    return allocator.dupe(u8, key);
 }
 
-fn dynLookup(comptime T: type, lib: *std.DynLib, comptime name: [:0]const u8) !T {
+fn dynLookup(comptime T: type, comptime name: [:0]const u8, lib: *std.DynLib) !T {
     return lib.lookup(T, name) orelse error.DynamicSymbolMissing;
 }
 
@@ -253,20 +377,38 @@ test "copyTrimmedPassword copies keychain bytes and rejects empty secrets" {
     defer std.testing.allocator.free(key);
 
     try std.testing.expectEqualStrings("secret-key", key);
-    try std.testing.expectError(error.KeychainPasswordNotFound, copyTrimmedPassword(std.testing.allocator, null, 0));
+    try std.testing.expectError(
+        error.KeychainPasswordNotFound,
+        copyTrimmedPassword(std.testing.allocator, null, 0),
+    );
 
     var blank = " \t\r\n".*;
-    try std.testing.expectError(error.KeychainPasswordNotFound, copyTrimmedPassword(std.testing.allocator, &blank, blank.len));
+    try std.testing.expectError(
+        error.KeychainPasswordNotFound,
+        copyTrimmedPassword(std.testing.allocator, &blank, blank.len),
+    );
 }
 
 test "appendPidIfPathMatches filters exact executable path" {
     var matches: std.ArrayList(std.posix.pid_t) = .empty;
     defer matches.deinit(std.testing.allocator);
 
-    try appendPidIfPathMatches(std.testing.allocator, &matches, 42, "/Applications/Other.app/Contents/MacOS/App", "/Applications/App.app/Contents/MacOS/App");
+    try appendPidIfPathMatches(
+        std.testing.allocator,
+        &matches,
+        42,
+        "/Applications/Other.app/Contents/MacOS/App",
+        "/Applications/App.app/Contents/MacOS/App",
+    );
     try std.testing.expectEqual(@as(usize, 0), matches.items.len);
 
-    try appendPidIfPathMatches(std.testing.allocator, &matches, 42, "/Applications/App.app/Contents/MacOS/App", "/Applications/App.app/Contents/MacOS/App");
+    try appendPidIfPathMatches(
+        std.testing.allocator,
+        &matches,
+        42,
+        "/Applications/App.app/Contents/MacOS/App",
+        "/Applications/App.app/Contents/MacOS/App",
+    );
     try std.testing.expectEqual(@as(usize, 1), matches.items.len);
     try std.testing.expectEqual(@as(std.posix.pid_t, 42), matches.items[0]);
 }
@@ -310,10 +452,15 @@ test "LaunchServices creates app URL spec without launching" {
 
     const app_path = try cf.string("/Applications/Raycast.app");
     defer cf.release(app_path);
-    const app_url = cf.url_create_with_file_system_path(null, app_path, cf_url_posix_path_style, cf_true) orelse return error.CoreFoundationFailed;
+    const app_url = cf.url_create_with_file_system_path(
+        null,
+        app_path,
+        cf_url_posix_path_style,
+        cf_true,
+    ) orelse return error.CoreFoundationFailed;
     defer cf.release(app_url);
 
-    const launch_spec: LSLaunchURLSpec = .{
+    const launch_spec: LsLaunchUrlSpec = .{
         .app_url = app_url,
         .item_urls = null,
         .pass_thru_params = null,

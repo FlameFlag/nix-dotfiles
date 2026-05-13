@@ -1,0 +1,7 @@
+.{
+    .paths = .{
+        "build.zig",
+        "lib/zig/chezmoi",
+        "dotfiles/.chezmoiscripts",
+    },
+}

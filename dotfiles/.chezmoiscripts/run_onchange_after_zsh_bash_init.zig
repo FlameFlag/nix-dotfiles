@@ -1,8 +1,12 @@
 const std = @import("std");
-const script = @import("script.zig");
+const script = @import("chezmoi");
 
 const Shell = enum { zsh, bash };
-const InitCommand = struct { bin: []const u8, dir: []const u8, suffix: []const []const u8 = &.{} };
+const InitCommand = struct {
+    bin: []const u8,
+    dir: []const u8,
+    suffix: []const []const u8 = &.{},
+};
 const CompletionCommand = struct {
     bin: []const u8,
     name: []const u8,
@@ -29,11 +33,17 @@ const completion_commands = [_]CompletionCommand{
     .{ .bin = "delta", .name = "delta", .argv0 = "delta", .before_shell = &.{"--generate-completion"} },
     .{ .bin = "tv", .name = "tv", .argv0 = "tv", .before_shell = &.{"completion"} },
     .{ .bin = "rustup", .name = "rustup", .argv0 = "rustup", .before_shell = &.{"completions"} },
-    .{ .bin = "rustup", .name = "cargo", .argv0 = "rustup", .before_shell = &.{"completions"}, .after_shell = &.{"cargo"} },
+    .{
+        .bin = "rustup",
+        .name = "cargo",
+        .argv0 = "rustup",
+        .before_shell = &.{"completions"},
+        .after_shell = &.{"cargo"},
+    },
 };
 
 pub fn main(init: std.process.Init) !void {
-    try script.mainWith(init, run);
+    try script.mainWith(run, init);
 }
 
 fn run(rt: *script.Runtime) !void {
@@ -78,12 +88,18 @@ fn writeInitFiles(rt: *script.Runtime, home_dir: []const u8, shell: Shell) !void
 
 fn writeCompletionFiles(rt: *script.Runtime, home_dir: []const u8, shell: Shell) !void {
     const shell_name = @tagName(shell);
-    const outdir = try std.fs.path.join(rt.allocator, &.{ home_dir, ".cache", shell_name, "completions" });
+    const outdir = try std.fs.path.join(
+        rt.allocator,
+        &.{ home_dir, ".cache", shell_name, "completions" },
+    );
     defer rt.allocator.free(outdir);
     const prefix = if (shell == .zsh) "_" else "";
 
     if (try script.hasBin(rt, "atuin")) {
-        var result = try script.commandQuiet(rt, &.{ "atuin", "gen-completions", "--shell", shell_name, "--out-dir", outdir });
+        var result = try script.commandQuiet(
+            rt,
+            &.{ "atuin", "gen-completions", "--shell", shell_name, "--out-dir", outdir },
+        );
         defer result.deinit(rt.allocator);
         if (result.exit_code != 0) try warnCommandFailed(rt, "atuin completions", result.stderr);
     }
@@ -112,7 +128,10 @@ fn warnCommandFailed(rt: *script.Runtime, name: []const u8, stderr: []const u8) 
     if (message.len == 0) {
         try rt.stderr.print("warn: failed to generate {s} completions\n", .{name});
     } else {
-        try rt.stderr.print("warn: failed to generate {s} completions: {s}\n", .{ name, message });
+        try rt.stderr.print(
+            "warn: failed to generate {s} completions: {s}\n",
+            .{ name, message },
+        );
     }
     try rt.stderr.flush();
 }
@@ -124,7 +143,7 @@ fn completionArgs(rt: *script.Runtime, item: CompletionCommand, shell: Shell) ![
     try argv.appendSlice(rt.allocator, item.before_shell);
     try argv.append(rt.allocator, @tagName(shell));
     try argv.appendSlice(rt.allocator, item.after_shell);
-    return try argv.toOwnedSlice(rt.allocator);
+    return argv.toOwnedSlice(rt.allocator);
 }
 
 test "completionArgs places shell between command-specific arguments" {
@@ -151,5 +170,9 @@ test "completionArgs places shell between command-specific arguments" {
     }, .zsh);
     defer std.testing.allocator.free(argv);
 
-    try std.testing.expectEqualSlices([]const u8, &.{ "rustup", "completions", "zsh", "cargo" }, argv);
+    const expected = [_][]const u8{ "rustup", "completions", "zsh", "cargo" };
+    try std.testing.expectEqual(expected.len, argv.len);
+    for (&expected, argv) |expected_arg, actual_arg| {
+        try std.testing.expectEqualStrings(expected_arg, actual_arg);
+    }
 }

@@ -1,8 +1,12 @@
 const std = @import("std");
 
 const env = @import("env.zig");
+const script = @import("script.zig");
 
 const Allocator = std.mem.Allocator;
+const Runtime = script.Runtime;
+
+const download_buffer_size = 8192;
 
 pub const Auth = enum {
     none,
@@ -22,10 +26,10 @@ pub fn extraHeaders(auth: Auth) []const std.http.Header {
 
 pub const Client = struct {
     allocator: Allocator,
-    rt: *@import("../script.zig").Runtime,
+    rt: *Runtime,
     http: std.http.Client,
 
-    pub fn init(rt: *@import("../script.zig").Runtime) Client {
+    pub fn init(rt: *Runtime) Client {
         return .{
             .allocator = rt.allocator,
             .rt = rt,
@@ -35,6 +39,7 @@ pub const Client = struct {
 
     pub fn deinit(self: *Client) void {
         self.http.deinit();
+        self.* = undefined;
     }
 
     /// Downloads a URL into memory.
@@ -63,12 +68,16 @@ pub const Client = struct {
             } else &.{},
         });
         if (isHttpError(result.status)) {
-            try self.rt.stderr.print("error: HTTP GET {s} returned {d}: {s}\n", .{ url, @intFromEnum(result.status), body.written() });
+            try self.rt.stderr.print("error: HTTP GET {s} returned {d}: {s}\n", .{
+                url,
+                @intFromEnum(result.status),
+                body.written(),
+            });
             try self.rt.stderr.flush();
             return error.HttpRequestFailed;
         }
 
-        return try body.toOwnedSlice();
+        return body.toOwnedSlice();
     }
 
     /// Downloads a URL to `path` atomically, leaving any existing file intact on failure.
@@ -82,7 +91,7 @@ pub const Client = struct {
         var file = try std.Io.Dir.cwd().createFileAtomic(self.rt.io, path, .{ .replace = true });
         defer file.deinit(self.rt.io);
 
-        var buffer: [8192]u8 = undefined;
+        var buffer: [download_buffer_size]u8 = undefined;
         var writer = file.file.writer(self.rt.io, &buffer);
         const result = try self.http.fetch(.{
             .location = .{ .url = url },
@@ -103,7 +112,7 @@ pub const Client = struct {
     fn githubAuthorizationHeader(self: *Client) !?[]u8 {
         const token = try env.envOrNull(self.rt, "GITHUB_TOKEN") orelse return null;
         defer self.allocator.free(token);
-        return try std.fmt.allocPrint(self.allocator, "Bearer {s}", .{token});
+        return @as(?[]u8, try std.fmt.allocPrint(self.allocator, "Bearer {s}", .{token}));
     }
 
     fn loadEnvCertBundle(self: *Client) !void {
@@ -142,4 +151,11 @@ test "request header names and values satisfy std.http.Client checks" {
             try std.testing.expect(std.mem.findPosLinear(u8, header.value, 0, "\r\n") == null);
         }
     }
+}
+
+test "isHttpError classifies only client and server failures" {
+    try std.testing.expect(!Client.isHttpError(.ok));
+    try std.testing.expect(!Client.isHttpError(.temporary_redirect));
+    try std.testing.expect(Client.isHttpError(.not_found));
+    try std.testing.expect(Client.isHttpError(.internal_server_error));
 }

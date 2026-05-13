@@ -1,4 +1,5 @@
 const std = @import("std");
+const builtin = @import("builtin");
 
 const Allocator = std.mem.Allocator;
 
@@ -20,7 +21,7 @@ pub const Context = struct {
 fn value(rt: anytype, name: []const u8) ![]u8 {
     const result = rt.env.get(name) orelse return error.EnvironmentVariableMissing;
     if (result.len == 0) return error.EmptyEnvironmentVariable;
-    return try rt.allocator.dupe(u8, result);
+    return rt.allocator.dupe(u8, result);
 }
 
 /// Returns a copy of an environment variable or `null` when unset.
@@ -28,7 +29,7 @@ fn value(rt: anytype, name: []const u8) ![]u8 {
 /// Caller owns returned memory.
 pub fn envOrNull(rt: anytype, name: []const u8) !?[]u8 {
     const result = rt.env.get(name) orelse return null;
-    return try rt.allocator.dupe(u8, result);
+    return @as(?[]u8, try rt.allocator.dupe(u8, result));
 }
 
 /// Reads the chezmoi runtime context from the environment.
@@ -50,11 +51,11 @@ pub fn chezmoiContext(rt: anytype) !Context {
     const os = if (try envOrNull(rt, "CHEZMOI_OS")) |env_os|
         env_os
     else
-        try rt.allocator.dupe(u8, switch (@import("builtin").os.tag) {
+        try rt.allocator.dupe(u8, switch (builtin.os.tag) {
             .macos => "darwin",
             .linux => "linux",
             .windows => "windows",
-            else => @tagName(@import("builtin").os.tag),
+            else => @tagName(builtin.os.tag),
         });
 
     rt.allocator.free(home);
@@ -133,5 +134,9 @@ test "chezmoiContext rejects missing or empty required values" {
     try std.testing.expectError(error.EnvironmentVariableMissing, chezmoiContext(rt));
 
     try map.put("HOME", "");
+    try std.testing.expectError(error.EmptyEnvironmentVariable, chezmoiContext(rt));
+
+    try map.put("HOME", "/home/me");
+    try map.put("CHEZMOI_SOURCE_DIR", "");
     try std.testing.expectError(error.EmptyEnvironmentVariable, chezmoiContext(rt));
 }

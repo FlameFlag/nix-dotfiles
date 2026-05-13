@@ -1,6 +1,9 @@
 const std = @import("std");
+const fs = @import("fs.zig");
 
 const Allocator = std.mem.Allocator;
+const command_output_limit = 64 * 1024 * 1024;
+const default_path = "/usr/local/bin:/bin:/usr/bin";
 
 pub const CommandResult = struct {
     exit_code: u8,
@@ -8,9 +11,10 @@ pub const CommandResult = struct {
     stderr: []u8,
 
     /// Frees captured stdout and stderr.
-    pub fn deinit(self: CommandResult, allocator: Allocator) void {
+    pub fn deinit(self: *CommandResult, allocator: Allocator) void {
         allocator.free(self.stdout);
         allocator.free(self.stderr);
+        self.* = undefined;
     }
 };
 
@@ -24,7 +28,7 @@ pub fn hasBin(rt: anytype, bin: []const u8) !bool {
         return true;
     }
 
-    const path_env = rt.env.get("PATH") orelse "/usr/local/bin:/bin:/usr/bin";
+    const path_env = rt.env.get("PATH") orelse default_path;
     var paths = std.mem.tokenizeScalar(u8, path_env, ':');
     while (paths.next()) |dir| {
         const full_path = try std.fs.path.join(rt.allocator, &.{ dir, bin });
@@ -61,8 +65,8 @@ pub fn command(rt: anytype, argv: []const []const u8) !void {
 pub fn commandQuiet(rt: anytype, argv: []const []const u8) !CommandResult {
     const result = try std.process.run(rt.allocator, rt.io, .{
         .argv = argv,
-        .stdout_limit = .limited(64 * 1024 * 1024),
-        .stderr_limit = .limited(64 * 1024 * 1024),
+        .stdout_limit = .limited(command_output_limit),
+        .stderr_limit = .limited(command_output_limit),
     });
     return .{
         .exit_code = switch (result.term) {
@@ -93,8 +97,8 @@ pub fn commandText(rt: anytype, argv: []const []const u8) ![]u8 {
 pub fn commandTextOr(rt: anytype, argv: []const []const u8, fallback: []const u8) ![]u8 {
     var result = try commandQuiet(rt, argv);
     defer result.deinit(rt.allocator);
-    if (result.exit_code != 0) return try rt.allocator.dupe(u8, fallback);
-    return try rt.allocator.dupe(u8, result.stdout);
+    if (result.exit_code != 0) return rt.allocator.dupe(u8, fallback);
+    return rt.allocator.dupe(u8, result.stdout);
 }
 
 /// Writes command stdout to `path` only when `bin` is available.
@@ -109,7 +113,7 @@ pub fn writeCommandTextIfAvailable(
     if (!try hasBin(rt, bin)) return false;
     const output = try commandText(rt, argv);
     defer rt.allocator.free(output);
-    return try @import("fs.zig").writeTextIfChanged(rt, path, output);
+    return fs.writeTextIfChanged(rt, path, output);
 }
 
 test "hasBin rejects missing PATH entries and direct missing paths" {
@@ -117,11 +121,11 @@ test "hasBin rejects missing PATH entries and direct missing paths" {
     defer map.deinit();
     try map.put("PATH", "");
 
-    const rt = struct {
+    const rt: struct {
         allocator: Allocator,
         io: std.Io,
         env: *std.process.Environ.Map,
-    }{
+    } = .{
         .allocator = std.testing.allocator,
         .io = std.testing.io,
         .env = &map,
@@ -129,4 +133,23 @@ test "hasBin rejects missing PATH entries and direct missing paths" {
 
     try std.testing.expect(!try hasBin(rt, "definitely-not-a-real-command"));
     try std.testing.expect(!try hasBin(rt, "./definitely-not-a-real-command"));
+}
+
+test "hasBin accepts executables found in PATH and direct executable paths" {
+    var map = std.process.Environ.Map.init(std.testing.allocator);
+    defer map.deinit();
+    try map.put("PATH", "/bin");
+
+    const rt: struct {
+        allocator: Allocator,
+        io: std.Io,
+        env: *std.process.Environ.Map,
+    } = .{
+        .allocator = std.testing.allocator,
+        .io = std.testing.io,
+        .env = &map,
+    };
+
+    try std.testing.expect(try hasBin(rt, "sh"));
+    try std.testing.expect(try hasBin(rt, "/bin/sh"));
 }

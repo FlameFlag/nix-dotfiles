@@ -1,10 +1,10 @@
 const std = @import("std");
-const script = @import("script.zig");
+const script = @import("chezmoi");
 
 const Release = struct { tag_name: []const u8 };
 
 pub fn main(init: std.process.Init) !void {
-    try script.mainWith(init, run);
+    try script.mainWith(run, init);
 }
 
 fn run(rt: *script.Runtime) !void {
@@ -23,15 +23,21 @@ fn run(rt: *script.Runtime) !void {
 fn fetchLatestTag(rt: *script.Runtime, http: *script.http.Client, repository: []const u8) ![]u8 {
     try rt.stderr.print("info: Fetching latest {s} release...\n", .{repository});
     try rt.stderr.flush();
-    const url = try std.fmt.allocPrint(rt.allocator, "https://api.github.com/repos/{s}/releases/latest", .{repository});
+    const url = try std.fmt.allocPrint(
+        rt.allocator,
+        "https://api.github.com/repos/{s}/releases/latest",
+        .{repository},
+    );
     defer rt.allocator.free(url);
 
     const body = try http.getText(url, .github);
     defer rt.allocator.free(body);
 
-    var parsed = try std.json.parseFromSlice(Release, rt.allocator, body, .{ .ignore_unknown_fields = true });
+    var parsed = try std.json.parseFromSlice(Release, rt.allocator, body, .{
+        .ignore_unknown_fields = true,
+    });
     defer parsed.deinit();
-    return try rt.allocator.dupe(u8, parsed.value.tag_name);
+    return rt.allocator.dupe(u8, parsed.value.tag_name);
 }
 
 fn installTheme(rt: *script.Runtime, http: *script.http.Client, latest_tag: []const u8) !void {
@@ -79,15 +85,18 @@ fn installIcons(rt: *script.Runtime, http: *script.http.Client, latest_tag: []co
     const temp_dir = try script.tempDir(rt);
     defer {
         deleteTreeIfExists(rt, temp_dir) catch |err| {
-            rt.stderr.print("warn: failed to remove temporary directory {s}: {s}\n", .{ temp_dir, @errorName(err) }) catch {};
-            rt.stderr.flush() catch {};
+            warnTempDirCleanupFailed(rt, temp_dir, err);
         };
         rt.allocator.free(temp_dir);
     }
 
     const archive_path = try std.fs.path.join(rt.allocator, &.{ temp_dir, "zed-icons.tar.gz" });
     defer rt.allocator.free(archive_path);
-    const url = try std.fmt.allocPrint(rt.allocator, "https://codeload.github.com/catppuccin/zed-icons/tar.gz/{s}", .{latest_tag});
+    const url = try std.fmt.allocPrint(
+        rt.allocator,
+        "https://codeload.github.com/catppuccin/zed-icons/tar.gz/{s}",
+        .{latest_tag},
+    );
     defer rt.allocator.free(url);
 
     try rt.stderr.print("info: Downloading Catppuccin Zed icon theme...\n", .{});
@@ -98,15 +107,39 @@ fn installIcons(rt: *script.Runtime, http: *script.http.Client, latest_tag: []co
     try std.Io.Dir.cwd().createDirPath(rt.io, icon_themes_dir);
     try deleteTreeIfExists(rt, icons_dir);
 
-    const src_icon_theme = try std.fs.path.join(rt.allocator, &.{ temp_dir, "icon_themes/catppuccin-icons.json" });
+    const src_icon_theme = try std.fs.path.join(
+        rt.allocator,
+        &.{ temp_dir, "icon_themes/catppuccin-icons.json" },
+    );
     defer rt.allocator.free(src_icon_theme);
-    const dst_icon_theme = try std.fs.path.join(rt.allocator, &.{ icon_themes_dir, "catppuccin-icons.json" });
+    const dst_icon_theme = try std.fs.path.join(
+        rt.allocator,
+        &.{ icon_themes_dir, "catppuccin-icons.json" },
+    );
     defer rt.allocator.free(dst_icon_theme);
-    try std.Io.Dir.cwd().copyFile(src_icon_theme, .cwd(), dst_icon_theme, rt.io, .{ .replace = true, .make_path = true });
+    try std.Io.Dir.cwd().copyFile(
+        src_icon_theme,
+        .cwd(),
+        dst_icon_theme,
+        rt.io,
+        .{ .replace = true, .make_path = true },
+    );
 
     const src_icons = try std.fs.path.join(rt.allocator, &.{ temp_dir, "icons" });
     defer rt.allocator.free(src_icons);
     try script.command(rt, &.{ "cp", "-R", src_icons, icons_dir });
     try rt.stderr.print("success: Icon theme installed to {s}\n", .{zed_config_dir});
     try rt.stderr.flush();
+}
+
+fn warnTempDirCleanupFailed(rt: *script.Runtime, temp_dir: []const u8, err: anyerror) void {
+    rt.stderr.print(
+        "warn: failed to remove temporary directory {s}: {s}\n",
+        .{ temp_dir, @errorName(err) },
+    ) catch |write_err| warnWriteFailed(write_err);
+    rt.stderr.flush() catch |write_err| warnWriteFailed(write_err);
+}
+
+fn warnWriteFailed(err: anyerror) void {
+    std.debug.print("warn: failed to write warning: {s}\n", .{@errorName(err)});
 }

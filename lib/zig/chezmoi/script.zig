@@ -10,12 +10,15 @@ pub const Runtime = struct {
     stderr: *std.Io.Writer,
 };
 
-const env = @import("lib/env.zig");
-const fs = @import("lib/fs.zig");
-const process = @import("lib/process.zig");
+const env = @import("env.zig");
+const fs = @import("fs.zig");
+const process = @import("process.zig");
 
-pub const http = @import("lib/http.zig");
-pub const macos = @import("lib/macos.zig");
+const stderr_buffer_size = 1024;
+const stdout_buffer_size = 1024;
+
+pub const http = @import("http.zig");
+pub const macos = @import("macos.zig");
 
 pub const chezmoiContext = env.chezmoiContext;
 pub const writeTextIfChanged = fs.writeTextIfChanged;
@@ -34,10 +37,10 @@ test {
 /// Runs a chezmoi script with the shared runtime.
 ///
 /// Script errors are logged before being returned.
-pub fn mainWith(init: std.process.Init, comptime run: fn (*Runtime) anyerror!void) !void {
-    var stdout_buffer: [1024]u8 = undefined;
+pub fn mainWith(comptime run: fn (*Runtime) anyerror!void, init: std.process.Init) !void {
+    var stdout_buffer: [stdout_buffer_size]u8 = undefined;
     var stdout_writer = std.Io.File.stdout().writerStreaming(init.io, &stdout_buffer);
-    var stderr_buffer: [1024]u8 = undefined;
+    var stderr_buffer: [stderr_buffer_size]u8 = undefined;
     var stderr_writer = std.Io.File.stderr().writerStreaming(init.io, &stderr_buffer);
 
     var rt: Runtime = .{
