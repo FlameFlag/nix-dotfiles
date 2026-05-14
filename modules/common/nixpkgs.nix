@@ -16,6 +16,25 @@
         zig = final.unstable.zig;
         gh = final.unstable.gh;
         yt-dlp = final.eupkgs.yt-dlp;
+        kanata =
+          let
+            version = "1.12.0-prerelease-2";
+            src = final.fetchFromGitHub {
+              owner = "jtroo";
+              repo = "kanata";
+              rev = "c4e07fbb39b28a18dca4a2234e65793bef526f99";
+              hash = "sha256-dcwMOAptUhmbnlpxBHS9bimvV4IPmhHd4qtcunJ05h8=";
+            };
+          in
+          prev.kanata.overrideAttrs (old: {
+            inherit version src;
+
+            cargoDeps = final.rustPlatform.fetchCargoVendor {
+              inherit src;
+              name = "kanata-unstable-2026-05-09";
+              hash = "sha256-dVQhiEj8izA4lv4lZdLHr6rND8Gm8pvAx6mP6MPK1zk=";
+            };
+          });
         kanata-with-cmd = final.kanata.override { withCmd = true; };
         gh-hide-comment = final.callPackage ../../pkgs/gh-hide-comment.nix { };
         lenovo-con-mode = final.callPackage ../../pkgs/lenovo-con-mode.nix { };
