@@ -4,6 +4,6 @@
 
 exec zig run -lc \
   --dep chezmoi \
-  -Mroot="$CHEZMOI_SOURCE_DIR/.chezmoiscripts/run_onchange_after_raycast_window_management.zig" \
+  -Mroot="$CHEZMOI_SOURCE_DIR/.chezmoi-lib/raycast_window_management/main.zig" \
   -Mchezmoi="$CHEZMOI_SOURCE_DIR/../lib/zig/chezmoi/script.zig" \
   -- "$@"

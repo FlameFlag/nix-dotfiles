@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 exec zig run -lc \
   --dep chezmoi \
-  -Mroot="$CHEZMOI_SOURCE_DIR/.chezmoiscripts/run_once_zed_install_catppuccin_theme.zig" \
+  -Mroot="$CHEZMOI_SOURCE_DIR/.chezmoi-lib/scripts/run_once_zed_install_catppuccin_theme.zig" \
   -Mchezmoi="$CHEZMOI_SOURCE_DIR/../lib/zig/chezmoi/script.zig" \
   -- "$@"

@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 exec zig run -lc \
   --dep chezmoi \
-  -Mroot="$CHEZMOI_SOURCE_DIR/.chezmoiscripts/run_onchange_after_install-vs-extensions.zig" \
+  -Mroot="$CHEZMOI_SOURCE_DIR/.chezmoi-lib/scripts/run_onchange_after_install-vs-extensions.zig" \
   -Mchezmoi="$CHEZMOI_SOURCE_DIR/../lib/zig/chezmoi/script.zig" \
   -- "$@"

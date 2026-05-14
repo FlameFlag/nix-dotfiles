@@ -20,6 +20,7 @@ const stdout_buffer_size = 1024;
 pub const http = @import("http.zig");
 pub const macos = @import("macos.zig");
 
+pub const Context = env.Context;
 pub const chezmoiContext = env.chezmoiContext;
 pub const writeTextIfChanged = fs.writeTextIfChanged;
 pub const command = process.command;
