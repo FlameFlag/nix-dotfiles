@@ -91,6 +91,7 @@ let
     pkgs.eupkgs.agent-statusline-pi
     pkgs.gh-hide-comment
     pkgs.ziglint
+    pkgs.eupkgs.pi-ssh-tools
     pkgs.eupkgs.web-search-pi
   ]
   ++ (with pkgs.unstable; [
