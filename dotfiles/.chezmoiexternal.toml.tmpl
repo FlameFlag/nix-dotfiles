@@ -1,6 +1,8 @@
+{{- if ne .chezmoi.os "windows" -}}
 {{- $nushellConfigPath := "" -}}
 {{- $yaziConfigPath := "" -}}
 {{- $fontsPath := "" -}}
+{{- $ghosttyConfigPath := ".config/ghostty" -}}
 {{- if eq .chezmoi.os "darwin" -}}
 {{-   $nushellConfigPath = "Library/Application Support/nushell" -}}
 {{-   $yaziConfigPath = ".config/yazi" -}}
@@ -13,11 +15,21 @@
 
 # ----- Nushell -----
 
-{{- $nushellTools := list "bat" "curl" "git" "jj" "man" "nix" "rg" "ssh" "vscode" "zellij" -}}
+{{- $nushellTools := list "bat" "cargo" "claude" "curl" "gh" "git" "jj" "man" "nix" "op" "rg" "ssh" "uv" "vscode" "zellij" "zoxide" -}}
 {{- range $tool := $nushellTools }}
 ["{{ $nushellConfigPath }}/completions/{{ $tool }}.nu"]
 type = "file"
 url = "https://raw.githubusercontent.com/nushell/nu_scripts/main/custom-completions/{{ $tool }}/{{ $tool }}-completions.nu"
+refreshPeriod = "168h"
+{{ end }}
+
+# ----- Ghostty -----
+
+{{- $ghosttyFlavors := list "frappe" "latte" -}}
+{{- range $flavor := $ghosttyFlavors }}
+["{{ $ghosttyConfigPath }}/themes/catppuccin-{{ $flavor }}.conf"]
+type = "file"
+url = "https://raw.githubusercontent.com/catppuccin/ghostty/main/themes/catppuccin-{{ $flavor }}.conf"
 refreshPeriod = "168h"
 {{ end }}
 
@@ -79,3 +91,4 @@ type = "file"
 url = "https://raw.githubusercontent.com/catppuccin/yazi/main/themes/{{ $flavor }}/catppuccin-{{ $flavor }}-blue.toml"
 refreshPeriod = "168h"
 {{ end }}
+{{- end -}}

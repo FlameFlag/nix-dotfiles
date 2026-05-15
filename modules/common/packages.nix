@@ -36,7 +36,6 @@ let
     bat
     btop
     cachix
-    chezmoi
     clipboard-jh
     curl
     delta
@@ -89,14 +88,10 @@ let
   devPackages = [
     pkgs.eupkgs.agent-statusline
     pkgs.eupkgs.agent-statusline-pi
-    pkgs.gh-hide-comment
-    pkgs.ziglint
     pkgs.eupkgs.pi-ssh-tools
     pkgs.eupkgs.web-search-pi
   ]
   ++ (with pkgs.unstable; [
-    bun
-    deno
     go
     golangci-lint
     gopls
@@ -105,21 +100,13 @@ let
     git-lfs
     nix-prefetch-github
     nixpkgs-review
-    nodejs_25
     nuget-to-json
     pciutils
     pfetch-rs
     prettier
-    ruff
-    rustup
     sqlcipher
     smartmontools
     tree
-    ty
-    uv
-    zig
-    zig-shell-completions
-    zls
     zon2nix
   ]);
 
@@ -133,8 +120,6 @@ let
     pandoc
   ])
   ++ (with pkgs.eupkgs; [
-    yt-dlp
-    yt-dlp-script
   ]);
 
   archivePackages = with pkgs.unstable; [
@@ -146,7 +131,6 @@ let
 
   guiPackages = with pkgs.unstable; [
     gitui
-    vscode
   ];
 
   linuxDesktopPackages =

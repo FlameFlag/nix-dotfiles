@@ -1,4 +1,5 @@
 const std = @import("std");
+const common = @import("common");
 
 pub const Allocator = std.mem.Allocator;
 
@@ -11,25 +12,45 @@ pub const Runtime = struct {
 };
 
 const env = @import("env.zig");
-const fs = @import("fs.zig");
-const process = @import("process.zig");
 
 const stderr_buffer_size = 1024;
 const stdout_buffer_size = 1024;
+const temp_dir_prefix = "chezmoi-script";
 
 pub const http = @import("http.zig");
 pub const macos = @import("macos.zig");
 
 pub const Context = env.Context;
 pub const chezmoiContext = env.chezmoiContext;
-pub const writeTextIfChanged = fs.writeTextIfChanged;
-pub const command = process.command;
-pub const commandQuiet = process.commandQuiet;
-pub const commandText = process.commandText;
-pub const commandTextOr = process.commandTextOr;
-pub const hasBin = process.hasBin;
-pub const writeCommandTextIfAvailable = process.writeCommandTextIfAvailable;
-pub const tempDir = fs.tempDir;
+pub const writeTextIfChanged = common.fs.writeTextIfChanged;
+pub const copyDirRecursive = common.fs.copyDirRecursive;
+pub const command = common.process.run;
+pub const commandQuiet = common.process.capture;
+pub const commandText = common.process.text;
+pub const extractTarGz = common.fs.extractTarGz;
+pub const hasBin = common.process.hasBin;
+
+/// Writes command stdout to `path` only when `bin` is available.
+///
+/// Returns whether `path` was updated.
+pub fn writeCommandTextIfAvailable(
+    rt: anytype,
+    bin: []const u8,
+    path: []const u8,
+    argv: []const []const u8,
+) !bool {
+    if (!try hasBin(rt, bin)) return false;
+    const output = try commandText(rt, argv);
+    defer rt.allocator.free(output);
+    return writeTextIfChanged(rt, path, output);
+}
+
+/// Creates a unique temporary directory for a chezmoi script.
+///
+/// Caller owns returned memory and is responsible for deleting the directory.
+pub fn tempDir(rt: anytype) ![]u8 {
+    return common.fs.tempDir(rt, temp_dir_prefix);
+}
 
 test {
     std.testing.refAllDecls(@This());

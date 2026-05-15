@@ -30,7 +30,7 @@ fn fetchLatestTag(rt: *script.Runtime, http: *script.http.Client, repository: []
     );
     defer rt.allocator.free(url);
 
-    const body = try http.getText(url, .github);
+    const body = try http.getBytes(url, .github);
     defer rt.allocator.free(body);
 
     var parsed = try std.json.parseFromSlice(Release, rt.allocator, body, .{
@@ -59,16 +59,12 @@ fn installTheme(rt: *script.Runtime, http: *script.http.Client, latest_tag: []co
 
     try rt.stderr.print("info: Downloading catppuccin-pink.json...\n", .{});
     try rt.stderr.flush();
-    const theme = try http.getText(url, .none);
+    const theme = try http.getBytes(url, .none);
     defer rt.allocator.free(theme);
     if (try script.writeTextIfChanged(rt, theme_path, theme)) {
         try rt.stderr.print("success: Theme installed to {s}\n", .{theme_path});
         try rt.stderr.flush();
     }
-}
-
-fn deleteTreeIfExists(rt: *script.Runtime, path: []const u8) !void {
-    try std.Io.Dir.cwd().deleteTree(rt.io, path);
 }
 
 fn installIcons(rt: *script.Runtime, http: *script.http.Client, latest_tag: []const u8) !void {
@@ -84,14 +80,12 @@ fn installIcons(rt: *script.Runtime, http: *script.http.Client, latest_tag: []co
 
     const temp_dir = try script.tempDir(rt);
     defer {
-        deleteTreeIfExists(rt, temp_dir) catch |err| {
+        std.Io.Dir.cwd().deleteTree(rt.io, temp_dir) catch |err| {
             warnTempDirCleanupFailed(rt, temp_dir, err);
         };
         rt.allocator.free(temp_dir);
     }
 
-    const archive_path = try std.fs.path.join(rt.allocator, &.{ temp_dir, "zed-icons.tar.gz" });
-    defer rt.allocator.free(archive_path);
     const url = try std.fmt.allocPrint(
         rt.allocator,
         "https://codeload.github.com/catppuccin/zed-icons/tar.gz/{s}",
@@ -101,11 +95,12 @@ fn installIcons(rt: *script.Runtime, http: *script.http.Client, latest_tag: []co
 
     try rt.stderr.print("info: Downloading Catppuccin Zed icon theme...\n", .{});
     try rt.stderr.flush();
-    try http.downloadFile(url, archive_path);
-    try script.command(rt, &.{ "tar", "-xzf", archive_path, "-C", temp_dir, "--strip-components=1" });
+    const archive = try http.getBytes(url, .none);
+    defer rt.allocator.free(archive);
+    try script.extractTarGz(rt, archive, temp_dir, 1);
 
     try std.Io.Dir.cwd().createDirPath(rt.io, icon_themes_dir);
-    try deleteTreeIfExists(rt, icons_dir);
+    try std.Io.Dir.cwd().deleteTree(rt.io, icons_dir);
 
     const src_icon_theme = try std.fs.path.join(
         rt.allocator,
@@ -127,7 +122,7 @@ fn installIcons(rt: *script.Runtime, http: *script.http.Client, latest_tag: []co
 
     const src_icons = try std.fs.path.join(rt.allocator, &.{ temp_dir, "icons" });
     defer rt.allocator.free(src_icons);
-    try script.command(rt, &.{ "cp", "-R", src_icons, icons_dir });
+    try script.copyDirRecursive(rt, src_icons, icons_dir);
     try rt.stderr.print("success: Icon theme installed to {s}\n", .{zed_config_dir});
     try rt.stderr.flush();
 }

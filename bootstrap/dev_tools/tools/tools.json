@@ -1,0 +1,910 @@
+{
+  "$schema": "./tools.schema.json",
+  "tools": [
+    {
+      "name": "chezmoi",
+      "bins": [
+        {
+          "name": "chezmoi",
+          "version_argv": [
+            "chezmoi",
+            "--version"
+          ]
+        }
+      ],
+      "action": {
+        "type": "script",
+        "script": {
+          "unix": {
+            "url": "https://get.chezmoi.io",
+            "file": "install.sh",
+            "argv": [
+              "sh",
+              "{file}",
+              "-b",
+              "{bin_dir}"
+            ]
+          },
+          "windows": {
+            "url": "https://get.chezmoi.io/ps1",
+            "file": "install.ps1",
+            "argv": [
+              "pwsh",
+              "-NoProfile",
+              "-ExecutionPolicy",
+              "Bypass",
+              "-File",
+              "{file}",
+              "-BinDir",
+              "{bin_dir}"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "name": "uv",
+      "bins": [
+        {
+          "name": "uv",
+          "version_argv": [
+            "uv",
+            "--version"
+          ]
+        },
+        {
+          "name": "uvx",
+          "version_argv": [
+            "uvx",
+            "--version"
+          ]
+        }
+      ],
+      "action": {
+        "type": "archive",
+        "source": {
+          "type": "github_latest",
+          "repo": "astral-sh/uv",
+          "tag_prefix": "v",
+          "asset": "uv-{platform}.tar.gz"
+        },
+        "platforms": [
+          {
+            "when": {
+              "os": "macos",
+              "arch": "aarch64"
+            },
+            "platform": "aarch64-apple-darwin",
+            "kind": "tar_gz",
+            "strip_components": 1,
+            "links": [
+              {
+                "name": "uv",
+                "path": "uv"
+              },
+              {
+                "name": "uvx",
+                "path": "uvx"
+              }
+            ]
+          },
+          {
+            "when": {
+              "os": "linux",
+              "arch": "aarch64"
+            },
+            "platform": "aarch64-unknown-linux-gnu",
+            "kind": "tar_gz",
+            "strip_components": 1,
+            "links": [
+              {
+                "name": "uv",
+                "path": "uv"
+              },
+              {
+                "name": "uvx",
+                "path": "uvx"
+              }
+            ]
+          },
+          {
+            "when": {
+              "os": "linux",
+              "arch": "x86_64"
+            },
+            "platform": "x86_64-unknown-linux-gnu",
+            "kind": "tar_gz",
+            "strip_components": 1,
+            "links": [
+              {
+                "name": "uv",
+                "path": "uv"
+              },
+              {
+                "name": "uvx",
+                "path": "uvx"
+              }
+            ]
+          },
+          {
+            "when": {
+              "os": "windows",
+              "arch": "x86_64"
+            },
+            "platform": "x86_64-pc-windows-msvc",
+            "source": {
+              "type": "github_latest",
+              "repo": "astral-sh/uv",
+              "tag_prefix": "v",
+              "asset": "uv-{platform}.zip"
+            },
+            "kind": "zip",
+            "strip_components": 1,
+            "links": [
+              {
+                "name": "uv",
+                "path": "uv.exe"
+              },
+              {
+                "name": "uvx",
+                "path": "uvx.exe"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "zig",
+      "bins": [
+        {
+          "name": "zig",
+          "version_argv": [
+            "zig",
+            "version"
+          ]
+        }
+      ],
+      "action": {
+        "type": "required"
+      }
+    },
+    {
+      "name": "rustup",
+      "bins": [
+        {
+          "name": "rustup",
+          "version_argv": [
+            "rustup",
+            "--version"
+          ]
+        },
+        {
+          "name": "cargo",
+          "version_argv": [
+            "cargo",
+            "--version"
+          ]
+        },
+        {
+          "name": "rustc",
+          "version_argv": [
+            "rustc",
+            "--version"
+          ]
+        },
+        {
+          "name": "rustfmt",
+          "version_argv": [
+            "rustfmt",
+            "--version"
+          ]
+        },
+        {
+          "name": "cargo-clippy",
+          "version_argv": [
+            "cargo",
+            "clippy",
+            "--version"
+          ]
+        },
+        {
+          "name": "rust-analyzer",
+          "version_argv": [
+            "rust-analyzer",
+            "--version"
+          ]
+        }
+      ],
+      "action": {
+        "type": "toolchain",
+        "toolchain": {
+          "manager": "rustup",
+          "name": "stable",
+          "components": [
+            "rustfmt",
+            "clippy",
+            "rust-analyzer",
+            "rust-src"
+          ],
+          "install": {
+            "unix": {
+              "url": "https://sh.rustup.rs",
+              "file": "install.sh",
+              "argv": [
+                "sh",
+                "{file}",
+                "-y",
+                "--no-modify-path",
+                "--profile",
+                "minimal",
+                "--default-toolchain",
+                "{toolchain}",
+                "{components}"
+              ]
+            },
+            "windows": {
+              "url": "https://static.rust-lang.org/rustup/dist/x86_64-pc-windows-msvc/rustup-init.exe",
+              "file": "rustup-init.exe",
+              "argv": [
+                "{file}",
+                "-y",
+                "--no-modify-path",
+                "--profile",
+                "minimal",
+                "--default-toolchain",
+                "{toolchain}",
+                "{components}"
+              ]
+            }
+          },
+          "update_argv": [
+            "{manager_bin}",
+            "toolchain",
+            "install",
+            "{toolchain}",
+            "--profile",
+            "minimal",
+            "{components}"
+          ],
+          "active_argv": [
+            "{manager_bin}",
+            "show",
+            "active-toolchain"
+          ],
+          "default_argv": [
+            "{manager_bin}",
+            "default",
+            "{toolchain}"
+          ],
+          "component_argv": [
+            "--component",
+            "{component}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "zls",
+      "bins": [
+        {
+          "name": "zls",
+          "version_argv": [
+            "zls",
+            "--version"
+          ]
+        }
+      ],
+      "action": {
+        "type": "archive",
+        "source": {
+          "type": "github_latest",
+          "repo": "zigtools/zls",
+          "asset": "zls-{platform}.tar.xz"
+        },
+        "platforms": [
+          {
+            "when": {
+              "os": "macos",
+              "arch": "aarch64"
+            },
+            "platform": "aarch64-macos",
+            "kind": "tar_xz",
+            "strip_components": 0,
+            "links": [
+              {
+                "name": "zls",
+                "path": "zls"
+              }
+            ]
+          },
+          {
+            "when": {
+              "os": "linux",
+              "arch": "aarch64"
+            },
+            "platform": "aarch64-linux",
+            "kind": "tar_xz",
+            "strip_components": 0,
+            "links": [
+              {
+                "name": "zls",
+                "path": "zls"
+              }
+            ]
+          },
+          {
+            "when": {
+              "os": "linux",
+              "arch": "x86_64"
+            },
+            "platform": "x86_64-linux",
+            "kind": "tar_xz",
+            "strip_components": 0,
+            "links": [
+              {
+                "name": "zls",
+                "path": "zls"
+              }
+            ]
+          },
+          {
+            "when": {
+              "os": "windows",
+              "arch": "x86_64"
+            },
+            "platform": "x86_64-windows",
+            "source": {
+              "type": "github_latest",
+              "repo": "zigtools/zls",
+              "asset": "zls-{platform}.zip"
+            },
+            "kind": "zip",
+            "strip_components": 0,
+            "links": [
+              {
+                "name": "zls",
+                "path": "zls.exe"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "ziglint",
+      "bins": [
+        {
+          "name": "ziglint",
+          "version_argv": [
+            "sh",
+            "-c",
+            "ziglint --version 2>&1"
+          ]
+        }
+      ],
+      "action": {
+        "type": "archive",
+        "source": {
+          "type": "github_latest",
+          "repo": "rockorager/ziglint",
+          "tag_prefix": "v",
+          "asset": "ziglint-{platform}.tar.gz"
+        },
+        "platforms": [
+          {
+            "when": {
+              "os": "macos",
+              "arch": "aarch64"
+            },
+            "platform": "aarch64-macos",
+            "kind": "tar_gz",
+            "strip_components": 0,
+            "links": [
+              {
+                "name": "ziglint",
+                "path": "ziglint"
+              }
+            ]
+          },
+          {
+            "when": {
+              "os": "linux",
+              "arch": "aarch64"
+            },
+            "platform": "aarch64-linux",
+            "kind": "tar_gz",
+            "strip_components": 0,
+            "links": [
+              {
+                "name": "ziglint",
+                "path": "ziglint"
+              }
+            ]
+          },
+          {
+            "when": {
+              "os": "linux",
+              "arch": "x86_64"
+            },
+            "platform": "x86_64-linux",
+            "kind": "tar_gz",
+            "strip_components": 0,
+            "links": [
+              {
+                "name": "ziglint",
+                "path": "ziglint"
+              }
+            ]
+          },
+          {
+            "when": {
+              "os": "windows",
+              "arch": "x86_64"
+            },
+            "platform": "x86_64-windows",
+            "source": {
+              "type": "github_latest",
+              "repo": "rockorager/ziglint",
+              "tag_prefix": "v",
+              "asset": "ziglint-{platform}.zip"
+            },
+            "kind": "zip",
+            "strip_components": 0,
+            "links": [
+              {
+                "name": "ziglint",
+                "path": "ziglint.exe"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "node",
+      "bins": [
+        {
+          "name": "node",
+          "version_argv": [
+            "node",
+            "--version"
+          ]
+        },
+        {
+          "name": "npm",
+          "version_argv": [
+            "npm",
+            "--version"
+          ]
+        },
+        {
+          "name": "npx",
+          "version_argv": [
+            "npx",
+            "--version"
+          ]
+        }
+      ],
+      "action": {
+        "type": "archive",
+        "source": {
+          "type": "node_latest",
+          "index_url": "https://nodejs.org/dist/index.json",
+          "url": "https://nodejs.org/dist/{version}/node-{version}-{platform}.tar.xz"
+        },
+        "platforms": [
+          {
+            "when": {
+              "os": "macos",
+              "arch": "aarch64"
+            },
+            "platform": "darwin-arm64",
+            "kind": "tar_xz",
+            "strip_components": 1,
+            "links": [
+              {
+                "name": "node",
+                "path": "bin/node"
+              },
+              {
+                "name": "npm",
+                "path": "bin/npm"
+              },
+              {
+                "name": "npx",
+                "path": "bin/npx"
+              }
+            ]
+          },
+          {
+            "when": {
+              "os": "linux",
+              "arch": "aarch64"
+            },
+            "platform": "linux-arm64-musl",
+            "kind": "tar_xz",
+            "strip_components": 1,
+            "links": [
+              {
+                "name": "node",
+                "path": "bin/node"
+              },
+              {
+                "name": "npm",
+                "path": "bin/npm"
+              },
+              {
+                "name": "npx",
+                "path": "bin/npx"
+              }
+            ]
+          },
+          {
+            "when": {
+              "os": "linux",
+              "arch": "x86_64"
+            },
+            "platform": "linux-x64-musl",
+            "kind": "tar_xz",
+            "strip_components": 1,
+            "links": [
+              {
+                "name": "node",
+                "path": "bin/node"
+              },
+              {
+                "name": "npm",
+                "path": "bin/npm"
+              },
+              {
+                "name": "npx",
+                "path": "bin/npx"
+              }
+            ]
+          },
+          {
+            "when": {
+              "os": "windows",
+              "arch": "x86_64"
+            },
+            "platform": "win-x64",
+            "source": {
+              "type": "node_latest",
+              "index_url": "https://nodejs.org/dist/index.json",
+              "url": "https://nodejs.org/dist/{version}/node-{version}-{platform}.zip"
+            },
+            "kind": "zip",
+            "strip_components": 1,
+            "links": [
+              {
+                "name": "node",
+                "path": "node-{version}-{platform}/node.exe"
+              },
+              {
+                "name": "npm",
+                "path": "node-{version}-{platform}/npm.cmd"
+              },
+              {
+                "name": "npx",
+                "path": "node-{version}-{platform}/npx.cmd"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "bun",
+      "bins": [
+        {
+          "name": "bun",
+          "version_argv": [
+            "bun",
+            "--version"
+          ]
+        },
+        {
+          "name": "bunx",
+          "version_argv": [
+            "bunx",
+            "--version"
+          ]
+        }
+      ],
+      "action": {
+        "type": "archive",
+        "source": {
+          "type": "direct",
+          "version": "latest",
+          "url": "https://github.com/oven-sh/bun/releases/latest/download/bun-{platform}.zip"
+        },
+        "platforms": [
+          {
+            "when": {
+              "os": "macos",
+              "arch": "aarch64"
+            },
+            "platform": "darwin-aarch64",
+            "kind": "zip",
+            "strip_components": 0,
+            "links": [
+              {
+                "name": "bun",
+                "path": "bun-{platform}/bun"
+              },
+              {
+                "name": "bunx",
+                "path": "bun-{platform}/bun"
+              }
+            ]
+          },
+          {
+            "when": {
+              "os": "linux",
+              "arch": "aarch64"
+            },
+            "platform": "linux-aarch64",
+            "kind": "zip",
+            "strip_components": 0,
+            "links": [
+              {
+                "name": "bun",
+                "path": "bun-{platform}/bun"
+              },
+              {
+                "name": "bunx",
+                "path": "bun-{platform}/bun"
+              }
+            ]
+          },
+          {
+            "when": {
+              "os": "linux",
+              "arch": "x86_64"
+            },
+            "platform": "linux-x64",
+            "kind": "zip",
+            "strip_components": 0,
+            "links": [
+              {
+                "name": "bun",
+                "path": "bun-{platform}/bun"
+              },
+              {
+                "name": "bunx",
+                "path": "bun-{platform}/bun"
+              }
+            ]
+          },
+          {
+            "when": {
+              "os": "windows",
+              "arch": "x86_64"
+            },
+            "platform": "windows-x64",
+            "kind": "zip",
+            "strip_components": 0,
+            "links": [
+              {
+                "name": "bun",
+                "path": "bun-{platform}/bun.exe"
+              },
+              {
+                "name": "bunx",
+                "path": "bun-{platform}/bun.exe"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "vscode",
+      "bins": [
+        {
+          "name": "code",
+          "version_argv": [
+            "code",
+            "--version"
+          ]
+        }
+      ],
+      "action": {
+        "type": "archive",
+        "source": {
+          "type": "direct",
+          "version": "latest",
+          "url": "https://update.code.visualstudio.com/latest/{platform}/stable"
+        },
+        "platforms": [
+          {
+            "when": {
+              "os": "macos",
+              "arch": "aarch64"
+            },
+            "platform": "darwin-arm64",
+            "kind": "zip",
+            "strip_components": 0,
+            "links": [
+              {
+                "name": "code",
+                "path": "Visual Studio Code.app/Contents/Resources/app/bin/code"
+              }
+            ]
+          },
+          {
+            "when": {
+              "os": "linux",
+              "arch": "aarch64"
+            },
+            "platform": "linux-arm64",
+            "kind": "tar_gz",
+            "strip_components": 1,
+            "links": [
+              {
+                "name": "code",
+                "path": "bin/code"
+              }
+            ]
+          },
+          {
+            "when": {
+              "os": "linux",
+              "arch": "x86_64"
+            },
+            "platform": "linux-x64",
+            "kind": "tar_gz",
+            "strip_components": 1,
+            "links": [
+              {
+                "name": "code",
+                "path": "bin/code"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "yt-dlp",
+      "bins": [
+        {
+          "name": "yt-dlp",
+          "version_argv": [
+            "yt-dlp",
+            "--version"
+          ]
+        }
+      ],
+      "action": {
+        "type": "package",
+        "package": {
+          "manager": "uv",
+          "name": "yt-dlp"
+        }
+      }
+    },
+    {
+      "name": "yt-dlp-script",
+      "bins": [
+        {
+          "name": "yt-dlp-script",
+          "version_argv": [
+            "sh",
+            "-c",
+            "command -v yt-dlp-script >/dev/null && printf installed"
+          ]
+        }
+      ],
+      "platforms": [
+        "macos",
+        "linux"
+      ],
+      "action": {
+        "type": "script",
+        "script": {
+          "unix": {
+            "url": "https://raw.githubusercontent.com/euvlok/pkgs/HEAD/pkgs/by-name/yt/yt-dlp-script/yt-dlp-script.nu",
+            "file": "yt-dlp-script",
+            "argv": [
+              "sh",
+              "-c",
+              "set -eu\nscript_dir='{opt_dir}/yt-dlp-script/latest'\nscript_path=\"$script_dir/yt-dlp-script.nu\"\nwrapper='{bin_dir}/yt-dlp-script'\nmkdir -p \"$script_dir\"\ninstall -m 0644 '{file}' \"$script_path\"\ncat > \"$wrapper\" <<EOF\n#!/bin/sh\nunset PROMPT_MULTILINE_INDICATOR\nexec nu '$script_path' \"\\$@\"\nEOF\nchmod 0755 \"$wrapper\""
+            ]
+          }
+        }
+      }
+    },
+    {
+      "name": "ruff",
+      "bins": [
+        {
+          "name": "ruff",
+          "version_argv": [
+            "ruff",
+            "--version"
+          ]
+        }
+      ],
+      "action": {
+        "type": "package",
+        "package": {
+          "manager": "uv",
+          "name": "ruff"
+        }
+      }
+    },
+    {
+      "name": "ty",
+      "bins": [
+        {
+          "name": "ty",
+          "version_argv": [
+            "ty",
+            "--version"
+          ]
+        }
+      ],
+      "action": {
+        "type": "package",
+        "package": {
+          "manager": "uv",
+          "name": "ty"
+        }
+      }
+    },
+    {
+      "name": "gh-hide-comment",
+      "platforms": [
+        "macos",
+        "linux",
+        "windows"
+      ],
+      "bins": [
+        {
+          "name": "gh-hide-comment",
+          "version_argv": [
+            "sh",
+            "-c",
+            "command -v gh-hide-comment >/dev/null && printf installed"
+          ]
+        }
+      ],
+      "action": {
+        "type": "build",
+        "build": {
+          "system": "zig",
+          "path": "pkgs/gh-hide-comment"
+        }
+      }
+    },
+    {
+      "name": "lenovo-con-mode",
+      "platforms": [
+        "linux",
+        "windows"
+      ],
+      "requires": [
+        "lenovo_laptop"
+      ],
+      "bins": [
+        {
+          "name": "lenovo-con-mode",
+          "version_argv": [
+            "sh",
+            "-c",
+            "command -v lenovo-con-mode >/dev/null && printf installed"
+          ]
+        }
+      ],
+      "action": {
+        "type": "build",
+        "build": {
+          "system": "zig",
+          "path": "pkgs/lenovo-con-mode"
+        }
+      }
+    }
+  ]
+}

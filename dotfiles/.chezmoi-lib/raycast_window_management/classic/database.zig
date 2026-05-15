@@ -13,7 +13,7 @@ pub const Database = struct {
         path: []const u8,
         password: []const u8,
     ) !Database {
-        const db_path = try allocator.dupeZ(u8, path);
+        const db_path = try allocator.dupeSentinel(u8, path, 0);
         defer allocator.free(db_path);
 
         var handle: ?*sql.sqlite3 = null;
@@ -23,7 +23,7 @@ pub const Database = struct {
         var db: Database = .{ .sqlcipher = sqlcipher, .handle = handle };
         const pragma = try std.fmt.allocPrint(allocator, "PRAGMA key = \"{s}\"", .{password});
         defer allocator.free(pragma);
-        const pragma_z = try allocator.dupeZ(u8, pragma);
+        const pragma_z = try allocator.dupeSentinel(u8, pragma, 0);
         defer allocator.free(pragma_z);
         try db.exec(pragma_z);
         return db;

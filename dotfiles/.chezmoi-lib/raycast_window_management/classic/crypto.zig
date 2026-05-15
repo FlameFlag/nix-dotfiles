@@ -109,7 +109,7 @@ fn findFirstSaltAfterAnchor(
     contents: []const u8,
     anchor: []const u8,
 ) !?[]u8 {
-    const start = std.mem.indexOf(u8, contents, anchor) orelse return null;
+    const start = std.mem.find(u8, contents, anchor) orelse return null;
     var index = start + anchor.len;
     while (index < contents.len) {
         while (index < contents.len and !isPrintableAscii(contents[index])) : (index += 1) {}

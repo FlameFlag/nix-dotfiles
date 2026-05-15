@@ -8,7 +8,7 @@ copy_on_select false
 scrollback_editor "hx"
 mirror_session true
 show_startup_tips false
-on_force_close "detach"
+on_force_close "quit"
 
 ui {
     pane_frames {
@@ -42,7 +42,7 @@ keybinds clear-defaults=true {
         unbind "Ctrl o"
         unbind "Ctrl b"
         bind "{{ if eq .chezmoi.os "darwin" }}Super{{ else }}Ctrl{{ end }} g" { SwitchToMode "Session"; }
-        bind "{{ if eq .chezmoi.os "darwin" }}Super{{ else }}Ctrl{{ end }} k" { Clear; }
+        bind "{{ if eq .chezmoi.os "darwin" }}Super{{ else }}Ctrl{{ end }} k" { Clear; Write 12; }
         bind "{{ if eq .chezmoi.os "darwin" }}Super{{ else }}Ctrl{{ end }} 1" { GoToTab 1; }
         bind "{{ if eq .chezmoi.os "darwin" }}Super{{ else }}Ctrl{{ end }} 2" { GoToTab 2; }
         bind "{{ if eq .chezmoi.os "darwin" }}Super{{ else }}Ctrl{{ end }} 3" { GoToTab 3; }
@@ -157,7 +157,7 @@ keybinds clear-defaults=true {
         bind "j" { MoveFocus "Down"; }
         bind "k" { MoveFocus "Up"; }
         bind "l" { MoveFocus "Right"; }
-        bind "K" { Clear; SwitchToMode "Normal"; }
+        bind "K" { Clear; Write 12; SwitchToMode "Normal"; }
         bind "?" {
             LaunchOrFocusPlugin "https://github.com/karimould/zellij-forgot/releases/latest/download/zellij_forgot.wasm" {
                 "LOAD_ZELLIJ_BINDINGS" "true"
@@ -170,7 +170,7 @@ keybinds clear-defaults=true {
         bind "{{ if eq .chezmoi.os "darwin" }}Super{{ else }}Ctrl{{ end }} Shift Down" { MoveFocus "Down"; SwitchToMode "Normal"; }
         bind "{{ if eq .chezmoi.os "darwin" }}Super{{ else }}Ctrl{{ end }} Shift Up" { MoveFocus "Up"; SwitchToMode "Normal"; }
         bind "{{ if eq .chezmoi.os "darwin" }}Super{{ else }}Ctrl{{ end }} Shift Right" { MoveFocus "Right"; SwitchToMode "Normal"; }
-        bind "{{ if eq .chezmoi.os "darwin" }}Super{{ else }}Ctrl{{ end }} k" { Clear; SwitchToMode "Normal"; }
+        bind "{{ if eq .chezmoi.os "darwin" }}Super{{ else }}Ctrl{{ end }} k" { Clear; Write 12; SwitchToMode "Normal"; }
         bind "{{ if eq .chezmoi.os "darwin" }}Super{{ else }}Ctrl{{ end }} 1" { GoToTab 1; SwitchToMode "Normal"; }
         bind "{{ if eq .chezmoi.os "darwin" }}Super{{ else }}Ctrl{{ end }} 2" { GoToTab 2; SwitchToMode "Normal"; }
         bind "{{ if eq .chezmoi.os "darwin" }}Super{{ else }}Ctrl{{ end }} 3" { GoToTab 3; SwitchToMode "Normal"; }

@@ -19,18 +19,18 @@ language-servers = ["bash-language-server"]
 name = "javascript"
 auto-format = true
 indent = { tab-width = 4, unit = "    " }
-language-servers = ["deno"]
+language-servers = ["typescript-language-server"]
 
 [[language]]
 name = "css"
 auto-format = true
-language-servers = ["deno"]
+language-servers = ["vscode-css-language-server"]
 
 [[language]]
 name = "json"
 auto-format = true
 indent = { tab-width = 2, unit = "  " }
-language-servers = ["deno"]
+language-servers = ["vscode-json-language-server"]
 
 [[language]]
 name = "yaml"
@@ -59,18 +59,20 @@ lineLength = 100
 [language-server.ruff.config.lint]
 extendSelect = ["I"]
 
-[language-server.deno]
-command = "deno"
-args = ["lsp"]
-[language-server.deno.config]
-enable = true
-lint = true
-unstable = true
-[language-server.deno.config.format.options]
-lineWidth = 100
-indentWidth = 2
-[language-server.deno.config.javascript.format.options]
-indentWidth = 4
+[language-server.typescript-language-server]
+command = "bunx"
+args = ["--bun", "-p", "typescript-language-server", "typescript-language-server", "--stdio"]
+[language-server.typescript-language-server.config]
+hostInfo = "helix"
+
+[language-server.vscode-css-language-server]
+command = "bunx"
+args = ["--bun", "-p", "vscode-langservers-extracted", "vscode-css-language-server", "--stdio"]
+
+[language-server.vscode-json-language-server]
+command = "bunx"
+args = ["--bun", "-p", "vscode-langservers-extracted", "vscode-json-language-server", "--stdio"]
+
 [language-server.yaml-language-server]
 command = "yaml-language-server"
 args = ["--stdio"]

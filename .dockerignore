@@ -1,0 +1,13 @@
+.git/
+.direnv/
+.jj/
+.zig-cache/
+.venv/
+zig-out/
+result
+result-*
+
+secrets/
+
+*.log
+.DS_Store

@@ -131,7 +131,10 @@ rec {
 
   bridge = writeShellApplication {
     name = "ghidra-mcp-bridge";
-    runtimeInputs = [ python curl ];
+    runtimeInputs = [
+      python
+      curl
+    ];
     text = ''
       set -euo pipefail
 

@@ -5,46 +5,56 @@ $env.VISUAL = "hx"
 
 source ./env.nu
 source ./aliases.nu
-source ./catppuccin_frappe.nu
+source ./catppuccin.nu
 
-{{- range $t := list "bat" "curl" "gh-hide-comment" "git" "jj" "man" "nix" "rg" "ssh" "vscode" "zellij" }}
+{{- range $t := list "bat" "cargo" "claude" "curl" "gh" "gh-hide-comment" "git" "jj" "man" "nix" "op" "rg" "ssh" "uv" "vscode" "zellij" "zoxide" }}
 source ./completions/{{ $t }}.nu
 {{- end }}
 
-[ .bun .npm .local .cargo .go .yarn ] | each {|dir| $"($env.HOME)/($dir)/bin" } | path add $in
+path add ([ .bun .npm .local .cargo .go .yarn ] | each {|dir| [$nu.home-dir $dir bin] | path join })
 
-$env.config = ($env.config | merge {
-    cursor_shape: {
+$env.config = (
+    $env.config
+    | upsert cursor_shape {
         vi_insert: "line"
         vi_normal: "block"
     }
-    edit_mode: "vi"
-    buffer_editor: "hx"
-    highlight_resolved_externals: true
-    rm: {
+    | upsert edit_mode "vi"
+    | upsert buffer_editor "hx"
+    | upsert highlight_resolved_externals true
+    | upsert rm {
         always_trash: true
     }
-    show_banner: false
-    use_ansi_coloring: true
-    use_kitty_protocol: true
-    history: {
+    | upsert show_banner false
+    | upsert use_ansi_coloring true
+    | upsert use_kitty_protocol true
+    | upsert history ($env.config.history? | default {} | merge {
         max_size: 10000
         sync_on_enter: false
         file_format: "plaintext"
-    }
-})
+    })
+)
 
-source {{ .chezmoi.homeDir }}/.local/share/atuin/init.nu
+const atuin_init = if ("{{ .chezmoi.homeDir }}/.local/share/atuin/init.nu" | path exists) {
+    "{{ .chezmoi.homeDir }}/.local/share/atuin/init.nu"
+} else {
+    null
+}
+source $atuin_init
 
-$env.config.keybindings = ($env.config.keybindings? | default [] | append [
-    {
-        name: atuin
-        modifier: control
-        keycode: char_r
-        mode: [emacs, vi_normal, vi_insert]
-        event: { send: executehostcommand cmd: (_atuin_search_cmd) }
-    }
-])
+if $atuin_init != null {
+    $env.config = ($env.config | upsert keybindings {|config|
+        ($config.keybindings? | default [] | append [
+            {
+                name: atuin
+                modifier: control
+                keycode: char_r
+                mode: [emacs, vi_normal, vi_insert]
+                event: { send: executehostcommand cmd: (_atuin_search_cmd) }
+            }
+        ])
+    })
+}
 
 {{- if eq .chezmoi.os "darwin" }}
 alias rebuild = nh darwin switch (readlink -f /etc/nixos/)

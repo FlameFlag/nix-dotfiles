@@ -21,39 +21,11 @@
     sops-nix.url = "github:Mic92/sops-nix";
   };
 
-  outputs =
-    inputs:
-    let
-      inherit (inputs.nixpkgs) lib;
+  outputs = inputs: {
+    nixosModules.default = import ./modules/nixos;
+    darwinModules.default = import ./modules/darwin;
 
-      systems = [
-        "aarch64-darwin"
-        "aarch64-linux"
-        "x86_64-linux"
-      ];
-
-      forAllSystems = lib.genAttrs systems;
-    in
-    {
-      packages = forAllSystems (
-        system:
-        let
-          pkgs = import inputs.nixpkgs { inherit system; };
-        in
-        {
-          gh-hide-comment = pkgs.callPackage ./pkgs/gh-hide-comment.nix { };
-          catppuccin-userstyles = pkgs.callPackage ./pkgs/catppuccin-userstyles.nix { };
-          ziglint = pkgs.callPackage ./pkgs/ziglint.nix { };
-        }
-        // lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux {
-          lenovo-con-mode = pkgs.callPackage ./pkgs/lenovo-con-mode.nix { };
-        }
-      );
-
-      nixosModules.default = import ./modules/nixos;
-      darwinModules.default = import ./modules/darwin;
-
-      darwinConfigurations = import ./hosts/darwin { inherit inputs; };
-      nixosConfigurations = import ./hosts/linux { inherit inputs; };
-    };
+    darwinConfigurations = import ./hosts/darwin { inherit inputs; };
+    nixosConfigurations = import ./hosts/linux { inherit inputs; };
+  };
 }

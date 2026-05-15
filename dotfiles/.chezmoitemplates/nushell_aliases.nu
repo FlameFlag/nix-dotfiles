@@ -28,33 +28,35 @@ alias cd = __zoxide_z
 alias dc = __zoxide_z
 
 def --env yy [...args] {
-    let tmp = (mktemp -t "yazi-cwd.XXXXX")
+    let tmp = (mktemp --tmpdir "yazi-cwd.XXXXX")
     ^yazi ...$args --cwd-file $tmp
-    let cwd = (open $tmp)
+    let cwd = if ($tmp | path exists) {
+        open --raw $tmp | str trim
+    } else {
+        ""
+    }
+    rm --force --permanent $tmp
+
     if $cwd != "" and $cwd != $env.PWD {
         cd $cwd
     }
-    rm -fp $tmp
 }
 
-def history-sync [] {
-    let atuin_history = (
-        ^atuin search --limit 10000 --format "{command}" 
-        | lines
-    )
-    $atuin_history | save -f $nu.history-path
+def history-sync [
+    --limit: int = 10000
+] {
+    ^atuin search --limit $limit --format "{command}" | save --force --raw $nu.history-path
 }
-history-sync
 
 def nix-build-file [
-    file: string,
+    file: path,
     args: string = "{}"
 ] {
     nix-build -E $"with import <nixpkgs> {}; callPackage ($file | path expand) ($args)"
 }
 
 def clean-roots [] {
-    let $paths_to_delete = (nix-store --gc --print-roots
+    let paths_to_delete = (nix-store --gc --print-roots
         | lines
         | where { |line| $line !~ '^(/nix/var|/run/\w+-system|\{|/proc)' }
         | where { |line| $line !~ '\b(home-manager|flake-registry\.json)\b' }
@@ -67,7 +69,7 @@ def clean-roots [] {
     }
 
     print "Cleaning roots..."
-    let $results = for $path in $paths_to_delete {
+    let results = for $path in $paths_to_delete {
         try {
             ^unlink $path
             { path: $path, status: "Deleted" }
@@ -86,13 +88,13 @@ def clean-roots [] {
 def --wrapped python [...args] { uv run python ...$args }
 def --wrapped python3 [...args] { uv run python3 ...$args }
 def --wrapped pip [...rest] {
-    if ($env | get -o VIRTUAL_ENV | is-empty) and not ("." | path join ".venv" | path exists) {
+    if ($env.VIRTUAL_ENV? | is-empty) and not (["." ".venv"] | path join | path exists) {
         uv venv -q
     }
     uv pip ...$rest
 }
 def --wrapped pip3 [...rest] {
-    if ($env | get -o VIRTUAL_ENV | is-empty) and not ("." | path join ".venv" | path exists) {
+    if ($env.VIRTUAL_ENV? | is-empty) and not (["." ".venv"] | path join | path exists) {
         uv venv -q
     }
     uv pip ...$rest
@@ -101,4 +103,4 @@ def --wrapped pip3 [...rest] {
 def now [] { date now | format date "%H:%M:%S" }
 def nowdate [] { date now | format date "%d-%m-%Y" }
 def nowunix [] { date now | format date "%s" }
-def xdg-data-dirs [] { echo $env.XDG_DATA_DIRS | str replace -a : "\n" | lines | enumerate }
+def xdg-data-dirs [] { $env.XDG_DATA_DIRS? | default "" | split row (char esep) | compact --empty | enumerate }

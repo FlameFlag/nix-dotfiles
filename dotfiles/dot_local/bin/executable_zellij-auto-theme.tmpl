@@ -28,9 +28,19 @@ export ZELLIJ_SOCKET_DIR="/tmp/zellij-$UID"
 
 mkdir -p "$ZELLIJ_SOCKET_DIR"
 
-session_name="g$(date +%s)-$RANDOM"
+if [[ "${PWD:A}" == "${HOME:A}" ]]; then
+  session_base="${USER:-$(id -un 2>/dev/null || true)}"
+else
+  session_base="$(basename "$PWD")"
+fi
+session_base="$(printf '%s' "$session_base" | tr -cs '[:alnum:]_.-' '-' | sed 's/^-//; s/-$//')"
+[[ -n "$session_base" ]] || session_base="session"
+
+session_name="$session_base"
+
 exec zellij options \
   --theme "$theme" \
   --default-layout compact \
-  --attach-to-session false \
+  --attach-to-session true \
+  --on-force-close quit \
   --session-name "$session_name"

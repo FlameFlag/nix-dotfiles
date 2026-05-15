@@ -31,3 +31,4 @@ timonwong.shellcheck
 tomoki1207.pdf
 usernamehw.errorlens
 YoavBls.pretty-ts-errors
+ziglang.vscode-zig

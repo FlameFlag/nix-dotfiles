@@ -3,7 +3,7 @@
   environment.systemPackages =
     builtins.attrValues {
       # Dotfiles
-      inherit (pkgs.unstable) chezmoi sops;
+      inherit (pkgs.unstable) sops;
 
       # Nix Related
       inherit (pkgs.unstable)
@@ -18,20 +18,10 @@
       # Anything Language Related
       inherit (pkgs.unstable) nuget-to-json;
       inherit (pkgs.unstable)
-        deno
         go
         golangci-lint
         gopls
         ;
-      inherit (pkgs.unstable) ruff uv ty;
-      inherit (pkgs.unstable)
-        cargo
-        rustc
-        rustfmt
-        rustup
-        ;
-      inherit (pkgs) zig ziglint;
-
       uutils-coreutils-noprefix = (lib.hiPrio pkgs.unstable.uutils-coreutils-noprefix);
       uutils-diffutils = (lib.hiPrio pkgs.unstable.uutils-diffutils);
       uutils-findutils = (lib.hiPrio pkgs.unstable.uutils-findutils);
@@ -73,10 +63,6 @@
         imagemagick
         mediainfo
         ;
-      inherit (pkgs)
-        gh-hide-comment
-        ;
-
       # File Management & Archiving
       inherit (pkgs.unstable)
         rar
@@ -148,15 +134,10 @@
         starship
         yazi
         # zed-editor
-        vscode
         zellij
         zoxide
         ;
 
-      inherit (pkgs.eupkgs)
-        yt-dlp
-        yt-dlp-script
-        ;
     }
     ++ lib.optionals pkgs.stdenv.hostPlatform.isLinux (
       builtins.attrValues {

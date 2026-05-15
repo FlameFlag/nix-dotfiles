@@ -3,6 +3,16 @@ if [[ "$TERM" == "xterm-ghostty" ]] && ! infocmp xterm-ghostty &>/dev/null; then
   export TERM=xterm-256color
 fi
 
+# Prefer user-local tools installed by bootstrap, uv, and rustup.
+case ":$PATH:" in
+  *":$HOME/.cargo/bin:"*) ;;
+  *) export PATH="$HOME/.cargo/bin:$PATH" ;;
+esac
+case ":$PATH:" in
+  *":$HOME/.local/bin:"*) ;;
+  *) export PATH="$HOME/.local/bin:$PATH" ;;
+esac
+
 # Bail out for non-interactive shells (e.g. `ssh host cmd`, scp).
 # Everything below assumes an interactive prompt — running it on every
 # non-interactive ssh invocation is both noisy (starship/atuin warnings)
@@ -63,12 +73,15 @@ alias neofetch="pfetch"
 alias top="btop"
 
 # yt-dlp shortcuts
-alias m4a="yt-dlp-script m4a"
-alias m4a-cut="yt-dlp-script m4a-cut"
-alias mp3="yt-dlp-script mp3"
-alias mp3-cut="yt-dlp-script mp3-cut"
-alias mp4="yt-dlp-script mp4"
-alias mp4-cut="yt-dlp-script mp4-cut"
+_yt_dlp_script() {
+  env -u PROMPT_MULTILINE_INDICATOR yt-dlp-script "$@"
+}
+alias m4a="_yt_dlp_script m4a"
+alias m4a-cut="_yt_dlp_script m4a-cut"
+alias mp3="_yt_dlp_script mp3"
+alias mp3-cut="_yt_dlp_script mp3-cut"
+alias mp4="_yt_dlp_script mp4"
+alias mp4-cut="_yt_dlp_script mp4-cut"
 
 # Agents Aliases
 alias cc="claude --allow-dangerously-skip-permissions"
@@ -77,7 +90,12 @@ alias cx="codex-zellij-theme --sandbox danger-full-access --ask-for-approval nev
 
 # Nix
 alias update="nix flake update --flake \$(readlink -f /etc/nixos/)"
-alias cza="chezmoi apply --force --no-pager"
+{{- if eq .chezmoi.os "darwin" }}
+alias rebuild="nh darwin switch \$(readlink -f /etc/nixos/)"
+{{- else }}
+alias rebuild="nh os switch \$(readlink -f /etc/nixos/)"
+{{- end }}
+alias cza="chezmoi apply --force"
 
 # yazi with cwd sync
 function yy() {

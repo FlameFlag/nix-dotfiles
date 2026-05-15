@@ -154,7 +154,7 @@ pub fn openSqlCipherFromNixStore(rt: anytype) !?std.DynLib {
 }
 
 fn isSqlCipherNixStoreOutput(name: []const u8) bool {
-    const dash = std.mem.indexOfScalar(u8, name, '-') orelse return false;
+    const dash = std.mem.findScalar(u8, name, '-') orelse return false;
     return std.mem.startsWith(u8, name[dash + 1 ..], "sqlcipher-");
 }
 

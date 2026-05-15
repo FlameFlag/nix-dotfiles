@@ -1,7 +1,13 @@
 .{
     .paths = .{
         "build.zig",
+        "bootstrap/dev_tools",
+        "lib/zig/bootstrap",
         "lib/zig/chezmoi",
-        "dotfiles/.chezmoiscripts",
+        "lib/zig/common",
+        "lib/zig/build.zig",
+        "dotfiles/.chezmoi-lib",
+        "pkgs/gh-hide-comment",
+        "pkgs/lenovo-con-mode",
     },
 }

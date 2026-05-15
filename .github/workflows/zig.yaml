@@ -12,9 +12,6 @@ concurrency:
 jobs:
   zig:
     runs-on: ubuntu-latest
-    env:
-      ZIG_URL: https://ziglang.org/download/0.16.0/zig-x86_64-linux-0.16.0.tar.xz
-      ZIG_SHA256: 70e49664a74374b48b51e6f3fdfbf437f6395d42509050588bd49abe52ba3d00
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v5.0.0
@@ -23,6 +20,18 @@ jobs:
         uses: cachix/install-nix-action@v31.7.0
         with:
           github_access_token: "${{ secrets.GITHUB_TOKEN }}"
+
+      - name: Read Bootstrap Zig Artifact
+        run: |
+          set -eu
+          awk '
+            $1 !~ /^#/ && $2 == "x86_64-linux" {
+              print "ZIG_VERSION="$1
+              print "ZIG_URL="$3
+              print "ZIG_SHA256="$4
+              exit
+            }
+          ' bootstrap/zig-artifacts.tsv >> "$GITHUB_ENV"
 
       - name: Install Zig
         run: |
@@ -33,14 +42,17 @@ jobs:
           echo "$RUNNER_TEMP/zig" >> "$GITHUB_PATH"
 
       - name: Check Zig version
-        run: test "$(zig version)" = "0.16.0"
+        run: test "$(zig version)" = "$ZIG_VERSION"
 
       - name: Check Zig formatting
         run: |
           zig fmt --check .ziglint.zon build.zig
           find \
-            lib/zig/chezmoi \
-            dotfiles/.chezmoiscripts \
+            bootstrap/dev_tools \
+            lib/zig \
+            dotfiles/.chezmoi-lib \
+            pkgs/gh-hide-comment \
+            pkgs/lenovo-con-mode \
             -name '*.zig' \
             -print0 \
             | xargs -0 zig fmt --check

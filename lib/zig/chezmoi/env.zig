@@ -1,5 +1,6 @@
 const std = @import("std");
 const builtin = @import("builtin");
+const common = @import("common");
 
 const Allocator = std.mem.Allocator;
 
@@ -18,34 +19,27 @@ pub const Context = struct {
     }
 };
 
-fn value(rt: anytype, name: []const u8) ![]u8 {
-    const result = rt.env.get(name) orelse return error.EnvironmentVariableMissing;
-    if (result.len == 0) return error.EmptyEnvironmentVariable;
-    return rt.allocator.dupe(u8, result);
-}
-
 /// Returns a copy of an environment variable or `null` when unset.
 ///
 /// Caller owns returned memory.
 pub fn envOrNull(rt: anytype, name: []const u8) !?[]u8 {
-    const result = rt.env.get(name) orelse return null;
-    return @as(?[]u8, try rt.allocator.dupe(u8, result));
+    return common.env.envOrNull(rt, name);
 }
 
 /// Reads the chezmoi runtime context from the environment.
 ///
 /// Caller owns returned memory.
 pub fn chezmoiContext(rt: anytype) !Context {
-    const home = try value(rt, "HOME");
+    const home = try common.env.required(rt, "HOME");
     errdefer rt.allocator.free(home);
 
-    const source_dir = try value(rt, "CHEZMOI_SOURCE_DIR");
+    const source_dir = try common.env.required(rt, "CHEZMOI_SOURCE_DIR");
     errdefer rt.allocator.free(source_dir);
 
-    const source_file = try envOrDup(rt, "CHEZMOI_SOURCE_FILE", "");
+    const source_file = try common.env.envOrDup(rt, "CHEZMOI_SOURCE_FILE", "");
     errdefer rt.allocator.free(source_file);
 
-    const home_dir = try envOrDup(rt, "CHEZMOI_HOME_DIR", home);
+    const home_dir = try common.env.envOrDup(rt, "CHEZMOI_HOME_DIR", home);
     errdefer rt.allocator.free(home_dir);
 
     const os = if (try envOrNull(rt, "CHEZMOI_OS")) |env_os|
@@ -65,10 +59,6 @@ pub fn chezmoiContext(rt: anytype) !Context {
         .source_file = source_file,
         .os = os,
     };
-}
-
-fn envOrDup(rt: anytype, name: []const u8, fallback: []const u8) ![]u8 {
-    return if (try envOrNull(rt, name)) |env_value| env_value else try rt.allocator.dupe(u8, fallback);
 }
 
 const TestRuntime = struct {

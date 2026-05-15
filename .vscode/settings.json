@@ -44,8 +44,22 @@
     "**/dot_zshrc.tmpl": true
   },
   "bashIde.shellcheckPath": "",
-  "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
-  "python.terminal.activateEnvironment": true,
-  "ruff.interpreter": ["${workspaceFolder}/.venv/bin/python"],
-  "ty.interpreter": ["${workspaceFolder}/.venv/bin/python"]
+  "zig.path": "zig",
+  "zig.zls.path": "zls",
+  "zig.zls.enabled": "on",
+  "zig.formattingProvider": "zls",
+  "zig.buildOnSaveProvider": "auto",
+  "[json]": {
+    "editor.defaultFormatter": "vscode.json-language-features",
+    "editor.formatOnSave": true
+  },
+  "[jsonc]": {
+    "editor.defaultFormatter": "vscode.json-language-features",
+    "editor.formatOnSave": true
+  },
+  "[zig]": {
+    "editor.defaultFormatter": "ziglang.vscode-zig",
+    "editor.formatOnSave": true,
+    "editor.suggest.insertMode": "replace"
+  },
 }

@@ -1,0 +1,19 @@
+x-dotfiles-build: &dotfiles-build
+  context: .
+  dockerfile: Dockerfile
+  pull: true
+
+services:
+  alpine:
+    image: nix-dotfiles:alpine-test
+    build:
+      <<: *dotfiles-build
+      args:
+        BASE_IMAGE: alpine:3.23
+
+  fedora-44:
+    image: nix-dotfiles:fedora-44-test
+    build:
+      <<: *dotfiles-build
+      args:
+        BASE_IMAGE: fedora:44

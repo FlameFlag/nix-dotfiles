@@ -36,7 +36,7 @@ fn run(rt: *script.Runtime) !void {
 
     const temp_dir = try script.tempDir(rt);
     defer {
-        deleteTreeIfExists(rt, temp_dir) catch |err| {
+        std.Io.Dir.cwd().deleteTree(rt.io, temp_dir) catch |err| {
             warnTempDirCleanupFailed(rt, temp_dir, err);
         };
         rt.allocator.free(temp_dir);
@@ -72,7 +72,7 @@ fn run(rt: *script.Runtime) !void {
         defer rt.allocator.free(plugin_name);
         const plugin_dir = try std.fs.path.join(rt.allocator, &.{ plugins_dir, plugin_name });
         defer rt.allocator.free(plugin_dir);
-        try deleteTreeIfExists(rt, plugin_dir);
+        try std.Io.Dir.cwd().deleteTree(rt.io, plugin_dir);
         try rt.stderr.print("info: Installing plugin {s}...\n", .{plugin.name});
         try rt.stderr.flush();
         try script.command(rt, &.{
@@ -95,10 +95,6 @@ fn run(rt: *script.Runtime) !void {
     try rt.stderr.flush();
 }
 
-fn deleteTreeIfExists(rt: *script.Runtime, path: []const u8) !void {
-    try std.Io.Dir.cwd().deleteTree(rt.io, path);
-}
-
 fn installPluginDir(
     rt: *script.Runtime,
     plugin: []const u8,
@@ -109,10 +105,10 @@ fn installPluginDir(
     defer rt.allocator.free(plugin_name);
     const dst = try std.fs.path.join(rt.allocator, &.{ plugins_dir, plugin_name });
     defer rt.allocator.free(dst);
-    try deleteTreeIfExists(rt, dst);
+    try std.Io.Dir.cwd().deleteTree(rt.io, dst);
     try rt.stderr.print("info: Installing plugin {s}...\n", .{plugin});
     try rt.stderr.flush();
-    try script.command(rt, &.{ "cp", "-R", src, dst });
+    try script.copyDirRecursive(rt, src, dst);
 }
 
 fn warnTempDirCleanupFailed(rt: *script.Runtime, temp_dir: []const u8, err: anyerror) void {

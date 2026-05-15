@@ -1,5 +1,6 @@
 const std = @import("std");
 const builtin = @import("builtin");
+const common = @import("common");
 
 const Allocator = std.mem.Allocator;
 
@@ -318,7 +319,7 @@ pub fn pidsForExecutablePath(
     allocator: Allocator,
     io: std.Io,
     executable_path: []const u8,
-) ![]std.posix.pid_t {
+) ![]c_int {
     _ = io;
     const initial_bytes = proc_listpids(proc_all_pids, 0, null, 0);
     if (initial_bytes < 0) return error.ProcessListFailed;
@@ -330,7 +331,7 @@ pub fn pidsForExecutablePath(
     const byte_count = proc_listpids(proc_all_pids, 0, pids.ptr, @intCast(pids.len * @sizeOf(c_int)));
     if (byte_count < 0) return error.ProcessListFailed;
 
-    var matches: std.ArrayList(std.posix.pid_t) = .empty;
+    var matches: std.ArrayList(c_int) = .empty;
     errdefer matches.deinit(allocator);
 
     const count: usize = @intCast(@divTrunc(byte_count, @sizeOf(c_int)));
@@ -350,19 +351,19 @@ pub fn pidsForExecutablePath(
 
 fn appendPidIfPathMatches(
     allocator: Allocator,
-    matches: *std.ArrayList(std.posix.pid_t),
+    matches: *std.ArrayList(c_int),
     pid: c_int,
     path: []const u8,
     executable_path: []const u8,
 ) !void {
     if (!std.mem.eql(u8, path, executable_path)) return;
-    try matches.append(allocator, @intCast(pid));
+    try matches.append(allocator, pid);
 }
 
 fn copyTrimmedPassword(allocator: Allocator, password_data: ?*anyopaque, password_len: u32) ![]u8 {
     const data = password_data orelse return error.KeychainPasswordNotFound;
     const bytes: [*]const u8 = @ptrCast(data);
-    const key = std.mem.trim(u8, bytes[0..password_len], " \t\r\n");
+    const key = common.fs.trimAsciiWhitespace(bytes[0..password_len]);
     if (key.len == 0) return error.KeychainPasswordNotFound;
     return allocator.dupe(u8, key);
 }
@@ -390,7 +391,7 @@ test "copyTrimmedPassword copies keychain bytes and rejects empty secrets" {
 }
 
 test "appendPidIfPathMatches filters exact executable path" {
-    var matches: std.ArrayList(std.posix.pid_t) = .empty;
+    var matches: std.ArrayList(c_int) = .empty;
     defer matches.deinit(std.testing.allocator);
 
     try appendPidIfPathMatches(
@@ -410,7 +411,7 @@ test "appendPidIfPathMatches filters exact executable path" {
         "/Applications/App.app/Contents/MacOS/App",
     );
     try std.testing.expectEqual(@as(usize, 1), matches.items.len);
-    try std.testing.expectEqual(@as(std.posix.pid_t, 42), matches.items[0]);
+    try std.testing.expectEqual(@as(c_int, 42), matches.items[0]);
 }
 
 test "macOS framework symbols load" {
@@ -481,5 +482,5 @@ test "proc APIs can inspect current process on macOS" {
     var path_buffer: [proc_pidpathinfo_maxsize]u8 = undefined;
     const path_len = proc_pidpath(std.c.getpid(), &path_buffer, path_buffer.len);
     try std.testing.expect(path_len > 0);
-    try std.testing.expect(std.mem.indexOfScalar(u8, path_buffer[0..@intCast(path_len)], '/') != null);
+    try std.testing.expect(std.mem.findScalar(u8, path_buffer[0..@intCast(path_len)], '/') != null);
 }
