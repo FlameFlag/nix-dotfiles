@@ -5,17 +5,17 @@
   ...
 }:
 let
-  flakeInputs = lib.filterAttrs (_: lib.isType "flake") inputs;
+  flakeInputs = lib.attrsets.filterAttrs (_: lib.types.isType "flake") inputs;
 in
 {
-  config = lib.mkMerge [
+  config = lib.modules.mkMerge [
     ({
       nix.extraOptions = ''
         !include ${config.sops.secrets.github-token.path}
       '';
       sops.secrets.github-token = {
-        mode = lib.mkDefault "0440";
-        group = lib.mkDefault (if config.nixpkgs.hostPlatform.isDarwin then "staff" else "root");
+        mode = lib.modules.mkDefault "0440";
+        group = lib.modules.mkDefault (if config.nixpkgs.hostPlatform.isDarwin then "staff" else "root");
       };
     })
     ({
@@ -47,7 +47,7 @@ in
             "/nix/var/cache/sccache"
           ];
         }
-        // lib.optionalAttrs config.nixpkgs.hostPlatform.isLinux { flake-registry = ""; };
+        // lib.attrsets.optionalAttrs config.nixpkgs.hostPlatform.isLinux { flake-registry = ""; };
       };
     })
     ({
@@ -60,8 +60,8 @@ in
       nix = {
         channel.enable = false;
         # Opinionated: make flake registry and nix path match flake inputs
-        registry = lib.mapAttrs (_: flake: { inherit flake; }) flakeInputs;
-        nixPath = lib.mapAttrsToList (n: _: "${n}=flake:${n}") flakeInputs;
+        registry = lib.attrsets.mapAttrs (_: flake: { inherit flake; }) flakeInputs;
+        nixPath = lib.attrsets.mapAttrsToList (n: _: "${n}=flake:${n}") flakeInputs;
       };
     })
   ];

@@ -46,9 +46,9 @@ in
     pkgs.kanata-with-cmd.passthru.darwinDriver
   ];
 
-  system.activationScripts.extraActivation.text = lib.mkAfter ''
+  system.activationScripts.extraActivation.text = lib.modules.mkAfter ''
     install -d -m 0755 -o root -g wheel ${kanataApp}/Contents/MacOS
-    install -m 0755 -o root -g wheel ${lib.getExe pkgs.kanata-with-cmd} ${kanataStableBinary}
+    install -m 0755 -o root -g wheel ${lib.meta.getExe pkgs.kanata-with-cmd} ${kanataStableBinary}
     install -m 0644 -o root -g wheel ${kanataInfoPlist} ${kanataApp}/Contents/Info.plist
     chmod 0644 ${kanataApp}/Contents/Info.plist
     chown -R root:wheel ${kanataApp}
@@ -72,7 +72,7 @@ in
     /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -f ${kanataApp}
   '';
 
-  system.activationScripts.postActivation.text = lib.mkAfter ''
+  system.activationScripts.postActivation.text = lib.modules.mkAfter ''
     if [ -f /Library/LaunchDaemons/org.nixos.kanata.plist ]; then
       launchctl bootstrap system /Library/LaunchDaemons/org.nixos.kanata.plist 2>/dev/null || true
       launchctl enable system/org.nixos.kanata 2>/dev/null || true
@@ -106,7 +106,7 @@ in
 
     atuin-daemon.serviceConfig = {
       ProgramArguments = [
-        (lib.getExe' pkgs.unstable.atuin "atuin")
+        (lib.meta.getExe' pkgs.unstable.atuin "atuin")
         "daemon"
         "start"
       ];

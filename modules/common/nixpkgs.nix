@@ -47,7 +47,7 @@
           postInstall = ''
             wrapProgram "$out/bin/dis" \
               --prefix PATH : ${
-                final.lib.makeBinPath [
+                final.lib.strings.makeBinPath [
                   final.ffmpeg
                   final.yt-dlp
                 ]

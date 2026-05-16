@@ -14,25 +14,25 @@ let
     type
     ;
 
-  workspaceNumbers = map toString (lib.range 1 9);
+  workspaceNumbers = map toString (lib.lists.range 1 9);
 
   generateKeybindings =
     prefix: super: modifiers:
     let
-      modifierStr = lib.concatStrings modifiers;
+      modifierStr = lib.strings.concatStrings modifiers;
     in
-    lib.listToAttrs (
+    lib.attrsets.listToAttrs (
       map (
-        num: lib.nameValuePair "${prefix}-${num}" (mkArray [ "${super}${modifierStr}${num}" ])
+        num: lib.attrsets.nameValuePair "${prefix}-${num}" (mkArray [ "${super}${modifierStr}${num}" ])
       ) workspaceNumbers
     );
 in
 {
-  options.nixOS.gnome.enable = lib.mkEnableOption "GNOME";
-  options.nixOS.dconf.enable = lib.mkEnableOption "Dconf";
+  options.nixOS.gnome.enable = lib.options.mkEnableOption "GNOME";
+  options.nixOS.dconf.enable = lib.options.mkEnableOption "Dconf";
 
-  config = lib.mkMerge [
-    (lib.mkIf config.nixOS.gnome.enable {
+  config = lib.modules.mkMerge [
+    (lib.modules.mkIf config.nixOS.gnome.enable {
       services = {
         displayManager.gdm.enable = true;
         desktopManager.gnome.enable = true;
@@ -64,7 +64,7 @@ in
       };
     })
     # Fix for GNOME suspend/resume issues with NVIDIA GPUs
-    (lib.mkIf config.nixOS.nvidia.enable {
+    (lib.modules.mkIf config.nixOS.nvidia.enable {
       systemd.services = {
         gnome-suspend = {
           description = "Suspend gnome shell";
@@ -80,7 +80,7 @@ in
           ];
           serviceConfig = {
             Type = "oneshot";
-            ExecStart = "${lib.getExe' pkgs.procps "pkill"} -f -STOP ${lib.getExe' pkgs.gnome-shell "gnome-shell"}";
+            ExecStart = "${lib.meta.getExe' pkgs.procps "pkill"} -f -STOP ${lib.meta.getExe' pkgs.gnome-shell "gnome-shell"}";
           };
         };
         gnome-resume = {
@@ -96,12 +96,12 @@ in
           ];
           serviceConfig = {
             Type = "oneshot";
-            ExecStart = "${lib.getExe' pkgs.procps "pkill"} -f -CONT ${lib.getExe' pkgs.gnome-shell "gnome-shell"}";
+            ExecStart = "${lib.meta.getExe' pkgs.procps "pkill"} -f -CONT ${lib.meta.getExe' pkgs.gnome-shell "gnome-shell"}";
           };
         };
       };
     })
-    (lib.mkIf config.nixOS.dconf.enable {
+    (lib.modules.mkIf config.nixOS.dconf.enable {
       environment.systemPackages = builtins.attrValues {
         inherit (pkgs.gnomeExtensions) appindicator clipboard-indicator pip-on-top;
       };
@@ -128,7 +128,7 @@ in
               `switch-to-application`, which we do not want as it breaks
               everything, so we have to explicitly set it to nothing
             */
-            "org/gnome/shell/keybindings" = lib.genAttrs (map (
+            "org/gnome/shell/keybindings" = lib.attrsets.genAttrs (map (
               n: "switch-to-application-${n}"
             ) workspaceNumbers) (_: mkEmptyArray type.string);
 

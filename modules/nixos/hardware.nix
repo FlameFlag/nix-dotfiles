@@ -5,10 +5,10 @@
   ...
 }:
 {
-  options.nixOS.nvidia.enable = lib.mkEnableOption "NVIDIA";
-  options.nixOS.amd.enable = lib.mkEnableOption "AMD";
+  options.nixOS.nvidia.enable = lib.options.mkEnableOption "NVIDIA";
+  options.nixOS.amd.enable = lib.options.mkEnableOption "AMD";
 
-  config = lib.mkMerge [
+  config = lib.modules.mkMerge [
     ({
       # General hardware configuration
       environment.systemPackages = builtins.attrValues { inherit (pkgs) libva-utils; };
@@ -41,7 +41,7 @@
 
       hardware.graphics = {
         enable = true;
-        enable32Bit = lib.mkIf config.nixpkgs.hostPlatform.isx86_64 true;
+        enable32Bit = lib.modules.mkIf config.nixpkgs.hostPlatform.isx86_64 true;
         extraPackages = builtins.attrValues {
           inherit (pkgs)
             libva-vdpau-driver
@@ -51,17 +51,17 @@
             ;
         };
       }
-      // lib.optionalAttrs config.nixpkgs.hostPlatform.isx86_64 {
+      // lib.attrsets.optionalAttrs config.nixpkgs.hostPlatform.isx86_64 {
         extraPackages32 = builtins.attrValues {
           inherit (pkgs.pkgsi686Linux) libva-vdpau-driver libvdpau-va-gl mesa;
         };
       };
     })
-    (lib.mkIf config.nixOS.nvidia.enable {
+    (lib.modules.mkIf config.nixOS.nvidia.enable {
       # nixpkgs.config.cudaSupport = true;
       boot.extraModprobeConfig =
         "options nvidia "
-        + lib.concatStringsSep " " [
+        + lib.strings.concatStringsSep " " [
           # NVIDIA assumes that by default your CPU doesn't support `PAT`, but this
           # is effectively never the case
           "NVreg_UsePageAttributeTable=1"
@@ -104,7 +104,7 @@
         };
       };
     })
-    (lib.mkIf config.nixOS.amd.enable {
+    (lib.modules.mkIf config.nixOS.amd.enable {
       # HIP libraries support - many applications hard-code HIP library paths
       systemd.tmpfiles.rules =
         let

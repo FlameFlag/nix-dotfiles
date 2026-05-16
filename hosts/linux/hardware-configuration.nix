@@ -31,6 +31,6 @@
 
   swapDevices = [ { device = "/dev/disk/by-label/swap"; } ];
 
-  nixpkgs.hostPlatform = lib.mkDefault "x86_64-linux";
-  hardware.cpu.amd.updateMicrocode = lib.mkDefault config.hardware.enableRedistributableFirmware;
+  nixpkgs.hostPlatform = lib.modules.mkDefault "x86_64-linux";
+  hardware.cpu.amd.updateMicrocode = lib.modules.mkDefault config.hardware.enableRedistributableFirmware;
 }

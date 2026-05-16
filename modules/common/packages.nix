@@ -9,7 +9,7 @@ let
 
   enabledOption =
     description:
-    lib.mkOption {
+    lib.options.mkOption {
       type = lib.types.bool;
       default = true;
       inherit description;
@@ -25,9 +25,9 @@ let
   });
 
   basePackages = [
-    (lib.hiPrio pkgs.unstable.uutils-coreutils-noprefix)
-    (lib.hiPrio pkgs.unstable.uutils-diffutils)
-    (lib.hiPrio pkgs.unstable.uutils-findutils)
+    (lib.meta.hiPrio pkgs.unstable.uutils-coreutils-noprefix)
+    (lib.meta.hiPrio pkgs.unstable.uutils-diffutils)
+    (lib.meta.hiPrio pkgs.unstable.uutils-findutils)
     gitWithEmailValid
   ]
   ++ (with pkgs.unstable; [
@@ -157,7 +157,7 @@ in
     media = enabledOption "Install media download, conversion, and inspection tools.";
     archive = enabledOption "Install archive/compression utilities.";
     gui = enabledOption "Install cross-platform GUI/TUI applications.";
-    linuxDesktop = lib.mkOption {
+    linuxDesktop = lib.options.mkOption {
       type = lib.types.bool;
       default = pkgs.stdenv.hostPlatform.isLinux;
       description = "Install Linux desktop integration packages.";
@@ -165,10 +165,10 @@ in
   };
 
   config.environment.systemPackages =
-    lib.optionals cfg.base basePackages
-    ++ lib.optionals cfg.dev devPackages
-    ++ lib.optionals cfg.media mediaPackages
-    ++ lib.optionals cfg.archive archivePackages
-    ++ lib.optionals cfg.gui guiPackages
-    ++ lib.optionals cfg.linuxDesktop linuxDesktopPackages;
+    lib.lists.optionals cfg.base basePackages
+    ++ lib.lists.optionals cfg.dev devPackages
+    ++ lib.lists.optionals cfg.media mediaPackages
+    ++ lib.lists.optionals cfg.archive archivePackages
+    ++ lib.lists.optionals cfg.gui guiPackages
+    ++ lib.lists.optionals cfg.linuxDesktop linuxDesktopPackages;
 }

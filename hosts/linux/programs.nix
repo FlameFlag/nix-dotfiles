@@ -36,7 +36,7 @@ in
     };
   };
 
-  systemd.tmpfiles.rules = lib.optionals (muslDynamicLinker != null) [
+  systemd.tmpfiles.rules = lib.lists.optionals (muslDynamicLinker != null) [
     "d /lib 0755 root root - -"
     "L+ /lib/${baseNameOf muslDynamicLinker} - - - - ${muslDynamicLinker}"
     "L+ /lib/libgcc_s.so.1 - - - - ${muslCxxRuntime}/lib/libgcc_s.so.1"

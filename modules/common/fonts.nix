@@ -1,6 +1,6 @@
 { lib, ... }:
 {
-  options.flame.fonts.paid.enable = lib.mkOption {
+  options.flame.fonts.paid.enable = lib.options.mkOption {
     type = lib.types.bool;
     default = true;
     description = ''

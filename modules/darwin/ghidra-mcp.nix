@@ -17,54 +17,54 @@ let
 in
 {
   options.services.ghidra-mcp = {
-    enable = lib.mkEnableOption "Ghidra MCP headless HTTP backend plus streamable HTTP MCP bridge";
+    enable = lib.options.mkEnableOption "Ghidra MCP headless HTTP backend plus streamable HTTP MCP bridge";
 
-    httpHost = lib.mkOption {
+    httpHost = lib.options.mkOption {
       type = lib.types.str;
       default = "127.0.0.1";
     };
 
-    httpPort = lib.mkOption {
+    httpPort = lib.options.mkOption {
       type = lib.types.port;
       default = 8089;
     };
 
-    mcpHost = lib.mkOption {
+    mcpHost = lib.options.mkOption {
       type = lib.types.str;
       default = "127.0.0.1";
     };
 
-    mcpPort = lib.mkOption {
+    mcpPort = lib.options.mkOption {
       type = lib.types.port;
       default = 8090;
     };
 
-    stateDir = lib.mkOption {
+    stateDir = lib.options.mkOption {
       type = lib.types.path;
       default = "/Users/${user}/.local/state/ghidra-mcp-headless";
     };
 
-    allowScripts = lib.mkOption {
+    allowScripts = lib.options.mkOption {
       type = lib.types.bool;
       default = true;
       description = "Enable Ghidra MCP script endpoints in the local headless backend.";
     };
   };
 
-  config = lib.mkIf cfg.enable {
+  config = lib.modules.mkIf cfg.enable {
     environment.systemPackages = [
       packageSet.ghidra
       packageSet.httpd
       packageSet.bridge
     ];
 
-    system.activationScripts.extraActivation.text = lib.mkAfter ''
+    system.activationScripts.extraActivation.text = lib.modules.mkAfter ''
       install -d -m 0755 -o ${user} -g staff '${stateDir}' '${logDir}'
     '';
 
     launchd.daemons.ghidra-mcp-httpd.serviceConfig = {
       Label = "org.nixos.ghidra-mcp-httpd";
-      ProgramArguments = [ (lib.getExe packageSet.httpd) ];
+      ProgramArguments = [ (lib.meta.getExe packageSet.httpd) ];
       UserName = user;
       GroupName = "staff";
       RunAtLoad = true;
@@ -84,7 +84,7 @@ in
 
     launchd.daemons.ghidra-mcp-bridge.serviceConfig = {
       Label = "org.nixos.ghidra-mcp-bridge";
-      ProgramArguments = [ (lib.getExe packageSet.bridge) ];
+      ProgramArguments = [ (lib.meta.getExe packageSet.bridge) ];
       UserName = user;
       GroupName = "staff";
       RunAtLoad = true;

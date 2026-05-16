@@ -22,9 +22,9 @@
         golangci-lint
         gopls
         ;
-      uutils-coreutils-noprefix = (lib.hiPrio pkgs.unstable.uutils-coreutils-noprefix);
-      uutils-diffutils = (lib.hiPrio pkgs.unstable.uutils-diffutils);
-      uutils-findutils = (lib.hiPrio pkgs.unstable.uutils-findutils);
+      uutils-coreutils-noprefix = (lib.meta.hiPrio pkgs.unstable.uutils-coreutils-noprefix);
+      uutils-diffutils = (lib.meta.hiPrio pkgs.unstable.uutils-diffutils);
+      uutils-findutils = (lib.meta.hiPrio pkgs.unstable.uutils-findutils);
 
       # Shells (No Config)
       inherit (pkgs.unstable) bash zsh;
@@ -139,7 +139,7 @@
         ;
 
     }
-    ++ lib.optionals pkgs.stdenv.hostPlatform.isLinux (
+    ++ lib.lists.optionals pkgs.stdenv.hostPlatform.isLinux (
       builtins.attrValues {
         inherit (pkgs.unstable)
           ghostty

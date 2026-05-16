@@ -7,6 +7,6 @@
     in
     [
       "d /home/nyx/.zed_server 0755 nyx users - -"
-      "L+ /home/nyx/.zed_server/${binaryName} - - - - ${lib.getExe' pkgs.zed-editor.remote_server binaryName}"
+      "L+ /home/nyx/.zed_server/${binaryName} - - - - ${lib.meta.getExe' pkgs.zed-editor.remote_server binaryName}"
     ];
 }

@@ -17,8 +17,8 @@
 
   environment = {
     # Add inputs to legacy (nix2) channels, making legacy nix commands consistent
-    etc = lib.mapAttrs' (
-      name: value: lib.nameValuePair "nix/path/${name}" { source = value.flake; }
+    etc = lib.attrsets.mapAttrs' (
+      name: value: lib.attrsets.nameValuePair "nix/path/${name}" { source = value.flake; }
     ) config.nix.registry;
   };
 
@@ -61,7 +61,7 @@
         monospace = [ "TX-02 Nerd Font" ];
       };
     };
-    packages = lib.optionals config.flame.fonts.paid.enable (
+    packages = lib.lists.optionals config.flame.fonts.paid.enable (
       let
         paidFonts = (pkgs.callPackage ../../pkgs/paid-fonts/build-font.nix { }).packages;
       in

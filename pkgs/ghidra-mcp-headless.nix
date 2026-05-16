@@ -171,6 +171,6 @@ rec {
     description = "Pinned upstream bethington Ghidra MCP headless HTTP backend and MCP bridge launchers";
     homepage = "https://github.com/bethington/ghidra-mcp";
     license = lib.licenses.asl20;
-    platforms = lib.platforms.darwin ++ lib.platforms.linux;
+    platforms = lib.systems.doubles.darwin ++ lib.systems.doubles.linux;
   };
 }

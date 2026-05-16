@@ -26,7 +26,7 @@ let
 
       dontUnpack = true;
 
-      nativeBuildInputs = lib.optionals fontDef.patchNerd [ pkgs.nerd-font-patcher ];
+      nativeBuildInputs = lib.lists.optionals fontDef.patchNerd [ pkgs.nerd-font-patcher ];
 
       buildPhase = ''
         runHook preBuild
@@ -34,7 +34,7 @@ let
         for f in $src/${fileGlob}; do
           ${
             if fontDef.patchNerd then
-              ''${lib.getExe pkgs.nerd-font-patcher} --complete --careful --no-progressbars "$f" --outputdir out''
+              ''${lib.meta.getExe pkgs.nerd-font-patcher} --complete --careful --no-progressbars "$f" --outputdir out''
             else
               ''cp "$f" out/''
           }
@@ -51,11 +51,11 @@ let
       meta = {
         inherit (fontDef) description;
         license = lib.licenses.unfree;
-        platforms = lib.platforms.all;
+        platforms = lib.systems.doubles.all;
       };
     };
 in
 {
   inherit sources buildFont;
-  packages = lib.mapAttrs (_: buildFont) sources.fonts;
+  packages = lib.attrsets.mapAttrs (_: buildFont) sources.fonts;
 }
