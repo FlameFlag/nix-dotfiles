@@ -20,11 +20,14 @@ ui {
 default_layout "compact"
 
 plugins {
-    tab-bar path="tab-bar"
-    strider path="strider"
-    compact-bar path="compact-bar"
-    session-manager path="session-manager"
-    status-bar path="status-bar"
+    tab-bar location="zellij:tab-bar"
+    strider location="zellij:strider"
+    compact-bar location="zellij:compact-bar"
+    session-manager location="zellij:session-manager"
+    status-bar location="zellij:status-bar"
+    zjstatus location="file:{{ .chezmoi.homeDir }}/.local/share/zellij/plugins/zjstatus.wasm" {
+        _allow_exec_host_cmd true
+    }
 }
 
 load_plugins {
