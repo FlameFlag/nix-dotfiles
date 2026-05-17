@@ -85,6 +85,46 @@ verify_sha256() {
   fi
 }
 
+ensure_shell_path() {
+  zshenv="${HOME}/.zshenv"
+  marker="nix-dotfiles bootstrap PATH"
+
+  if [ -f "$zshenv" ] && grep -F "$marker" "$zshenv" >/dev/null 2>&1; then
+    return 0
+  fi
+
+  {
+    if [ -s "$zshenv" ]; then
+      printf '\n'
+    fi
+    printf '# %s\n' "$marker"
+    printf 'typeset -U path PATH 2>/dev/null || true\n'
+    printf 'case ":${PATH}:" in *":${HOME}/.local/bin:"*) ;; *) PATH="${HOME}/.local/bin:${PATH}" ;; esac\n'
+    printf 'case ":${PATH}:" in *":${HOME}/.cargo/bin:"*) ;; *) PATH="${HOME}/.cargo/bin:${PATH}" ;; esac\n'
+    printf 'export PATH\n'
+  } >>"$zshenv"
+}
+
+ensure_chezmoi_config() {
+  config_home="${XDG_CONFIG_HOME:-"$HOME/.config"}"
+  config_dir="$config_home/chezmoi"
+  config_file="$config_dir/chezmoi.toml"
+  source_dir="$repo_dir/dotfiles"
+
+  mkdir -p "$config_dir"
+  if [ -f "$config_file" ]; then
+    if ! grep -E '^[[:space:]]*sourceDir[[:space:]]*=' "$config_file" >/dev/null 2>&1; then
+      printf '\nsourceDir = "%s"\n' "$source_dir" >>"$config_file"
+    fi
+    if ! grep -E '^[[:space:]]*\[secret\]' "$config_file" >/dev/null 2>&1; then
+      printf '\n[secret]\ncommand = "sops"\nargs = ["--decrypt"]\n' >>"$config_file"
+    fi
+    return 0
+  fi
+
+  printf 'sourceDir = "%s"\n\n[secret]\ncommand = "sops"\nargs = ["--decrypt"]\n' "$source_dir" >"$config_file"
+}
+
 zig_satisfies_bootstrap() {
   [ -x "$local_bin/zig" ] || return 1
   actual=$("$local_bin/zig" version 2>/dev/null) || return 1
@@ -146,6 +186,8 @@ repo_dir=$(CDPATH='' cd -- "$script_dir/.." && pwd)
 local_bin="${HOME}/.local/bin"
 local_opt="${HOME}/.local/opt"
 mkdir -p "$local_bin" "$local_opt"
+ensure_shell_path
+ensure_chezmoi_config
 
 zig_min="${BOOTSTRAP_ZIG_VERSION:-0.17.0-dev.304+9787df942}"
 

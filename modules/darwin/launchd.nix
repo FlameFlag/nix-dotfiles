@@ -96,9 +96,10 @@ in
   launchd.user.agents = {
     symlink-zsh-config = {
       script = ''
-        for file in zprofile zshenv; do
-          ln -sfn "/etc/''${file}" "/Users/${user}/.''${file}"
-        done
+        ln -sfn /etc/zprofile /Users/${user}/.zprofile
+        if [ "$(readlink /Users/${user}/.zshenv 2>/dev/null)" = /etc/zshenv ]; then
+          rm /Users/${user}/.zshenv
+        fi
       '';
       serviceConfig.RunAtLoad = true;
       serviceConfig.StartInterval = 0;
