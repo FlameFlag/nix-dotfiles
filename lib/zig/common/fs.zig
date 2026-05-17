@@ -66,7 +66,8 @@ pub fn readTrimmed(io: std.Io, path: []const u8, buffer: []u8) !?[]const u8 {
 pub fn readTrimmedAlloc(allocator: std.mem.Allocator, io: std.Io, path: []const u8) !?[]u8 {
     var buffer: [256]u8 = undefined;
     const contents = try readTrimmed(io, path, &buffer) orelse return null;
-    return allocator.dupe(u8, contents);
+    const owned = try allocator.dupe(u8, contents);
+    return owned;
 }
 
 /// Writes `contents` to `path`, creating parent directories when needed.
@@ -323,6 +324,9 @@ test "readTrimmed and writeExecutableFile use std file helpers" {
     var buffer: [32]u8 = undefined;
     const trimmed = try readTrimmed(rt.io, path, &buffer) orelse return error.TestExpectedFile;
     try std.testing.expectEqualStrings("ok", trimmed);
+    const owned_trimmed = try readTrimmedAlloc(rt.allocator, rt.io, path) orelse return error.TestExpectedFile;
+    defer rt.allocator.free(owned_trimmed);
+    try std.testing.expectEqualStrings("ok", owned_trimmed);
     try std.Io.Dir.cwd().access(rt.io, path, .{ .execute = true });
 }
 
