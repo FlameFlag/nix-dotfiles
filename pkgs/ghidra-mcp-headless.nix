@@ -2,7 +2,6 @@
   lib,
   ghidra,
   fetchFromGitHub,
-  applyPatches,
   writeShellApplication,
   python313,
   maven,
@@ -19,35 +18,25 @@
   gzip,
 }:
 let
-  upstreamRev = "b5b8cbcc4a4b284e07c027b3a778d1d9fb36cc3f";
-  duplicateEndpointsPatch = ./patches/ghidra-mcp-headless-duplicate-endpoints.patch;
-  duplicateDryRunPatch = ./patches/ghidra-mcp-headless-duplicate-dry-run.patch;
+  upstreamRev = "2a57c7cff12e2d6584f2d0e2ba8175bcfb20b43f";
 
-  upstreamSrc = fetchFromGitHub {
+  src = fetchFromGitHub {
     owner = "bethington";
     repo = "ghidra-mcp";
     rev = upstreamRev;
-    hash = "sha256-bGfLt+xhtSrrdayLPhzY0Z0+wANz+JuwafG++NvK008=";
+    hash = "sha256-OQKsB0vRQjTfdlCUrAWWLQZvgV0TX0mEwjsgjFcWJaA=";
   };
 
-  src = applyPatches {
-    name = "ghidra-mcp-src-patched";
-    src = upstreamSrc;
-    patches = [
-      duplicateEndpointsPatch
-      duplicateDryRunPatch
-    ];
-  };
-
-  python = python313.withPackages (ps: [ ps.mcp ]);
-  jarVersion = "5.7.0";
+  python = python313.withPackages (ps: [
+    ps.mcp
+    ps.requests
+  ]);
+  jarVersion = "5.10.0";
   sourceStamp = builtins.concatStringsSep ":" [
     "ghidra-mcp"
     upstreamRev
     jarVersion
     ghidra.version
-    (builtins.hashFile "sha256" duplicateEndpointsPatch)
-    (builtins.hashFile "sha256" duplicateDryRunPatch)
   ];
   stateDefault = "$HOME/.local/state/ghidra-mcp-headless";
 in
@@ -81,6 +70,7 @@ rec {
       export GHIDRA_MCP_AUTH_TOKEN="''${GHIDRA_MCP_AUTH_TOKEN:-}"
       export JAVA_HOME="''${JAVA_HOME:-${jdk21}}"
       export GHIDRA_MCP_STATE="''${GHIDRA_MCP_STATE:-${stateDefault}}"
+      export GHIDRA_USER="''${GHIDRA_USER:-}"
 
       src_dir="$GHIDRA_MCP_STATE/src"
       home_dir="$GHIDRA_MCP_STATE/home"
@@ -111,6 +101,7 @@ rec {
       cp="$src_dir/target/GhidraMCP-${jarVersion}.jar"
       for jar in "$GHIDRA_HOME"/Ghidra/Framework/*/lib/*.jar; do cp="$cp:$jar"; done
       for jar in "$GHIDRA_HOME"/Ghidra/Features/*/lib/*.jar; do cp="$cp:$jar"; done
+      for jar in "$GHIDRA_HOME"/Ghidra/Debug/*/lib/*.jar; do cp="$cp:$jar"; done
       for jar in "$GHIDRA_HOME"/Ghidra/Processors/*/lib/*.jar; do cp="$cp:$jar"; done
       for jar in "$src_dir"/target/lib/*.jar; do [ -f "$jar" ] && cp="$cp:$jar"; done
 
@@ -120,12 +111,33 @@ rec {
         read -r -a java_opts <<< "$JAVA_OPTS"
       fi
 
+      if [ -n "$GHIDRA_USER" ]; then
+        java_opts+=("-Duser.name=$GHIDRA_USER")
+      fi
+
+      server_args=(--bind "$GHIDRA_MCP_BIND" --port "$GHIDRA_MCP_PORT")
+      if [ -n "''${PROGRAM_FILE:-}" ]; then
+        server_args+=(--file "$PROGRAM_FILE")
+      fi
+      if [ -n "''${PROJECT_PATH:-}" ]; then
+        server_args+=(--project "$PROJECT_PATH")
+      fi
+      if [ -n "''${PROGRAM_NAME:-}" ]; then
+        server_args+=(--program "$PROGRAM_NAME")
+      fi
+      if [ -n "''${GHIDRA_MCP_EXTRA_ARGS:-}" ]; then
+        # Escape arguments with whitespace by setting explicit PROGRAM_*
+        # variables above; this is for simple upstream flags.
+        read -r -a extra_args <<< "$GHIDRA_MCP_EXTRA_ARGS"
+        server_args+=("''${extra_args[@]}")
+      fi
+
       exec java "''${java_opts[@]}" \
         -Dghidra.home="$GHIDRA_HOME" \
         -Dapplication.name=GhidraMCP \
         -classpath "$cp" \
         com.xebyte.headless.GhidraMCPHeadlessServer \
-        --bind "$GHIDRA_MCP_BIND" --port "$GHIDRA_MCP_PORT"
+        "''${server_args[@]}"
     '';
   };
 
