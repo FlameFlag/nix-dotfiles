@@ -9,7 +9,7 @@ Match host * exec "test -z $SSH_TTY"
   IdentityAgent "{{ .chezmoi.homeDir }}/.1password/agent.sock"
 {{- end }}
 
-Host github.com
+Host github github.com
   Hostname ssh.github.com
   Port 443
   User git
