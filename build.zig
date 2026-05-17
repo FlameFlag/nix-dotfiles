@@ -25,6 +25,8 @@ const ExecutableSpec = struct {
     name: []const u8,
     root: []const u8,
     imports: []const ModuleKey = &.{},
+    frameworks: []const []const u8 = &.{},
+    link_libc: bool = false,
     install: InstallPolicy = .never,
     extra_tests: []const TestFile = &.{},
 };
@@ -145,18 +147,26 @@ fn addExecutable(
     config: BuildConfig,
     registry: zig_lib.ModuleRegistry,
 ) void {
-    const module = createRootModule(spec.root, spec.imports, b, config, registry);
+    const module = createRootModule(spec.root, spec.imports, spec.link_libc, b, config, registry);
+    inline for (spec.frameworks) |framework| {
+        module.linkFramework(framework, .{});
+    }
     const exe = b.addExecutable(.{
         .name = spec.name,
         .root_module = module,
     });
 
     check_step.dependOn(&exe.step);
-    zig_lib.addModuleTest(b, test_step, b.fmt("test-{s}", .{spec.name}), module);
+    const module_test = zig_lib.addModuleTest(b, test_step, b.fmt("test-{s}", .{spec.name}), module);
+    _ = module_test;
 
     inline for (spec.extra_tests) |test_file| {
-        const test_module = createRootModule(test_file.root, spec.imports, b, config, registry);
-        zig_lib.addModuleTest(b, test_step, test_file.name, test_module);
+        const test_module = createRootModule(test_file.root, spec.imports, spec.link_libc, b, config, registry);
+        inline for (spec.frameworks) |framework| {
+            test_module.linkFramework(framework, .{});
+        }
+        const extra_test = zig_lib.addModuleTest(b, test_step, test_file.name, test_module);
+        _ = extra_test;
     }
 
     addInstallEdges(b, tools_step, hooks_step, config, exe, spec.install);
@@ -165,6 +175,7 @@ fn addExecutable(
 fn createRootModule(
     comptime root: []const u8,
     comptime import_keys: []const ModuleKey,
+    comptime link_libc: bool,
     b: *std.Build,
     config: BuildConfig,
     registry: zig_lib.ModuleRegistry,
@@ -182,6 +193,7 @@ fn createRootModule(
         .imports = imports[0..],
         .target = config.target,
         .optimize = config.optimize,
+        .link_libc = link_libc,
     });
 }
 

@@ -23,12 +23,13 @@ pub fn addModuleTest(
     test_step: *std.Build.Step,
     name: []const u8,
     module: *std.Build.Module,
-) void {
+) *std.Build.Step.Compile {
     const unit_tests = b.addTest(.{
         .name = name,
         .root_module = module,
     });
     test_step.dependOn(&b.addRunArtifact(unit_tests).step);
+    return unit_tests;
 }
 
 pub fn build(b: *std.Build) void {
@@ -41,5 +42,5 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
     });
-    addModuleTest(b, test_step, "test-common", module);
+    _ = addModuleTest(b, test_step, "test-common", module);
 }

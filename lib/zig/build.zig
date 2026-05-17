@@ -43,7 +43,7 @@ pub fn addModules(b: *std.Build, config: BuildConfig, test_step: *std.Build.Step
         .optimize = config.optimize,
     });
     registry.put(.common, common);
-    addModuleTest(b, test_step, "test-common", common);
+    _ = addModuleTest(b, test_step, "test-common", common);
 
     const chezmoi = chezmoi_build.createModule(b, .{
         .root_source_file = b.path(chezmoi_build.repo_root_source_file),
@@ -52,7 +52,7 @@ pub fn addModules(b: *std.Build, config: BuildConfig, test_step: *std.Build.Step
         .optimize = config.optimize,
     });
     registry.put(.chezmoi, chezmoi);
-    addModuleTest(b, test_step, "test-chezmoi", chezmoi);
+    _ = addModuleTest(b, test_step, "test-chezmoi", chezmoi);
 
     const bootstrap = bootstrap_build.createModule(b, .{
         .root_source_file = b.path(bootstrap_build.repo_root_source_file),
@@ -61,7 +61,7 @@ pub fn addModules(b: *std.Build, config: BuildConfig, test_step: *std.Build.Step
         .optimize = config.optimize,
     });
     registry.put(.bootstrap, bootstrap);
-    addModuleTest(b, test_step, "test-bootstrap", bootstrap);
+    _ = addModuleTest(b, test_step, "test-bootstrap", bootstrap);
 
     return registry;
 }
@@ -71,8 +71,8 @@ pub fn addModuleTest(
     test_step: *std.Build.Step,
     name: []const u8,
     module: *std.Build.Module,
-) void {
-    common_build.addModuleTest(b, test_step, name, module);
+) *std.Build.Step.Compile {
+    return common_build.addModuleTest(b, test_step, name, module);
 }
 
 pub fn build(b: *std.Build) void {
@@ -87,7 +87,7 @@ pub fn build(b: *std.Build) void {
         .target = config.target,
         .optimize = config.optimize,
     });
-    addModuleTest(b, test_step, "test-common", common);
+    _ = addModuleTest(b, test_step, "test-common", common);
 
     const chezmoi = chezmoi_build.createModule(b, .{
         .root_source_file = b.path("chezmoi/" ++ chezmoi_build.local_root_source_file),
@@ -95,7 +95,7 @@ pub fn build(b: *std.Build) void {
         .target = config.target,
         .optimize = config.optimize,
     });
-    addModuleTest(b, test_step, "test-chezmoi", chezmoi);
+    _ = addModuleTest(b, test_step, "test-chezmoi", chezmoi);
 
     const bootstrap = bootstrap_build.createModule(b, .{
         .root_source_file = b.path("bootstrap/" ++ bootstrap_build.local_root_source_file),
@@ -103,5 +103,5 @@ pub fn build(b: *std.Build) void {
         .target = config.target,
         .optimize = config.optimize,
     });
-    addModuleTest(b, test_step, "test-bootstrap", bootstrap);
+    _ = addModuleTest(b, test_step, "test-bootstrap", bootstrap);
 }
