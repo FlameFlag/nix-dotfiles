@@ -123,6 +123,14 @@ function pip3() {
   uv pip "$@"
 }
 
+if type complete >/dev/null 2>&1; then
+  if declare -F _fzf_path_completion >/dev/null 2>&1; then
+    complete -o bashdefault -o default -F _fzf_path_completion python python3 pip pip3
+  else
+    complete -o bashdefault -o default -f python python3 pip pip3
+  fi
+fi
+
 # fzf Configuration
 export FZF_DEFAULT_COMMAND="fd --type f --hidden --follow --exclude .git"
 export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"

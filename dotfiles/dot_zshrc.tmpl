@@ -129,5 +129,10 @@ function pip3() {
   uv pip "$@"
 }
 
+if type compdef >/dev/null 2>&1; then
+  compdef _python python python3
+  compdef _pip pip pip3
+fi
+
 # Load zoxide last so its directory-jump hook wins over earlier cd aliases.
 [[ -r "$HOME/.cache/zoxide/init.zsh" ]] && source "$HOME/.cache/zoxide/init.zsh"

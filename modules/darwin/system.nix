@@ -1,4 +1,30 @@
-_: {
+{ lib, ... }:
+{
+  system.activationScripts.extraActivation.text = lib.modules.mkAfter ''
+    install -d -m 0755 /usr/local/bin
+
+    install_uv_python_shim() {
+      target="$1"
+      command="$2"
+
+      if [ -e "$target" ] && ! grep -Fq "Managed by nix-dotfiles uv python shim" "$target"; then
+        echo "leaving existing $target in place"
+        return
+      fi
+
+      {
+        printf '%s\n' '#!/usr/bin/env sh'
+        printf '%s\n' '# Managed by nix-dotfiles uv python shim.'
+        printf '%s\n' "export UV_PYTHON_PREFERENCE=\"''${UV_PYTHON_PREFERENCE:-only-managed}\""
+        printf 'exec uv run %s "$@"\n' "$command"
+      } > "$target"
+      chmod 0755 "$target"
+    }
+
+    install_uv_python_shim /usr/local/bin/python python
+    install_uv_python_shim /usr/local/bin/python3 python3
+  '';
+
   system = {
     # Global macOS System Settings
     defaults = {
