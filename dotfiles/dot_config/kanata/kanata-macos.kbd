@@ -4,7 +4,7 @@
 )
 
 (defsrc
-  esc caps lctl lmet rmet rctl w    a    s    d
+  esc caps lctl lmet rmet rctl w    a    s    d         ret             \
 )
 
 (defalias
@@ -25,12 +25,16 @@
     (5000 0 5000 10000)
     (3333 0 6667 10000)
     (6667 0 3333 10000))
+  win-max-almost (macos-window
+    (500 500 9000 9000))
+  win-max (macos-window
+    (0 0 10000 10000))
 )
 
 (deflayer base
-  caps @caps-hyper lmet lctl rctl rmet w       a         s         d
+  caps @caps-hyper lmet lctl rctl rmet w       a         s         d         ret             \
 )
 
 (deflayer hyper
-  _    _           _    _    _    _    @win-up @win-left @win-down @win-right
+  _    _           _    _    _    _    @win-up @win-left @win-down @win-right @win-max-almost @win-max
 )
