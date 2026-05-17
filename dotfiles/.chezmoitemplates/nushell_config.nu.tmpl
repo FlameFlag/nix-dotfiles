@@ -30,7 +30,7 @@ $env.config = (
     | upsert use_kitty_protocol true
     | upsert history ($env.config.history? | default {} | merge {
         max_size: 10000
-        sync_on_enter: false
+        sync_on_enter: true
         file_format: "plaintext"
     })
 )
