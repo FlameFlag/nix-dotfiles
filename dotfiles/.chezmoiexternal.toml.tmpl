@@ -1,14 +1,14 @@
 {{- if ne .chezmoi.os "windows" -}}
-{{- $nushellConfigPath := "" -}}
+{{- $nushellConfigPaths := list ".config/nushell" -}}
 {{- $yaziConfigPath := "" -}}
 {{- $fontsPath := "" -}}
-{{- $ghosttyConfigPath := ".config/ghostty" -}}
+{{- $ghosttyConfigPaths := list ".config/ghostty" -}}
 {{- if eq .chezmoi.os "darwin" -}}
-{{-   $nushellConfigPath = "Library/Application Support/nushell" -}}
+{{-   $nushellConfigPaths = list ".config/nushell" "Library/Application Support/nushell" -}}
+{{-   $ghosttyConfigPaths = list ".config/ghostty" "Library/Application Support/com.mitchellh.ghostty" -}}
 {{-   $yaziConfigPath = ".config/yazi" -}}
 {{-   $fontsPath = "Library/Fonts" -}}
 {{- else -}}
-{{-   $nushellConfigPath = ".config/nushell" -}}
 {{-   $yaziConfigPath = ".config/yazi" -}}
 {{-   $fontsPath = ".local/share/fonts" -}}
 {{- end -}}
@@ -16,21 +16,25 @@
 # ----- Nushell -----
 
 {{- $nushellTools := list "bat" "cargo" "claude" "curl" "gh" "git" "jj" "man" "nix" "op" "rg" "ssh" "uv" "vscode" "zellij" "zoxide" -}}
+{{- range $configPath := $nushellConfigPaths }}
 {{- range $tool := $nushellTools }}
-["{{ $nushellConfigPath }}/completions/{{ $tool }}.nu"]
+["{{ $configPath }}/completions/{{ $tool }}.nu"]
 type = "file"
 url = "https://raw.githubusercontent.com/nushell/nu_scripts/main/custom-completions/{{ $tool }}/{{ $tool }}-completions.nu"
 refreshPeriod = "168h"
+{{ end }}
 {{ end }}
 
 # ----- Ghostty -----
 
 {{- $ghosttyFlavors := list "frappe" "latte" -}}
+{{- range $configPath := $ghosttyConfigPaths }}
 {{- range $flavor := $ghosttyFlavors }}
-["{{ $ghosttyConfigPath }}/themes/catppuccin-{{ $flavor }}.conf"]
+["{{ $configPath }}/themes/catppuccin-{{ $flavor }}.conf"]
 type = "file"
 url = "https://raw.githubusercontent.com/catppuccin/ghostty/main/themes/catppuccin-{{ $flavor }}.conf"
 refreshPeriod = "168h"
+{{ end }}
 {{ end }}
 
 # ----- Oh-My-Zsh -----
@@ -75,12 +79,14 @@ refreshPeriod = "168h"
 
 # ----- Paid Fonts (private repo, auth via gh) -----
 
+{{- if lookPath "gh" }}
 ["{{ $fontsPath }}/paid-fonts"]
 type = "git-repo"
 url = "https://github.com/FlameFlag/paid-fonts.git"
 refreshPeriod = "168h"
 [{{ printf "%s/paid-fonts" $fontsPath | printf "%q" }}.pull]
 args = ["--ff-only"]
+{{- end }}
 
 # ----- Yazi -----
 
@@ -91,4 +97,5 @@ type = "file"
 url = "https://raw.githubusercontent.com/catppuccin/yazi/main/themes/{{ $flavor }}/catppuccin-{{ $flavor }}-blue.toml"
 refreshPeriod = "168h"
 {{ end }}
+
 {{- end -}}

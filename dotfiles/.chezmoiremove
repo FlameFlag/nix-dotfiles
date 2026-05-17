@@ -1,7 +1,5 @@
 {{ if eq .chezmoi.os "darwin" -}}
 dot_config/Code
-dot_config/ghostty/config
-dot_config/nushell
 dot_config/raycast/ai/providers.yaml
 Library/Application Support/nushell/catppuccin_frappe.nu
 {{- else -}}

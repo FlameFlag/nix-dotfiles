@@ -1,5 +1,14 @@
 .chezmoi-lib/
 
+{{- $sopsAgeKey := joinPath .chezmoi.homeDir ".config/sops/age/keys.txt" -}}
+{{- if eq .chezmoi.os "darwin" -}}
+{{- $sopsAgeKey = joinPath .chezmoi.homeDir "Library/Application Support/sops/age/keys.txt" -}}
+{{- end -}}
+{{- if or (not (lookPath "sops")) (not (stat $sopsAgeKey)) }}
+.ssh/github_key
+dot_ssh/private_github_key.tmpl
+{{ end }}
+
 {{ if eq .chezmoi.os "windows" }}
 .chezmoiexternal.toml.tmpl
 .chezmoiscripts/
@@ -46,7 +55,5 @@ Library/
 
 {{ if eq .chezmoi.os "darwin" }}
 .config/Code/
-.config/ghostty/config
 .config/kanata/
-.config/nushell/
 {{ end }}
