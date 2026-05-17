@@ -1,0 +1,463 @@
+diff --git a/parser/src/cfg/list_actions.rs b/parser/src/cfg/list_actions.rs
+index 5f376d1..5e1582c 100644
+--- a/parser/src/cfg/list_actions.rs
++++ b/parser/src/cfg/list_actions.rs
+@@ -98,6 +98,7 @@ pub const MOVEMOUSE_ACCEL_RIGHT_A: &str = "🖱accel→";
+ pub const MOVEMOUSE_SPEED_A: &str = "🖱speed";
+ pub const SETMOUSE: &str = "setmouse";
+ pub const SETMOUSE_A: &str = "set🖱";
++pub const MACOS_WINDOW: &str = "macos-window";
+ pub const DYNAMIC_MACRO_RECORD: &str = "dynamic-macro-record";
+ pub const DYNAMIC_MACRO_PLAY: &str = "dynamic-macro-play";
+ pub const ARBITRARY_CODE: &str = "arbitrary-code";
+@@ -232,6 +233,7 @@ pub fn is_list_action(ac: &str) -> bool {
+         MOVEMOUSE_SPEED_A,
+         SETMOUSE,
+         SETMOUSE_A,
++        MACOS_WINDOW,
+         DYNAMIC_MACRO_RECORD,
+         DYNAMIC_MACRO_PLAY,
+         ARBITRARY_CODE,
+diff --git a/parser/src/cfg/macos_window.rs b/parser/src/cfg/macos_window.rs
+new file mode 100644
+index 0000000..a1a780e
+--- /dev/null
++++ b/parser/src/cfg/macos_window.rs
+@@ -0,0 +1,49 @@
++use super::*;
++use crate::{bail, bail_expr};
++
++pub(crate) fn parse_macos_window(
++    ac_params: &[SExpr],
++    s: &ParserState,
++) -> Result<&'static KanataAction> {
++    if ac_params.is_empty() {
++        bail!("macos-window expects at least one frame: (x y width height)");
++    }
++
++    let mut frames = Vec::with_capacity(ac_params.len());
++    for frame in ac_params {
++        let Some(values) = frame.list(s.vars()) else {
++            bail_expr!(
++                frame,
++                "macos-window frames must be lists: (x y width height)"
++            );
++        };
++        if values.len() != 4 {
++            bail_expr!(frame, "macos-window frames must have exactly four numbers");
++        }
++        let parsed = MacosWindowFrame {
++            x: parse_basis_points(&values[0], s, "x")?,
++            y: parse_basis_points(&values[1], s, "y")?,
++            width: parse_basis_points(&values[2], s, "width")?,
++            height: parse_basis_points(&values[3], s, "height")?,
++        };
++        if parsed.width <= 0 || parsed.height <= 0 {
++            bail_expr!(
++                frame,
++                "macos-window width and height must be greater than 0"
++            );
++        }
++        frames.push(parsed);
++    }
++
++    custom(CustomAction::MacosWindow(s.a.sref_vec(frames)), &s.a)
++}
++
++fn parse_basis_points(expr: &SExpr, s: &ParserState, label: &str) -> Result<i32> {
++    let Some(atom) = expr.atom(s.vars()) else {
++        bail_expr!(expr, "macos-window {label} must be a number");
++    };
++    let atom = atom.trim_atom_quotes();
++    Ok(atom
++        .parse::<i32>()
++        .map_err(|_| anyhow!("macos-window {label} must be a signed integer basis-point value"))?)
++}
+diff --git a/parser/src/cfg/mod.rs b/parser/src/cfg/mod.rs
+index 753ba47..e2d3b91 100644
+--- a/parser/src/cfg/mod.rs
++++ b/parser/src/cfg/mod.rs
+@@ -91,6 +91,8 @@ pub mod list_actions;
+ use list_actions::*;
+ mod r#macro;
+ use r#macro::*;
++mod macos_window;
++use macos_window::*;
+ mod mouse;
+ use mouse::*;
+ mod multi;
+@@ -1641,6 +1643,7 @@ fn parse_action_list(ac: &[SExpr], s: &ParserState) -> Result<&'static KanataAct
+         }
+         MOVEMOUSE_SPEED | MOVEMOUSE_SPEED_A => parse_move_mouse_speed(&ac[1..], s),
+         SETMOUSE | SETMOUSE_A => parse_set_mouse(&ac[1..], s),
++        MACOS_WINDOW => parse_macos_window(&ac[1..], s),
+         DYNAMIC_MACRO_RECORD => parse_dynamic_macro_record(&ac[1..], s),
+         DYNAMIC_MACRO_PLAY => parse_dynamic_macro_play(&ac[1..], s),
+         ARBITRARY_CODE => parse_arbitrary_code(&ac[1..], s),
+diff --git a/parser/src/custom_action.rs b/parser/src/custom_action.rs
+index 38b9466..f97a893 100644
+--- a/parser/src/custom_action.rs
++++ b/parser/src/custom_action.rs
+@@ -55,6 +55,7 @@ pub enum CustomAction {
+     MoveMouseSpeed {
+         speed: u16,
+     },
++    MacosWindow(&'static [MacosWindowFrame]),
+     SequenceCancel,
+     SequenceLeader(u16, SequenceInputMode),
+     /// Purpose:
+@@ -100,6 +101,14 @@ pub enum CustomAction {
+     ClipboardSaveSwap(u16, u16),
+ }
+ 
++#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
++pub struct MacosWindowFrame {
++    pub x: i32,
++    pub y: i32,
++    pub width: i32,
++    pub height: i32,
++}
++
+ #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+ pub enum Btn {
+     Left,
+diff --git a/src/kanata/macos_window.rs b/src/kanata/macos_window.rs
+new file mode 100644
+index 0000000..5653189
+--- /dev/null
++++ b/src/kanata/macos_window.rs
+@@ -0,0 +1,304 @@
++use anyhow::{Result, anyhow, bail};
++use core_foundation::array::{CFArray, CFArrayRef};
++use core_foundation::base::{CFType, CFTypeRef, TCFType};
++use core_foundation::dictionary::CFDictionary;
++use core_foundation::number::CFNumber;
++use core_foundation::string::{CFString, CFStringRef};
++use core_graphics::display::{CGPoint, CGRect, CGSize};
++use kanata_parser::custom_action::MacosWindowFrame;
++use parking_lot::Mutex;
++use std::ffi::c_void;
++use std::sync::OnceLock;
++use std::time::{Duration, Instant};
++
++type AXUIElementRef = *const c_void;
++type AXError = i32;
++type CGDirectDisplayID = u32;
++type CGError = i32;
++type CGWindowID = u32;
++
++const K_AX_VALUE_CGPOINT_TYPE: i32 = 1;
++const K_AX_VALUE_CGSIZE_TYPE: i32 = 2;
++const K_AX_ERROR_SUCCESS: AXError = 0;
++const KCG_ERROR_SUCCESS: CGError = 0;
++const K_CG_WINDOW_LIST_OPTION_ON_SCREEN_ONLY: u32 = 1;
++const K_CG_WINDOW_LIST_EXCLUDE_DESKTOP_ELEMENTS: u32 = 16;
++const K_CG_NULL_WINDOW_ID: CGWindowID = 0;
++const BASIS_POINTS: f64 = 10_000.0;
++const CYCLE_RESET_AFTER: Duration = Duration::from_millis(900);
++
++#[link(name = "ApplicationServices", kind = "framework")]
++unsafe extern "C" {
++    fn AXUIElementCreateApplication(pid: i32) -> AXUIElementRef;
++    fn AXUIElementCopyAttributeValue(
++        element: AXUIElementRef,
++        attribute: CFStringRef,
++        value: *mut CFTypeRef,
++    ) -> AXError;
++    fn AXUIElementSetAttributeValue(
++        element: AXUIElementRef,
++        attribute: CFStringRef,
++        value: CFTypeRef,
++    ) -> AXError;
++    fn AXValueCreate(value_type: i32, value: *const c_void) -> CFTypeRef;
++    fn AXValueGetValue(value: CFTypeRef, value_type: i32, out: *mut c_void) -> bool;
++}
++
++#[link(name = "CoreGraphics", kind = "framework")]
++unsafe extern "C" {
++    fn CGGetActiveDisplayList(
++        max_displays: u32,
++        active_displays: *mut CGDirectDisplayID,
++        display_count: *mut u32,
++    ) -> CGError;
++    fn CGMainDisplayID() -> CGDirectDisplayID;
++    fn CGDisplayBounds(display: CGDirectDisplayID) -> CGRect;
++    fn CGWindowListCopyWindowInfo(option: u32, relative_to_window: CGWindowID) -> CFArrayRef;
++}
++
++#[derive(Clone, Copy, Debug, PartialEq, Eq)]
++struct CycleKey {
++    frames_ptr: usize,
++    frames_len: usize,
++}
++
++#[derive(Debug)]
++struct CycleState {
++    key: Option<CycleKey>,
++    step: usize,
++    last_used: Instant,
++}
++
++static CYCLE_STATE: OnceLock<Mutex<CycleState>> = OnceLock::new();
++
++pub fn apply_window_frames(frames: &'static [MacosWindowFrame]) -> Result<()> {
++    if frames.is_empty() {
++        bail!("macos-window action has no frames");
++    }
++
++    let window = focused_window()?;
++    let screen = screen_for_window(window.element)?;
++    let key = CycleKey {
++        frames_ptr: frames.as_ptr() as usize,
++        frames_len: frames.len(),
++    };
++    let frame = resolve_frame(screen, frames[next_cycle_index(key)]);
++    set_window_frame(window.element, frame)
++}
++
++fn next_cycle_index(key: CycleKey) -> usize {
++    let now = Instant::now();
++    let state = CYCLE_STATE.get_or_init(|| {
++        Mutex::new(CycleState {
++            key: None,
++            step: 0,
++            last_used: now,
++        })
++    });
++    let mut state = state.lock();
++    if state.key == Some(key) && now.duration_since(state.last_used) <= CYCLE_RESET_AFTER {
++        state.step = (state.step + 1) % key.frames_len;
++    } else {
++        state.key = Some(key);
++        state.step = 0;
++    }
++    state.last_used = now;
++    state.step
++}
++
++struct FocusedWindow {
++    _app: CFType,
++    _window: CFType,
++    element: AXUIElementRef,
++}
++
++fn focused_window() -> Result<FocusedWindow> {
++    let pid = frontmost_window_pid()?;
++    let app = unsafe { AXUIElementCreateApplication(pid) };
++    if app.is_null() {
++        bail!("AXUIElementCreateApplication({pid}) returned null");
++    }
++    let app = unsafe { CFType::wrap_under_create_rule(app as CFTypeRef) };
++    let app_element = app.as_CFTypeRef() as AXUIElementRef;
++    let window = copy_ax_attr(app_element, "AXFocusedWindow")
++        .or_else(|_| copy_ax_attr(app_element, "AXMainWindow"))?;
++    let element = window.as_CFTypeRef() as AXUIElementRef;
++    Ok(FocusedWindow {
++        _app: app,
++        _window: window,
++        element,
++    })
++}
++
++fn frontmost_window_pid() -> Result<i32> {
++    let options =
++        K_CG_WINDOW_LIST_OPTION_ON_SCREEN_ONLY | K_CG_WINDOW_LIST_EXCLUDE_DESKTOP_ELEMENTS;
++    let windows = unsafe { CGWindowListCopyWindowInfo(options, K_CG_NULL_WINDOW_ID) };
++    if windows.is_null() {
++        bail!("CGWindowListCopyWindowInfo returned null");
++    }
++    let windows = unsafe { CFArray::<CFType>::wrap_under_create_rule(windows) };
++    for window in windows.iter() {
++        let Some(window) = window.downcast::<CFDictionary>() else {
++            continue;
++        };
++        let window = unsafe {
++            CFDictionary::<CFString, CFType>::wrap_under_get_rule(window.as_concrete_TypeRef())
++        };
++        let layer = dict_i32(&window, "kCGWindowLayer");
++        let pid = dict_i32(&window, "kCGWindowOwnerPID");
++        if layer == Some(0)
++            && let Some(pid) = pid
++        {
++            return Ok(pid);
++        }
++    }
++    bail!("could not find a frontmost on-screen window PID")
++}
++
++fn dict_i32(dict: &CFDictionary<CFString, CFType>, key: &str) -> Option<i32> {
++    let key = CFString::new(key);
++    dict.find(&key)
++        .and_then(|value| value.downcast::<CFNumber>())
++        .and_then(|number| number.to_i32())
++}
++
++fn copy_ax_attr(element: AXUIElementRef, attr: &str) -> Result<CFType> {
++    let attr_ref = CFString::new(attr);
++    let mut value: CFTypeRef = std::ptr::null();
++    let err = unsafe {
++        AXUIElementCopyAttributeValue(element, attr_ref.as_concrete_TypeRef(), &mut value)
++    };
++    if err != K_AX_ERROR_SUCCESS || value.is_null() {
++        bail!("AXUIElementCopyAttributeValue({attr}) failed with AXError {err}");
++    }
++    Ok(unsafe { CFType::wrap_under_create_rule(value) })
++}
++
++fn screen_for_window(window: AXUIElementRef) -> Result<CGRect> {
++    let position = ax_point(window, "AXPosition")?;
++    let size = ax_size(window, "AXSize")?;
++    let center = CGPoint::new(
++        position.x + size.width / 2.0,
++        position.y + size.height / 2.0,
++    );
++
++    for display in active_display_bounds()? {
++        if rect_contains(display, center) {
++            return Ok(display);
++        }
++    }
++
++    Ok(unsafe { CGDisplayBounds(CGMainDisplayID()) })
++}
++
++fn active_display_bounds() -> Result<Vec<CGRect>> {
++    let mut count = 0;
++    let err = unsafe { CGGetActiveDisplayList(0, std::ptr::null_mut(), &mut count) };
++    if err != KCG_ERROR_SUCCESS {
++        bail!("CGGetActiveDisplayList failed with CGError {err}");
++    }
++
++    let mut displays = vec![0; count as usize];
++    let err = unsafe { CGGetActiveDisplayList(count, displays.as_mut_ptr(), &mut count) };
++    if err != KCG_ERROR_SUCCESS {
++        bail!("CGGetActiveDisplayList failed with CGError {err}");
++    }
++
++    Ok(displays
++        .into_iter()
++        .take(count as usize)
++        .map(|display| unsafe { CGDisplayBounds(display) })
++        .collect())
++}
++
++fn ax_point(element: AXUIElementRef, attr: &str) -> Result<CGPoint> {
++    let value = copy_ax_attr(element, attr)?;
++    let mut point = CGPoint::new(0.0, 0.0);
++    let ok = unsafe {
++        AXValueGetValue(
++            value.as_CFTypeRef(),
++            K_AX_VALUE_CGPOINT_TYPE,
++            &mut point as *mut CGPoint as *mut c_void,
++        )
++    };
++    ok.then_some(point)
++        .ok_or_else(|| anyhow!("AXValueGetValue({attr}) did not contain a CGPoint"))
++}
++
++fn ax_size(element: AXUIElementRef, attr: &str) -> Result<CGSize> {
++    let value = copy_ax_attr(element, attr)?;
++    let mut size = CGSize::new(0.0, 0.0);
++    let ok = unsafe {
++        AXValueGetValue(
++            value.as_CFTypeRef(),
++            K_AX_VALUE_CGSIZE_TYPE,
++            &mut size as *mut CGSize as *mut c_void,
++        )
++    };
++    ok.then_some(size)
++        .ok_or_else(|| anyhow!("AXValueGetValue({attr}) did not contain a CGSize"))
++}
++
++fn rect_contains(rect: CGRect, point: CGPoint) -> bool {
++    point.x >= rect.origin.x
++        && point.x <= rect.origin.x + rect.size.width
++        && point.y >= rect.origin.y
++        && point.y <= rect.origin.y + rect.size.height
++}
++
++fn resolve_frame(screen: CGRect, frame: MacosWindowFrame) -> CGRect {
++    CGRect::new(
++        &CGPoint::new(
++            screen.origin.x + screen.size.width * f64::from(frame.x) / BASIS_POINTS,
++            screen.origin.y + screen.size.height * f64::from(frame.y) / BASIS_POINTS,
++        ),
++        &CGSize::new(
++            screen.size.width * f64::from(frame.width) / BASIS_POINTS,
++            screen.size.height * f64::from(frame.height) / BASIS_POINTS,
++        ),
++    )
++}
++
++fn set_window_frame(window: AXUIElementRef, frame: CGRect) -> Result<()> {
++    set_ax_point(window, "AXPosition", frame.origin)?;
++    set_ax_size(window, "AXSize", frame.size)
++}
++
++fn set_ax_point(element: AXUIElementRef, attr: &str, point: CGPoint) -> Result<()> {
++    let value = unsafe {
++        AXValueCreate(
++            K_AX_VALUE_CGPOINT_TYPE,
++            &point as *const CGPoint as *const c_void,
++        )
++    };
++    if value.is_null() {
++        bail!("AXValueCreate({attr}) returned null");
++    }
++    let value = unsafe { CFType::wrap_under_create_rule(value) };
++    set_ax_attr(element, attr, value.as_CFTypeRef())
++}
++
++fn set_ax_size(element: AXUIElementRef, attr: &str, size: CGSize) -> Result<()> {
++    let value = unsafe {
++        AXValueCreate(
++            K_AX_VALUE_CGSIZE_TYPE,
++            &size as *const CGSize as *const c_void,
++        )
++    };
++    if value.is_null() {
++        bail!("AXValueCreate({attr}) returned null");
++    }
++    let value = unsafe { CFType::wrap_under_create_rule(value) };
++    set_ax_attr(element, attr, value.as_CFTypeRef())
++}
++
++fn set_ax_attr(element: AXUIElementRef, attr: &str, value: CFTypeRef) -> Result<()> {
++    let attr_ref = CFString::new(attr);
++    let err =
++        unsafe { AXUIElementSetAttributeValue(element, attr_ref.as_concrete_TypeRef(), value) };
++    if err != K_AX_ERROR_SUCCESS {
++        bail!("AXUIElementSetAttributeValue({attr}) failed with AXError {err}");
++    }
++    Ok(())
++}
+diff --git a/src/kanata/mod.rs b/src/kanata/mod.rs
+index d9e5d00..d103a84 100644
+--- a/src/kanata/mod.rs
++++ b/src/kanata/mod.rs
+@@ -119,6 +119,9 @@ mod linux;
+ #[cfg(target_os = "macos")]
+ mod macos;
+ 
++#[cfg(target_os = "macos")]
++mod macos_window;
++
+ mod output_logic;
+ use output_logic::*;
+ 
+@@ -1635,6 +1638,15 @@ impl Kanata {
+                             self.move_mouse_speed_modifiers
+                         );
+                     }
++                    CustomAction::MacosWindow(_frames) => {
++                        #[cfg(target_os = "macos")]
++                        if let Err(err) = macos_window::apply_window_frames(_frames) {
++                            log::error!("macos-window action failed: {err}");
++                        }
++
++                        #[cfg(not(target_os = "macos"))]
++                        log::warn!("macos-window is only supported on macOS");
++                    }
+                     CustomAction::Cmd(_cmd) => {
+                         #[cfg(feature = "cmd")]
+                         cmds.push((

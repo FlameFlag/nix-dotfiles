@@ -28,6 +28,10 @@
           prev.kanata.overrideAttrs (old: {
             inherit version src;
 
+            patches = (old.patches or [ ]) ++ [
+              ../../pkgs/patches/kanata-macos-window-dsl.patch
+            ];
+
             cargoDeps = final.rustPlatform.fetchCargoVendor {
               inherit src;
               name = "kanata-unstable-2026-05-09";
