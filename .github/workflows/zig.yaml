@@ -16,11 +16,6 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v5.0.0
 
-      - name: Install Nix
-        uses: cachix/install-nix-action@v31.7.0
-        with:
-          github_access_token: "${{ secrets.GITHUB_TOKEN }}"
-
       - name: Read Bootstrap Zig Artifact
         run: |
           set -eu
@@ -57,11 +52,30 @@ jobs:
             -print0 \
             | xargs -0 zig fmt --check
 
-      - name: Build Zig linter
-        run: nix build --print-build-logs .#ziglint
+      - name: Install Zig linter
+        run: |
+          mkdir -p "$RUNNER_TEMP/ziglint"
+          curl \
+            --fail \
+            --location \
+            --silent \
+            --show-error \
+            https://github.com/rockorager/ziglint/releases/latest/download/ziglint-x86_64-linux.tar.gz \
+            --output "$RUNNER_TEMP/ziglint-x86_64-linux.tar.gz"
+          curl \
+            --fail \
+            --location \
+            --silent \
+            --show-error \
+            https://github.com/rockorager/ziglint/releases/latest/download/checksums.txt \
+            --output "$RUNNER_TEMP/ziglint-checksums.txt"
+          grep '  ziglint-x86_64-linux.tar.gz$' "$RUNNER_TEMP/ziglint-checksums.txt" > "$RUNNER_TEMP/ziglint-checksum.txt"
+          (cd "$RUNNER_TEMP" && sha256sum --check ziglint-checksum.txt)
+          tar --extract --gzip --file "$RUNNER_TEMP/ziglint-x86_64-linux.tar.gz" --directory "$RUNNER_TEMP/ziglint"
+          echo "$RUNNER_TEMP/ziglint" >> "$GITHUB_PATH"
 
       - name: Lint Zig code
-        run: ./result/bin/ziglint
+        run: ziglint
 
       - name: Check Zig code
         run: zig build check
