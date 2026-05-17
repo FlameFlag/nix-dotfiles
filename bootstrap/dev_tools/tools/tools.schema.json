@@ -598,6 +598,12 @@
           "items": {
             "$ref": "#/$defs/link"
           }
+        },
+        "app_links": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/link"
+          }
         }
       }
     }

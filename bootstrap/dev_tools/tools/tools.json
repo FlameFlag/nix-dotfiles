@@ -615,9 +615,10 @@
       "action": {
         "type": "archive",
         "source": {
-          "type": "direct",
-          "version": "latest",
-          "url": "https://github.com/oven-sh/bun/releases/latest/download/bun-{platform}.zip"
+          "type": "github_latest",
+          "repo": "oven-sh/bun",
+          "tag_prefix": "bun-v",
+          "asset": "bun-{platform}.zip"
         },
         "platforms": [
           {
@@ -730,6 +731,12 @@
               {
                 "name": "code",
                 "path": "Visual Studio Code.app/Contents/Resources/app/bin/code"
+              }
+            ],
+            "app_links": [
+              {
+                "name": "Visual Studio Code.app",
+                "path": "Visual Studio Code.app"
               }
             ]
           },

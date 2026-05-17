@@ -115,6 +115,38 @@ fn managedBinsPresent(ctx: *Context, tool: model.Tool) !bool {
         const classification = try ownership.classifyBinOnPath(ctx, cwd, tool, bin.name, packages);
         if (classification != .managed) return false;
     }
+    if (tool.action.type == .archive and !try managedAppLinksPresent(ctx, tool)) return false;
+    return true;
+}
+
+fn managedAppLinksPresent(ctx: *Context, tool: model.Tool) !bool {
+    if (builtin.os.tag != .macos) return true;
+
+    const platforms = tool.action.platforms orelse return error.JsonFieldMissing;
+    const selected = model.selectArchivePlatform(platforms) catch |err| switch (err) {
+        error.UnsupportedPlatform => return true,
+        else => return err,
+    };
+    for (selected.app_links) |app_link| {
+        const link_path = try std.fs.path.join(ctx.allocator, &.{ "/Applications", app_link.name });
+        defer ctx.allocator.free(link_path);
+
+        var old_buf: [4096]u8 = undefined;
+        const old_len = std.Io.Dir.cwd().readLink(ctx.io, link_path, &old_buf) catch return false;
+        const old = old_buf[0..old_len];
+        if (!std.fs.path.isAbsolute(old)) return false;
+
+        const prefix = try std.fs.path.join(ctx.allocator, &.{ ctx.opt_dir, tool.name });
+        defer ctx.allocator.free(prefix);
+        const normalized_prefix = try std.fs.path.resolve(ctx.allocator, &.{prefix});
+        defer ctx.allocator.free(normalized_prefix);
+        const normalized_old = try std.fs.path.resolve(ctx.allocator, &.{old});
+        defer ctx.allocator.free(normalized_old);
+        if (!std.mem.startsWith(u8, normalized_old, normalized_prefix)) return false;
+        const old_is_under_prefix = normalized_old.len == normalized_prefix.len or
+            std.fs.path.isSep(normalized_old[normalized_prefix.len]);
+        if (!old_is_under_prefix) return false;
+    }
     return true;
 }
 

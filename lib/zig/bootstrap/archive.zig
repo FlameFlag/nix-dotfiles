@@ -1,6 +1,8 @@
 const std = @import("std");
+const builtin = @import("builtin");
 const common = @import("common");
 const Context = @import("context.zig").Context;
+const proc = common.process;
 
 pub const Kind = enum { tar_xz, tar_gz, zip };
 
@@ -43,7 +45,10 @@ pub fn extractFile(
     switch (kind) {
         .tar_xz => try extractTarXzReader(ctx, &reader.interface, dest, strip_components),
         .tar_gz => try extractTarGzReader(ctx, &reader.interface, dest, strip_components),
-        .zip => try std.zip.extract(dest, &reader, .{}),
+        .zip => if (builtin.os.tag == .macos)
+            try extractZipFileWithDitto(ctx, archive_path, dest_path)
+        else
+            try std.zip.extract(dest, &reader, .{}),
     }
 }
 
@@ -87,6 +92,10 @@ fn extractZip(ctx: *Context, bytes: []const u8, dest_path: []const u8, dest: std
     var reader = file.reader(ctx.io, &read_buffer);
     try std.zip.extract(dest, &reader, .{});
     try std.Io.Dir.cwd().deleteFile(ctx.io, archive_path);
+}
+
+fn extractZipFileWithDitto(ctx: *Context, archive_path: []const u8, dest_path: []const u8) !void {
+    try proc.run(ctx, &.{ "ditto", "-x", "-k", archive_path, dest_path });
 }
 
 fn deleteTempArchive(ctx: *Context, archive_path: []const u8) void {

@@ -1,4 +1,5 @@
 const std = @import("std");
+const builtin = @import("builtin");
 const common = @import("common");
 
 const archive = @import("archive.zig");
@@ -67,6 +68,7 @@ pub const ArchiveSpec = struct {
     kind: archive.Kind,
     strip_components: u32,
     links: []const Link,
+    app_links: []const Link = &.{},
 
     pub fn install(self: ArchiveSpec, ctx: *Context) !void {
         var resolved = try resolveSource(ctx, self.source, self.platform);
@@ -75,6 +77,8 @@ pub const ArchiveSpec = struct {
         const template_args: RenderArgs = .{ .version = resolved.version, .platform = self.platform };
         const tool_links = try renderLinks(ctx, self.links, template_args);
         defer freeLinks(ctx, tool_links);
+        const app_links = try renderLinks(ctx, self.app_links, template_args);
+        defer freeLinks(ctx, app_links);
 
         try (Archive{
             .tool = self.tool,
@@ -83,6 +87,7 @@ pub const ArchiveSpec = struct {
             .kind = self.kind,
             .strip_components = self.strip_components,
             .links = tool_links,
+            .app_links = app_links,
         }).install(ctx);
     }
 };
@@ -94,6 +99,7 @@ pub const Archive = struct {
     kind: archive.Kind,
     strip_components: u32,
     links: []const links.Link,
+    app_links: []const links.Link = &.{},
 
     pub fn install(self: Archive, ctx: *Context) !void {
         const dir = try links.installDirPath(ctx, self.tool, self.version);
@@ -114,11 +120,13 @@ pub const Archive = struct {
         try http.downloadFile(ctx, self.url, archive_path);
         try std.Io.Dir.cwd().deleteTree(ctx.io, temp_dir);
         try archive.extractFile(ctx, archive_path, temp_dir, self.kind, self.strip_components);
+        try repairExecutablePermissions(ctx, temp_dir);
         temp_exists = true;
         try std.Io.Dir.cwd().deleteTree(ctx.io, dir);
         try std.Io.Dir.renameAbsolute(temp_dir, dir, ctx.io);
         temp_exists = false;
         try links.linkMany(ctx, self.tool, dir, self.links);
+        try linkApplications(ctx, dir, self.app_links);
     }
 };
 
@@ -130,10 +138,80 @@ fn archiveFileName(kind: archive.Kind) []const u8 {
     };
 }
 
+fn linkApplications(ctx: *Context, install_dir: []const u8, entries: []const links.Link) !void {
+    if (builtin.os.tag != .macos) return;
+
+    for (entries) |entry| {
+        const target = try std.fs.path.join(ctx.allocator, &.{ install_dir, entry.path });
+        defer ctx.allocator.free(target);
+        const link_path = try std.fs.path.join(ctx.allocator, &.{ "/Applications", entry.name });
+        defer ctx.allocator.free(link_path);
+
+        var replace_existing = false;
+        var old_buf: [4096]u8 = undefined;
+        if (std.Io.Dir.cwd().readLink(ctx.io, link_path, &old_buf)) |_| {
+            replace_existing = true;
+        } else |err| switch (err) {
+            error.FileNotFound => {},
+            error.NotLink => continue,
+            else => return err,
+        }
+
+        try std.Io.Dir.cwd().access(ctx.io, target, .{});
+        if (replace_existing) try std.Io.Dir.cwd().deleteFile(ctx.io, link_path);
+        try std.Io.Dir.symLinkAbsolute(ctx.io, target, link_path, .{});
+        try proc.run(ctx, &.{
+            "/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister",
+            "-f",
+            link_path,
+        });
+    }
+}
+
 fn deleteTreeQuiet(ctx: *Context, path: []const u8) void {
     std.Io.Dir.cwd().deleteTree(ctx.io, path) catch |err| {
         std.log.debug("failed to delete temporary directory {s}: {s}", .{ path, @errorName(err) });
     };
+}
+
+fn repairExecutablePermissions(ctx: *Context, root: []const u8) !void {
+    if (builtin.os.tag == .windows) return;
+
+    var dir = try std.Io.Dir.openDirAbsolute(ctx.io, root, .{ .iterate = true });
+    defer dir.close(ctx.io);
+
+    var walker = try dir.walk(ctx.allocator);
+    defer walker.deinit();
+
+    while (try walker.next(ctx.io)) |entry| {
+        if (entry.kind != .file) continue;
+        if (!try hasExecutableHeader(ctx, entry.dir, entry.basename)) continue;
+        try entry.dir.setFilePermissions(ctx.io, entry.basename, .executable_file, .{});
+    }
+}
+
+fn hasExecutableHeader(ctx: *Context, dir: std.Io.Dir, basename: []const u8) !bool {
+    var header: [4]u8 = undefined;
+    const bytes = dir.readFile(ctx.io, basename, &header) catch |err| switch (err) {
+        error.AccessDenied => return false,
+        else => return err,
+    };
+    return std.mem.startsWith(u8, bytes, "#!") or
+        std.mem.startsWith(u8, bytes, "\x7fELF") or
+        std.mem.startsWith(u8, bytes, "MZ") or
+        isMachOMagic(bytes);
+}
+
+fn isMachOMagic(bytes: []const u8) bool {
+    if (bytes.len < 4) return false;
+    const magic_be = std.mem.readInt(u32, bytes[0..4], .big);
+    const magic_le = std.mem.readInt(u32, bytes[0..4], .little);
+    return magic_be == 0xfeedface or
+        magic_be == 0xfeedfacf or
+        magic_be == 0xcafebabe or
+        magic_be == 0xcafebabf or
+        magic_le == 0xfeedface or
+        magic_le == 0xfeedfacf;
 }
 
 fn resolveSource(ctx: *Context, source: Source, target_name: []const u8) !ResolvedSource {

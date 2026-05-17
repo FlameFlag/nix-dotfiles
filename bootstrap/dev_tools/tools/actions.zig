@@ -19,6 +19,7 @@ pub fn install(ctx: *Context, tool: model.Tool) !void {
         .archive => {
             const spec = try bootstrap.manifest.toArchiveSpec(ctx, tool);
             defer ctx.allocator.free(spec.links);
+            defer ctx.allocator.free(spec.app_links);
             try spec.install(ctx);
         },
     }

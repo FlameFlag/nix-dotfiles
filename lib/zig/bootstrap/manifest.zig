@@ -181,6 +181,7 @@ pub const ArchivePlatform = struct {
     kind: archive.Kind,
     strip_components: u32,
     links: []const Link,
+    app_links: []const Link = &.{},
 };
 
 pub fn loadPath(ctx: *Context, path: []const u8) !Catalog {
@@ -242,6 +243,12 @@ pub fn toArchiveSpec(ctx: *Context, tool: Tool) !install_archive.ArchiveSpec {
         spec_link.* = .{ .name = link.name, .path = .literal(link.path) };
     }
 
+    const app_links = try ctx.allocator.alloc(install_archive.Link, selected.app_links.len);
+    errdefer ctx.allocator.free(app_links);
+    for (selected.app_links, app_links) |link, *app_link| {
+        app_link.* = .{ .name = link.name, .path = .literal(link.path) };
+    }
+
     return .{
         .tool = tool.name,
         .source = try archiveSource(selected.source orelse tool.action.source orelse return error.JsonFieldMissing),
@@ -249,6 +256,7 @@ pub fn toArchiveSpec(ctx: *Context, tool: Tool) !install_archive.ArchiveSpec {
         .kind = selected.kind,
         .strip_components = selected.strip_components,
         .links = spec_links,
+        .app_links = app_links,
     };
 }
 
@@ -670,17 +678,21 @@ test "archive spec maps manifest links and direct source" {
                 .kind = .tar_gz,
                 .strip_components = 1,
                 .links = &.{.{ .name = "demo", .path = "bin/demo" }},
+                .app_links = &.{.{ .name = "Demo.app", .path = "Demo.app" }},
             }},
         },
     };
 
     const spec = try toArchiveSpec(&ctx, tool);
     defer ctx.allocator.free(spec.links);
+    defer ctx.allocator.free(spec.app_links);
 
     try std.testing.expectEqualStrings("demo", spec.tool);
     try std.testing.expectEqualStrings("demo-platform", spec.platform);
     try std.testing.expectEqual(@as(usize, 1), spec.links.len);
     try std.testing.expectEqualStrings("bin/demo", spec.links[0].path.value);
+    try std.testing.expectEqual(@as(usize, 1), spec.app_links.len);
+    try std.testing.expectEqualStrings("Demo.app", spec.app_links[0].path.value);
 }
 
 test "archive platform source overrides action source" {
@@ -714,6 +726,7 @@ test "archive platform source overrides action source" {
 
     const spec = try toArchiveSpec(&ctx, tool);
     defer ctx.allocator.free(spec.links);
+    defer ctx.allocator.free(spec.app_links);
 
     switch (spec.source) {
         .direct => |direct| {
