@@ -26,7 +26,12 @@ fn run(rt: *script.Runtime) !void {
 
     const zoxide_init = try std.fs.path.join(rt.allocator, &.{ context.home_dir, ".cache/zoxide/init.nu" });
     defer rt.allocator.free(zoxide_init);
-    _ = try script.writeCommandTextIfAvailable(rt, "zoxide", zoxide_init, &.{ "zoxide", "init", "nushell", "--cmd", "cd" });
+    _ = try script.writeCommandTextIfAvailable(
+        rt,
+        "zoxide",
+        zoxide_init,
+        &.{ "zoxide", "init", "nushell", "--cmd", "cd" },
+    );
 
     const atuin_init = try std.fs.path.join(
         rt.allocator,
