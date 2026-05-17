@@ -5,5 +5,7 @@
 exec zig run -lc \
   --dep chezmoi \
   -Mroot="$CHEZMOI_SOURCE_DIR/.chezmoi-lib/raycast_window_management/main.zig" \
+  --dep common \
   -Mchezmoi="$CHEZMOI_SOURCE_DIR/../lib/zig/chezmoi/script.zig" \
+  -Mcommon="$CHEZMOI_SOURCE_DIR/../lib/zig/common/root.zig" \
   -- "$@"
