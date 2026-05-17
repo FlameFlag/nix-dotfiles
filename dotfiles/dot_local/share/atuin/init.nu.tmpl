@@ -1,0 +1,3 @@
+{{- if lookPath "atuin" -}}
+{{ output "atuin" "init" "nu" "--disable-up-arrow" | replace "$cmd e>| complete" "$cmd | complete" -}}
+{{- end -}}

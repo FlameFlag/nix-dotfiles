@@ -36,10 +36,12 @@ plugins=(
 source $ZSH/oh-my-zsh.sh
 
 # Source pre-generated startup hooks to keep shell startup fast.
-source "$HOME/.cache/starship/init.zsh"
-source "$HOME/.cache/television/init.zsh"
-source "$HOME/.cache/atuin/init.zsh"
-bindkey '^R' atuin-search
+[[ -r "$HOME/.cache/starship/init.zsh" ]] && source "$HOME/.cache/starship/init.zsh"
+[[ -r "$HOME/.cache/television/init.zsh" ]] && source "$HOME/.cache/television/init.zsh"
+if [[ -r "$HOME/.cache/atuin/init.zsh" ]]; then
+  source "$HOME/.cache/atuin/init.zsh"
+  bindkey '^R' atuin-search
+fi
 
 # Add cached completion definitions before Zsh builds its completion path.
 fpath=("$HOME/.cache/zsh/completions" $fpath)
@@ -128,4 +130,4 @@ function pip3() {
 }
 
 # Load zoxide last so its directory-jump hook wins over earlier cd aliases.
-source "$HOME/.cache/zoxide/init.zsh"
+[[ -r "$HOME/.cache/zoxide/init.zsh" ]] && source "$HOME/.cache/zoxide/init.zsh"

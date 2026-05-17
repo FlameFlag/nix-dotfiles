@@ -24,8 +24,7 @@ alias cx = codex-zellij-theme --sandbox danger-full-access --ask-for-approval ne
 alias update = nix flake update --flake (readlink -f /etc/nixos/)
 
 alias cza = chezmoi apply --force
-alias cd = __zoxide_z
-alias dc = __zoxide_z
+alias dc = cd
 
 def --env yy [...args] {
     let tmp = (mktemp --tmpdir "yazi-cwd.XXXXX")
