@@ -22,7 +22,7 @@ pub fn extract(ctx: *Context, bytes: []const u8, dest_path: []const u8, kind: Ki
     switch (kind) {
         .tar_xz => try extractTarXz(ctx, bytes, dest, strip_components),
         .tar_gz => try extractTarGz(ctx, bytes, dest, strip_components),
-        .zip => try extractZip(ctx, bytes, dest_path, dest),
+        .zip => try extractZip(ctx, bytes, dest),
     }
 }
 
@@ -79,18 +79,26 @@ fn extractTarGzReader(ctx: *Context, input: *std.Io.Reader, dest: std.Io.Dir, st
     try std.tar.extract(ctx.io, dest, &gz.reader, .{ .strip_components = strip_components });
 }
 
-fn extractZip(ctx: *Context, bytes: []const u8, dest_path: []const u8, dest: std.Io.Dir) !void {
-    const archive_path = try std.fs.path.join(ctx.allocator, &.{ dest_path, ".download.zip" });
+fn extractZip(ctx: *Context, bytes: []const u8, dest: std.Io.Dir) !void {
+    const temp_dir = try common.fs.tempDir(ctx, "bootstrap-zip");
+    defer {
+        deleteTempDir(ctx, temp_dir);
+        ctx.allocator.free(temp_dir);
+    }
+
+    const archive_path = try std.fs.path.join(ctx.allocator, &.{ temp_dir, "archive.zip" });
     defer ctx.allocator.free(archive_path);
     errdefer deleteTempArchive(ctx, archive_path);
 
     try common.fs.writeFile(ctx.io, archive_path, bytes, .{ .read = true });
-    var file = try std.Io.Dir.cwd().openFile(ctx.io, archive_path, .{});
-    defer file.close(ctx.io);
+    {
+        var file = try std.Io.Dir.cwd().openFile(ctx.io, archive_path, .{});
+        defer file.close(ctx.io);
 
-    var read_buffer: [8192]u8 = undefined;
-    var reader = file.reader(ctx.io, &read_buffer);
-    try std.zip.extract(dest, &reader, .{});
+        var read_buffer: [8192]u8 = undefined;
+        var reader = file.reader(ctx.io, &read_buffer);
+        try std.zip.extract(dest, &reader, .{});
+    }
     try std.Io.Dir.cwd().deleteFile(ctx.io, archive_path);
 }
 
@@ -107,6 +115,10 @@ fn deleteTempArchive(ctx: *Context, archive_path: []const u8) void {
             .{ archive_path, @errorName(err) },
         ) catch return,
     };
+}
+
+fn deleteTempDir(ctx: *Context, path: []const u8) void {
+    common.fs.deleteTreeWarning(ctx.io, "temporary directory", path);
 }
 
 fn testingContext(env: *std.process.Environ.Map) Context {
@@ -130,7 +142,7 @@ fn tinyTarXzBytes() ![tiny_tar_xz_len]u8 {
     return bytes;
 }
 
-test "zip extraction cleans temporary archive after failure" {
+test "zip extraction does not stage archives inside the destination" {
     var env = std.process.Environ.Map.init(std.testing.allocator);
     defer env.deinit();
     var ctx = testingContext(&env);
@@ -142,15 +154,15 @@ test "zip extraction cleans temporary archive after failure" {
     defer ctx.allocator.free(dest);
     const temp_archive = try std.fs.path.join(ctx.allocator, &.{ dest, ".download.zip" });
     defer ctx.allocator.free(temp_archive);
+    try common.fs.writeFile(ctx.io, temp_archive, "keep", .{ .read = true });
 
     if (extract(&ctx, "not a zip archive", dest, .zip, 0)) {
         return error.TestExpectedError;
     } else |_| {}
 
-    try std.testing.expectError(
-        error.FileNotFound,
-        std.Io.Dir.cwd().access(ctx.io, temp_archive, .{}),
-    );
+    const retained = try std.Io.Dir.cwd().readFileAlloc(ctx.io, temp_archive, ctx.allocator, .limited(16));
+    defer ctx.allocator.free(retained);
+    try std.testing.expectEqualStrings("keep", retained);
 }
 
 test "tar xz extraction releases buffer when stream header is invalid" {

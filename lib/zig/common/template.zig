@@ -9,10 +9,12 @@ pub const Template = struct {
 
     pub fn validate(self: Template, allowed: []const []const u8) !void {
         var rest = self.value;
-        while (std.mem.findScalar(u8, rest, '{')) |open| {
-            const close_offset = std.mem.indexOfScalar(u8, rest[open + 1 ..], '}') orelse return error.InvalidTemplate;
+        while (std.mem.findAny(u8, rest, "{}")) |open| {
+            if (rest[open] == '}') return error.InvalidTemplate;
+            const close_offset = std.mem.findScalar(u8, rest[open + 1 ..], '}') orelse return error.InvalidTemplate;
             const close = open + 1 + close_offset;
             const name = rest[open + 1 .. close];
+            if (std.mem.findScalar(u8, name, '{') != null) return error.InvalidTemplate;
             if (!nameAllowed(name, allowed)) return error.UnknownTemplateVariable;
             rest = rest[close + 1 ..];
         }
@@ -23,11 +25,14 @@ pub const Template = struct {
         errdefer output.deinit(allocator);
 
         var rest = self.value;
-        while (std.mem.findScalar(u8, rest, '{')) |open| {
+        while (std.mem.findAny(u8, rest, "{}")) |open| {
+            if (rest[open] == '}') return error.InvalidTemplate;
             try output.appendSlice(allocator, rest[0..open]);
-            const close_offset = std.mem.indexOfScalar(u8, rest[open + 1 ..], '}') orelse return error.InvalidTemplate;
+            const close_offset = std.mem.findScalar(u8, rest[open + 1 ..], '}') orelse return error.InvalidTemplate;
             const close = open + 1 + close_offset;
-            try output.appendSlice(allocator, bindings.value(rest[open + 1 .. close]) orelse {
+            const name = rest[open + 1 .. close];
+            if (std.mem.findScalar(u8, name, '{') != null) return error.InvalidTemplate;
+            try output.appendSlice(allocator, bindings.value(name) orelse {
                 return error.UnknownTemplateVariable;
             });
             rest = rest[close + 1 ..];
@@ -69,15 +74,9 @@ pub const Bindings = struct {
     component: []const u8 = "",
 
     fn value(self: Bindings, name: []const u8) ?[]const u8 {
-        if (std.mem.eql(u8, name, "version")) return self.version;
-        if (std.mem.eql(u8, name, "platform")) return self.platform;
-        if (std.mem.eql(u8, name, "file")) return self.file;
-        if (std.mem.eql(u8, name, "bin_dir")) return self.bin_dir;
-        if (std.mem.eql(u8, name, "opt_dir")) return self.opt_dir;
-        if (std.mem.eql(u8, name, "home")) return self.home;
-        if (std.mem.eql(u8, name, "toolchain")) return self.toolchain;
-        if (std.mem.eql(u8, name, "manager_bin")) return self.manager_bin;
-        if (std.mem.eql(u8, name, "component")) return self.component;
+        inline for (@typeInfo(Bindings).@"struct".fields) |field| {
+            if (std.mem.eql(u8, name, field.name)) return @field(self, field.name);
+        }
         return null;
     }
 };
@@ -114,6 +113,18 @@ test "templates validate unknown placeholders" {
     try std.testing.expectError(
         error.InvalidTemplate,
         Template.literal("tool-{version.tar.gz").validate(&.{"version"}),
+    );
+    try std.testing.expectError(
+        error.InvalidTemplate,
+        Template.literal("tool-{version}.tar.gz}").validate(&.{"version"}),
+    );
+    try std.testing.expectError(
+        error.InvalidTemplate,
+        Template.literal("tool-{ver{sion}.tar.gz").validate(&.{"version"}),
+    );
+    try std.testing.expectError(
+        error.InvalidTemplate,
+        Template.literal("tool-{version}.tar.gz}").render(std.testing.allocator, .{ .version = "1.2.3" }),
     );
 }
 

@@ -8,6 +8,12 @@ pub const StatusPolicy = enum {
     not_client_or_server_error,
 };
 
+pub const StatusFailure = error{
+    HttpRequestFailed,
+    HttpClientError,
+    HttpServerError,
+};
+
 pub const RequestOptions = struct {
     method: std.http.Method = .GET,
     payload: ?[]const u8 = null,
@@ -33,6 +39,7 @@ pub const Client = struct {
     env: *const std.process.Environ.Map,
     proxy_arena: std.heap.ArenaAllocator,
     http: std.http.Client,
+    prepared: bool = false,
 
     pub fn init(rt: anytype) Client {
         return initWith(rt.allocator, rt.io, rt.env);
@@ -127,21 +134,50 @@ pub const Client = struct {
     }
 
     fn prepare(self: *Client) !void {
+        if (self.prepared) return;
         try self.http.initDefaultProxies(self.proxy_arena.allocator(), self.env);
         try loadEnvCertBundle(self.allocator, self.io, self.env, &self.http);
+        self.prepared = true;
     }
 };
 
 pub fn expectStatus(status: std.http.Status, policy: StatusPolicy) !void {
-    return switch (policy) {
-        .none => {},
-        .success => if (status.class() == .success) {} else error.HttpRequestFailed,
-        .not_client_or_server_error => if (!isHttpError(status)) {} else error.HttpRequestFailed,
-    };
+    if (statusFailure(status, policy)) |err| return err;
 }
 
 pub fn isHttpError(status: std.http.Status) bool {
     return status.class() == .client_error or status.class() == .server_error;
+}
+
+pub fn statusFailure(status: std.http.Status, policy: StatusPolicy) ?StatusFailure {
+    return switch (policy) {
+        .none => null,
+        .success => if (status.class() == .success) null else statusClassFailure(status),
+        .not_client_or_server_error => if (isHttpError(status)) statusClassFailure(status) else null,
+    };
+}
+
+fn statusClassFailure(status: std.http.Status) StatusFailure {
+    return switch (status.class()) {
+        .client_error => error.HttpClientError,
+        .server_error => error.HttpServerError,
+        else => error.HttpRequestFailed,
+    };
+}
+
+pub fn writeStatusFailure(
+    writer: *std.Io.Writer,
+    method: std.http.Method,
+    url: []const u8,
+    response: Response,
+) !void {
+    try writer.print("error: HTTP {s} {s} returned {d}: {s}\n", .{
+        @tagName(method),
+        url,
+        @intFromEnum(response.status),
+        response.body,
+    });
+    try writer.flush();
 }
 
 pub fn loadEnvCertBundle(
@@ -166,16 +202,36 @@ test "HTTP success status policy rejects anything outside 2xx" {
     try expectStatus(.ok, .success);
     try expectStatus(.no_content, .success);
     try std.testing.expectError(error.HttpRequestFailed, expectStatus(.moved_permanently, .success));
-    try std.testing.expectError(error.HttpRequestFailed, expectStatus(.not_found, .success));
-    try std.testing.expectError(error.HttpRequestFailed, expectStatus(.internal_server_error, .success));
+    try std.testing.expectError(error.HttpClientError, expectStatus(.not_found, .success));
+    try std.testing.expectError(error.HttpServerError, expectStatus(.internal_server_error, .success));
 }
 
 test "HTTP error status policy rejects only client and server failures" {
     try expectStatus(.ok, .not_client_or_server_error);
     try expectStatus(.temporary_redirect, .not_client_or_server_error);
-    try std.testing.expectError(error.HttpRequestFailed, expectStatus(.not_found, .not_client_or_server_error));
+    try std.testing.expectError(error.HttpClientError, expectStatus(.not_found, .not_client_or_server_error));
     try std.testing.expectError(
-        error.HttpRequestFailed,
+        error.HttpServerError,
         expectStatus(.internal_server_error, .not_client_or_server_error),
     );
+}
+
+test "HTTP status failures preserve response class" {
+    try std.testing.expectEqual(null, statusFailure(.ok, .success));
+    try std.testing.expectEqual(error.HttpRequestFailed, statusFailure(.moved_permanently, .success).?);
+    try std.testing.expectEqual(error.HttpClientError, statusFailure(.not_found, .success).?);
+    try std.testing.expectEqual(error.HttpServerError, statusFailure(.internal_server_error, .success).?);
+}
+
+test "HTTP client preparation is cached per client" {
+    var env = std.process.Environ.Map.init(std.testing.allocator);
+    defer env.deinit();
+
+    var client = Client.initWith(std.testing.allocator, std.testing.io, &env);
+    defer client.deinit();
+
+    try client.prepare();
+    try std.testing.expect(client.prepared);
+    try client.prepare();
+    try std.testing.expect(client.prepared);
 }

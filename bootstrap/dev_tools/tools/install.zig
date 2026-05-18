@@ -122,17 +122,19 @@ fn managedBinsPresent(ctx: *Context, tool: model.Tool) !bool {
 fn managedAppLinksPresent(ctx: *Context, tool: model.Tool) !bool {
     if (builtin.os.tag != .macos) return true;
 
-    const platforms = tool.action.platforms orelse return error.JsonFieldMissing;
+    const platforms = tool.action.platforms orelse return true;
     const selected = model.selectArchivePlatform(platforms) catch |err| switch (err) {
         error.UnsupportedPlatform => return true,
-        else => return err,
     };
     for (selected.app_links) |app_link| {
         const link_path = try std.fs.path.join(ctx.allocator, &.{ "/Applications", app_link.name });
         defer ctx.allocator.free(link_path);
 
         var old_buf: [4096]u8 = undefined;
-        const old_len = std.Io.Dir.cwd().readLink(ctx.io, link_path, &old_buf) catch return false;
+        const old_len = std.Io.Dir.cwd().readLink(ctx.io, link_path, &old_buf) catch |err| switch (err) {
+            error.FileNotFound, error.NotLink => return false,
+            else => return err,
+        };
         const old = old_buf[0..old_len];
         if (!std.fs.path.isAbsolute(old)) return false;
 

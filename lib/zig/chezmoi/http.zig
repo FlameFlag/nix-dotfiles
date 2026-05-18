@@ -60,13 +60,8 @@ pub const Client = struct {
         });
         errdefer response.deinit(self.allocator);
         if (common.http.isHttpError(response.status)) {
-            try self.rt.stderr.print("error: HTTP GET {s} returned {d}: {s}\n", .{
-                url,
-                @intFromEnum(response.status),
-                response.body,
-            });
-            try self.rt.stderr.flush();
-            return error.HttpRequestFailed;
+            try common.http.writeStatusFailure(self.rt.stderr, .GET, url, response);
+            return common.http.statusFailure(response.status, .not_client_or_server_error).?;
         }
 
         return response.body;

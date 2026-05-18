@@ -87,7 +87,7 @@ fn linuxDmiIdentifiesLenovo(ctx: *Context) !bool {
 }
 
 fn readTrimmedAbsolute(ctx: *Context, path: []const u8) !?[]u8 {
-    return fs.readTrimmedAlloc(ctx.allocator, ctx.io, path);
+    return fs.readTrimmedAllocOptional(ctx.allocator, ctx.io, path);
 }
 
 fn isWindowsLenovoLaptop(ctx: *Context) !bool {

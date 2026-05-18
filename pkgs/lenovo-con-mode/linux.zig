@@ -13,15 +13,15 @@ pub fn isSupported(allocator: std.mem.Allocator, io: std.Io) !bool {
 }
 
 fn isLenovoMachine(allocator: std.mem.Allocator, io: std.Io) !bool {
-    if (try common.fs.readTrimmedAlloc(allocator, io, constants.dmi_vendor_path)) |vendor| {
+    if (try common.fs.readTrimmedAllocOptional(allocator, io, constants.dmi_vendor_path)) |vendor| {
         defer allocator.free(vendor);
         if (isLenovoVendor(vendor)) return true;
     }
-    if (try common.fs.readTrimmedAlloc(allocator, io, constants.dmi_board_vendor_path)) |vendor| {
+    if (try common.fs.readTrimmedAllocOptional(allocator, io, constants.dmi_board_vendor_path)) |vendor| {
         defer allocator.free(vendor);
         if (isLenovoVendor(vendor)) return true;
     }
-    if (try common.fs.readTrimmedAlloc(allocator, io, constants.dmi_product_name_path)) |product| {
+    if (try common.fs.readTrimmedAllocOptional(allocator, io, constants.dmi_product_name_path)) |product| {
         defer allocator.free(product);
         if (std.ascii.findIgnoreCase(product, "lenovo") != null or
             std.ascii.findIgnoreCase(product, "legion") != null)

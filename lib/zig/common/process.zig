@@ -8,8 +8,14 @@ const output_limit = 64 * 1024 * 1024;
 const default_path = "/usr/local/bin:/bin:/usr/bin";
 const default_windows_pathext = ".COM;.EXE;.BAT;.CMD";
 
+pub const CommandFailure = error{
+    CommandFailed,
+    CommandTerminated,
+};
+
 pub const CommandResult = struct {
     exit_code: u8,
+    term: std.process.Child.Term,
     stdout: []u8,
     stderr: []u8,
 
@@ -18,6 +24,24 @@ pub const CommandResult = struct {
         allocator.free(self.stdout);
         allocator.free(self.stderr);
         self.* = undefined;
+    }
+
+    pub fn exitedCode(self: CommandResult) ?u8 {
+        return switch (self.term) {
+            .exited => |code| code,
+            else => null,
+        };
+    }
+
+    pub fn succeeded(self: CommandResult) bool {
+        return self.exitedCode() == 0;
+    }
+
+    pub fn failureError(self: CommandResult) ?CommandFailure {
+        return switch (self.term) {
+            .exited => |code| if (code == 0) null else error.CommandFailed,
+            else => error.CommandTerminated,
+        };
     }
 };
 
@@ -100,7 +124,7 @@ pub fn runInCwd(rt: anytype, cwd: std.process.Child.Cwd, argv: []const []const u
     const term = try child.wait(rt.io);
     switch (term) {
         .exited => |code| if (code == 0) return,
-        else => {},
+        .signal, .stopped, .unknown => return error.CommandTerminated,
     }
     return error.CommandFailed;
 }
@@ -115,10 +139,8 @@ pub fn capture(rt: anytype, argv: []const []const u8) !CommandResult {
         .stderr_limit = .limited(output_limit),
     });
     return .{
-        .exit_code = switch (result.term) {
-            .exited => |code| code,
-            else => 1,
-        },
+        .exit_code = exitCodeOrFailure(result.term),
+        .term = result.term,
         .stdout = result.stdout,
         .stderr = result.stderr,
     };
@@ -130,9 +152,9 @@ pub fn capture(rt: anytype, argv: []const []const u8) !CommandResult {
 pub fn text(rt: anytype, argv: []const []const u8) ![]u8 {
     const result = try capture(rt, argv);
     defer rt.allocator.free(result.stderr);
-    if (result.exit_code != 0) {
+    if (result.failureError()) |err| {
         rt.allocator.free(result.stdout);
-        return error.CommandFailed;
+        return err;
     }
     return result.stdout;
 }
@@ -144,6 +166,13 @@ pub fn trimmedText(rt: anytype, argv: []const []const u8) ![]u8 {
     const raw = try text(rt, argv);
     defer rt.allocator.free(raw);
     return rt.allocator.dupe(u8, fs.trimAsciiWhitespace(raw));
+}
+
+fn exitCodeOrFailure(term: std.process.Child.Term) u8 {
+    return switch (term) {
+        .exited => |code| code,
+        .signal, .stopped, .unknown => 1,
+    };
 }
 
 const TestRuntime = struct {
@@ -226,4 +255,36 @@ test "hasBin accepts executables found in PATH and direct executable paths" {
 
     try std.testing.expect(try hasBin(rt, "tool"));
     try std.testing.expect(try hasBin(rt, executable_path));
+}
+
+test "command result exposes the raw termination status" {
+    const success: CommandResult = .{
+        .exit_code = 0,
+        .term = .{ .exited = 0 },
+        .stdout = &.{},
+        .stderr = &.{},
+    };
+    try std.testing.expect(success.succeeded());
+    try std.testing.expectEqual(null, success.failureError());
+    try std.testing.expectEqual(@as(?u8, 0), success.exitedCode());
+
+    const failed: CommandResult = .{
+        .exit_code = 7,
+        .term = .{ .exited = 7 },
+        .stdout = &.{},
+        .stderr = &.{},
+    };
+    try std.testing.expect(!failed.succeeded());
+    try std.testing.expect(failed.failureError().? == error.CommandFailed);
+    try std.testing.expectEqual(@as(?u8, 7), failed.exitedCode());
+
+    const terminated: CommandResult = .{
+        .exit_code = 1,
+        .term = .{ .unknown = 1 },
+        .stdout = &.{},
+        .stderr = &.{},
+    };
+    try std.testing.expect(!terminated.succeeded());
+    try std.testing.expect(terminated.failureError().? == error.CommandTerminated);
+    try std.testing.expectEqual(null, terminated.exitedCode());
 }

@@ -6,7 +6,6 @@ const Context = @import("context.zig").Context;
 const http = @import("http.zig");
 const manifest = @import("manifest.zig");
 const fs = common.fs;
-const output = common.output;
 const proc = common.process;
 
 pub fn installOrUpdate(ctx: *Context, spec: manifest.Toolchain) !void {
@@ -158,12 +157,7 @@ fn removeDownloadedScript(ctx: *Context, script: []u8) void {
 }
 
 fn deleteTreeWarning(ctx: *Context, dir: []const u8) void {
-    std.Io.Dir.cwd().deleteTree(ctx.io, dir) catch |err| {
-        output.stderr(ctx.io, "warning: failed to delete temporary installer directory {s}: {s}\n", .{
-            dir,
-            @errorName(err),
-        }) catch return;
-    };
+    common.fs.deleteTreeWarning(ctx.io, "temporary installer directory", dir);
 }
 
 fn executableName(ctx: *Context, name: []const u8) ![]u8 {

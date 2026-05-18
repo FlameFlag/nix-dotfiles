@@ -51,23 +51,42 @@ pub fn trimAsciiWhitespace(bytes: []const u8) []const u8 {
 
 /// Reads a small text file and returns a trimmed view into `buffer`.
 ///
-/// Missing or inaccessible files return `null`; other I/O errors are preserved.
+/// Missing files return `null`; permission and other I/O errors are preserved.
 pub fn readTrimmed(io: std.Io, path: []const u8, buffer: []u8) !?[]const u8 {
     const contents = std.Io.Dir.cwd().readFile(io, path, buffer) catch |err| switch (err) {
-        error.FileNotFound, error.AccessDenied => return null,
+        error.FileNotFound => return null,
         else => return err,
     };
     return trimAsciiWhitespace(contents);
 }
 
+/// Reads a small text file for host probing and returns a trimmed view into `buffer`.
+///
+/// Missing or inaccessible files return `null`; other I/O errors are preserved.
+pub fn readTrimmedOptional(io: std.Io, path: []const u8, buffer: []u8) !?[]const u8 {
+    return readTrimmed(io, path, buffer) catch |err| switch (err) {
+        error.AccessDenied => null,
+        else => return err,
+    };
+}
+
 /// Reads a small text file and returns an owned trimmed copy.
 ///
-/// Missing or inaccessible files return `null`.
+/// Missing files return `null`; permission and other I/O errors are preserved.
 pub fn readTrimmedAlloc(allocator: std.mem.Allocator, io: std.Io, path: []const u8) !?[]u8 {
     var buffer: [256]u8 = undefined;
     const contents = try readTrimmed(io, path, &buffer) orelse return null;
     const owned = try allocator.dupe(u8, contents);
     return owned;
+}
+
+/// Reads a small text file for host probing and returns an owned trimmed copy.
+///
+/// Missing or inaccessible files return `null`.
+pub fn readTrimmedAllocOptional(allocator: std.mem.Allocator, io: std.Io, path: []const u8) !?[]u8 {
+    var buffer: [256]u8 = undefined;
+    const contents = try readTrimmedOptional(io, path, &buffer) orelse return null;
+    return @as(?[]u8, try allocator.dupe(u8, contents));
 }
 
 /// Writes `contents` to `path`, creating parent directories when needed.
@@ -88,6 +107,13 @@ pub fn writeExecutableFile(io: std.Io, path: []const u8, contents: []const u8) !
     if (builtin.os.tag != .windows) {
         try std.Io.Dir.cwd().setFilePermissions(io, path, .executable_file, .{});
     }
+}
+
+/// Deletes a directory tree during cleanup, logging a warning on failure.
+pub fn deleteTreeWarning(io: std.Io, comptime label: []const u8, path: []const u8) void {
+    std.Io.Dir.cwd().deleteTree(io, path) catch |err| {
+        std.log.warn("failed to delete " ++ label ++ " {s}: {s}", .{ path, @errorName(err) });
+    };
 }
 
 /// Extracts a gzip-compressed tar archive to `dest_path`.
@@ -328,6 +354,18 @@ test "readTrimmed and writeExecutableFile use std file helpers" {
     defer rt.allocator.free(owned_trimmed);
     try std.testing.expectEqualStrings("ok", owned_trimmed);
     try std.Io.Dir.cwd().access(rt.io, path, .{ .execute = true });
+}
+
+test "readTrimmed optional variant is explicit for missing probe files" {
+    var env_map = std.process.Environ.Map.init(std.testing.allocator);
+    defer env_map.deinit();
+    const rt = testRuntime(&env_map);
+
+    var buffer: [32]u8 = undefined;
+    try std.testing.expectEqual(null, try readTrimmed(rt.io, "missing-probe-file", &buffer));
+    try std.testing.expectEqual(null, try readTrimmedOptional(rt.io, "missing-probe-file", &buffer));
+    try std.testing.expectEqual(null, try readTrimmedAlloc(rt.allocator, rt.io, "missing-probe-file"));
+    try std.testing.expectEqual(null, try readTrimmedAllocOptional(rt.allocator, rt.io, "missing-probe-file"));
 }
 
 test "tempDir honors TMPDIR trims trailing slashes and creates unique directories" {

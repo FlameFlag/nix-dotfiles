@@ -10,6 +10,11 @@ const cf_utf8 = 0x08000100;
 const cf_url_posix_path_style = 0;
 const ls_launch_defaults = 0x00000001;
 const ls_launch_dont_switch = 0x00000200;
+const err_sec_user_canceled = -128;
+const err_sec_auth_failed = -25293;
+const err_sec_item_not_found = -25300;
+const err_sec_interaction_not_allowed = -25308;
+const k_ls_application_not_found_err = -10814;
 const proc_all_pids = 1;
 const proc_pidpathinfo_maxsize = 4096;
 const proc_list_growth_slack = 256;
@@ -258,7 +263,7 @@ pub const Security = struct {
             &password_data,
             null,
         );
-        if (status != 0) return error.KeychainPasswordNotFound;
+        try expectKeychainStatus(status);
         defer _ = self.free_content(null, password_data);
 
         return copyTrimmedPassword(allocator, password_data, password_len);
@@ -311,7 +316,7 @@ pub const LaunchServices = struct {
             .async_ref_con = null,
         };
         const status = self.open_from_url_spec(&launch_spec, null);
-        if (status != 0) return error.ApplicationLaunchFailed;
+        try expectLaunchStatus(status);
     }
 };
 
@@ -368,6 +373,25 @@ fn copyTrimmedPassword(allocator: Allocator, password_data: ?*anyopaque, passwor
     return allocator.dupe(u8, key);
 }
 
+fn expectKeychainStatus(status: i32) !void {
+    return switch (status) {
+        0 => {},
+        err_sec_item_not_found => error.KeychainPasswordNotFound,
+        err_sec_auth_failed => error.KeychainAuthenticationFailed,
+        err_sec_interaction_not_allowed => error.KeychainInteractionNotAllowed,
+        err_sec_user_canceled => error.KeychainUserCanceled,
+        else => error.KeychainFailed,
+    };
+}
+
+fn expectLaunchStatus(status: i32) !void {
+    return switch (status) {
+        0 => {},
+        k_ls_application_not_found_err => error.ApplicationNotFound,
+        else => error.ApplicationLaunchFailed,
+    };
+}
+
 fn dynLookup(comptime T: type, comptime name: [:0]const u8, lib: *std.DynLib) !T {
     return lib.lookup(T, name) orelse error.DynamicSymbolMissing;
 }
@@ -388,6 +412,22 @@ test "copyTrimmedPassword copies keychain bytes and rejects empty secrets" {
         error.KeychainPasswordNotFound,
         copyTrimmedPassword(std.testing.allocator, &blank, blank.len),
     );
+}
+
+test "macOS OSStatus helpers preserve actionable error causes" {
+    try expectKeychainStatus(0);
+    try std.testing.expectError(error.KeychainPasswordNotFound, expectKeychainStatus(err_sec_item_not_found));
+    try std.testing.expectError(error.KeychainAuthenticationFailed, expectKeychainStatus(err_sec_auth_failed));
+    try std.testing.expectError(
+        error.KeychainInteractionNotAllowed,
+        expectKeychainStatus(err_sec_interaction_not_allowed),
+    );
+    try std.testing.expectError(error.KeychainUserCanceled, expectKeychainStatus(err_sec_user_canceled));
+    try std.testing.expectError(error.KeychainFailed, expectKeychainStatus(-1));
+
+    try expectLaunchStatus(0);
+    try std.testing.expectError(error.ApplicationNotFound, expectLaunchStatus(k_ls_application_not_found_err));
+    try std.testing.expectError(error.ApplicationLaunchFailed, expectLaunchStatus(-1));
 }
 
 test "appendPidIfPathMatches filters exact executable path" {

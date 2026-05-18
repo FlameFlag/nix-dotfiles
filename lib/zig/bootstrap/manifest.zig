@@ -457,36 +457,47 @@ fn validateArchiveAction(ctx: *Context, tool: Tool, tool_index: usize) !void {
                 .{ tool_index, platform_index },
             );
         }
-        if (case.links.len == 0) {
-            return fail(
-                "tools[{d}].action.platforms[{d}].links: must not be empty",
-                ctx,
-                .{ tool_index, platform_index },
-            );
+        try validateLinks(
+            "tools[{d}].action.platforms[{d}].links",
+            true,
+            ctx,
+            case.links,
+            .{ tool_index, platform_index },
+        );
+        try validateLinks(
+            "tools[{d}].action.platforms[{d}].app_links",
+            false,
+            ctx,
+            case.app_links,
+            .{ tool_index, platform_index },
+        );
+    }
+}
+
+fn validateLinks(
+    comptime path_fmt: []const u8,
+    comptime require_non_empty: bool,
+    ctx: *Context,
+    entries: []const Link,
+    args: anytype,
+) !void {
+    if (require_non_empty and entries.len == 0) {
+        return fail(path_fmt ++ ": must not be empty", ctx, args);
+    }
+    for (entries, 0..) |link, link_index| {
+        if (link.name.len == 0) {
+            return fail(path_fmt ++ "[{d}].name: must not be empty", ctx, args ++ .{link_index});
         }
-        for (case.links, 0..) |link, link_index| {
-            if (link.name.len == 0) {
-                return fail(
-                    "tools[{d}].action.platforms[{d}].links[{d}].name: must not be empty",
-                    ctx,
-                    .{ tool_index, platform_index, link_index },
-                );
-            }
-            if (link.path.len == 0) {
-                return fail(
-                    "tools[{d}].action.platforms[{d}].links[{d}].path: must not be empty",
-                    ctx,
-                    .{ tool_index, platform_index, link_index },
-                );
-            }
-            try validateTemplate(
-                "tools[{d}].action.platforms[{d}].links[{d}].path",
-                ctx,
-                link.path,
-                .{ tool_index, platform_index, link_index },
-                &.{ "version", "platform" },
-            );
+        if (link.path.len == 0) {
+            return fail(path_fmt ++ "[{d}].path: must not be empty", ctx, args ++ .{link_index});
         }
+        try validateTemplate(
+            path_fmt ++ "[{d}].path",
+            ctx,
+            link.path,
+            args ++ .{link_index},
+            &.{ "version", "platform" },
+        );
     }
 }
 
@@ -533,30 +544,41 @@ fn validateSource(comptime path_fmt: []const u8, ctx: *Context, source: Source, 
         .github_latest => {
             if (source.repo == null) return fail(path_fmt ++ ".repo: required for github_latest sources", ctx, args);
             if (source.asset == null) return fail(path_fmt ++ ".asset: required for github_latest sources", ctx, args);
-            if (source.version != null or source.url != null or source.argv != null or source.index_url != null) {
-                return fail(path_fmt ++ ": contains fields that do not apply to github_latest sources", ctx, args);
-            }
+            try rejectUnsupportedSourceFields(
+                path_fmt,
+                "github_latest",
+                ctx,
+                source,
+                args,
+                .{ .repo = true, .tag_prefix = true, .asset = true },
+            );
             try validateTemplate(path_fmt ++ ".asset", ctx, source.asset.?, args, &.{ "version", "platform" });
         },
         .direct => {
             if (source.version == null) return fail(path_fmt ++ ".version: required for direct sources", ctx, args);
             if (source.url == null) return fail(path_fmt ++ ".url: required for direct sources", ctx, args);
-            if (source.repo != null or source.asset != null or
-                source.argv != null or source.index_url != null or source.tag_prefix.len != 0)
-            {
-                return fail(path_fmt ++ ": contains fields that do not apply to direct sources", ctx, args);
-            }
+            try rejectUnsupportedSourceFields(
+                path_fmt,
+                "direct",
+                ctx,
+                source,
+                args,
+                .{ .version = true, .url = true },
+            );
             try validateTemplate(path_fmt ++ ".url", ctx, source.url.?, args, &.{ "version", "platform" });
         },
         .command => {
             if (source.argv == null) return fail(path_fmt ++ ".argv: required for command sources", ctx, args);
             if (source.argv.?.len == 0) return fail(path_fmt ++ ".argv: must not be empty", ctx, args);
             if (source.url == null) return fail(path_fmt ++ ".url: required for command sources", ctx, args);
-            if (source.repo != null or source.asset != null or
-                source.version != null or source.index_url != null or source.tag_prefix.len != 0)
-            {
-                return fail(path_fmt ++ ": contains fields that do not apply to command sources", ctx, args);
-            }
+            try rejectUnsupportedSourceFields(
+                path_fmt,
+                "command",
+                ctx,
+                source,
+                args,
+                .{ .argv = true, .url = true },
+            );
             for (source.argv.?, 0..) |arg, arg_index| {
                 if (arg.len == 0) {
                     return fail(path_fmt ++ ".argv[{d}]: must not be empty", ctx, args ++ .{arg_index});
@@ -569,14 +591,57 @@ fn validateSource(comptime path_fmt: []const u8, ctx: *Context, source: Source, 
                 return fail(path_fmt ++ ".index_url: required for node_latest sources", ctx, args);
             }
             if (source.url == null) return fail(path_fmt ++ ".url: required for node_latest sources", ctx, args);
-            if (source.repo != null or source.asset != null or
-                source.version != null or source.argv != null or source.tag_prefix.len != 0)
-            {
-                return fail(path_fmt ++ ": contains fields that do not apply to node_latest sources", ctx, args);
-            }
+            try rejectUnsupportedSourceFields(
+                path_fmt,
+                "node_latest",
+                ctx,
+                source,
+                args,
+                .{ .index_url = true, .url = true },
+            );
             try validateTemplate(path_fmt ++ ".url", ctx, source.url.?, args, &.{ "version", "platform" });
         },
     }
+}
+
+const SourceFields = struct {
+    repo: bool = false,
+    tag_prefix: bool = false,
+    asset: bool = false,
+    version: bool = false,
+    url: bool = false,
+    argv: bool = false,
+    index_url: bool = false,
+};
+
+fn rejectUnsupportedSourceFields(
+    comptime path_fmt: []const u8,
+    comptime source_type: []const u8,
+    ctx: *Context,
+    source: Source,
+    args: anytype,
+    allowed: SourceFields,
+) !void {
+    if (!allowed.repo and source.repo != null) return unsupportedSourceField(path_fmt, source_type, ctx, args);
+    if (!allowed.tag_prefix and source.tag_prefix.len != 0) {
+        return unsupportedSourceField(path_fmt, source_type, ctx, args);
+    }
+    if (!allowed.asset and source.asset != null) return unsupportedSourceField(path_fmt, source_type, ctx, args);
+    if (!allowed.version and source.version != null) return unsupportedSourceField(path_fmt, source_type, ctx, args);
+    if (!allowed.url and source.url != null) return unsupportedSourceField(path_fmt, source_type, ctx, args);
+    if (!allowed.argv and source.argv != null) return unsupportedSourceField(path_fmt, source_type, ctx, args);
+    if (!allowed.index_url and source.index_url != null) {
+        return unsupportedSourceField(path_fmt, source_type, ctx, args);
+    }
+}
+
+fn unsupportedSourceField(
+    comptime path_fmt: []const u8,
+    comptime source_type: []const u8,
+    ctx: *Context,
+    args: anytype,
+) error{InvalidManifest} {
+    return fail(path_fmt ++ ": contains fields that do not apply to " ++ source_type ++ " sources", ctx, args);
 }
 
 fn validateTemplate(
@@ -693,6 +758,42 @@ test "archive spec maps manifest links and direct source" {
     try std.testing.expectEqualStrings("bin/demo", spec.links[0].path.value);
     try std.testing.expectEqual(@as(usize, 1), spec.app_links.len);
     try std.testing.expectEqualStrings("Demo.app", spec.app_links[0].path.value);
+}
+
+test "archive validation checks app link templates" {
+    var env = std.process.Environ.Map.init(std.testing.allocator);
+    defer env.deinit();
+    var ctx = testingContext(&env);
+
+    const json =
+        \\{
+        \\  "tools": [{
+        \\    "name": "demo",
+        \\    "bins": [{"name": "demo", "version_argv": ["demo", "--version"]}],
+        \\    "action": {
+        \\      "type": "archive",
+        \\      "source": {
+        \\        "type": "direct",
+        \\        "version": "1.0.0",
+        \\        "url": "https://example.test/demo.tar.gz"
+        \\      },
+        \\      "platforms": [{
+        \\        "when": {},
+        \\        "platform": "demo-platform",
+        \\        "kind": "tar_gz",
+        \\        "strip_components": 1,
+        \\        "links": [{"name": "demo", "path": "bin/demo"}],
+        \\        "app_links": [{"name": "Demo.app", "path": "{unknown}.app"}]
+        \\      }]
+        \\    }
+        \\  }]
+        \\}
+    ;
+
+    var parsed = try std.json.parseFromSlice(ManifestJson, ctx.allocator, json, .{});
+    defer parsed.deinit();
+
+    try std.testing.expectError(error.InvalidManifest, validate(&ctx, parsed.value));
 }
 
 test "archive platform source overrides action source" {

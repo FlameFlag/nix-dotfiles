@@ -23,26 +23,25 @@ pub const BuildConfig = struct {
 };
 
 pub const ModuleRegistry = struct {
-    items: std.EnumArray(ModuleKey, ?*std.Build.Module) = .initFill(null),
-
-    fn put(registry: *ModuleRegistry, key: ModuleKey, module: *std.Build.Module) void {
-        registry.items.set(key, module);
-    }
+    common: *std.Build.Module,
+    chezmoi: *std.Build.Module,
+    bootstrap: *std.Build.Module,
 
     pub fn get(registry: ModuleRegistry, key: ModuleKey) *std.Build.Module {
-        return registry.items.get(key) orelse @panic("module registry is missing an entry");
+        return switch (key) {
+            .common => registry.common,
+            .chezmoi => registry.chezmoi,
+            .bootstrap => registry.bootstrap,
+        };
     }
 };
 
 pub fn addModules(b: *std.Build, config: BuildConfig, test_step: *std.Build.Step) ModuleRegistry {
-    var registry: ModuleRegistry = .{};
-
     const common = common_build.createModule(b, .{
         .root_source_file = b.path(common_build.repo_root_source_file),
         .target = config.target,
         .optimize = config.optimize,
     });
-    registry.put(.common, common);
     _ = addModuleTest(b, test_step, "test-common", common);
 
     const chezmoi = chezmoi_build.createModule(b, .{
@@ -51,7 +50,6 @@ pub fn addModules(b: *std.Build, config: BuildConfig, test_step: *std.Build.Step
         .target = config.target,
         .optimize = config.optimize,
     });
-    registry.put(.chezmoi, chezmoi);
     _ = addModuleTest(b, test_step, "test-chezmoi", chezmoi);
 
     const bootstrap = bootstrap_build.createModule(b, .{
@@ -60,10 +58,13 @@ pub fn addModules(b: *std.Build, config: BuildConfig, test_step: *std.Build.Step
         .target = config.target,
         .optimize = config.optimize,
     });
-    registry.put(.bootstrap, bootstrap);
     _ = addModuleTest(b, test_step, "test-bootstrap", bootstrap);
 
-    return registry;
+    return .{
+        .common = common,
+        .chezmoi = chezmoi,
+        .bootstrap = bootstrap,
+    };
 }
 
 pub fn addModuleTest(

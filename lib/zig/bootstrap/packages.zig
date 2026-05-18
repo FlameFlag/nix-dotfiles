@@ -1,4 +1,5 @@
 const std = @import("std");
+const builtin = @import("builtin");
 const common = @import("common");
 
 const Context = @import("context.zig").Context;
@@ -54,10 +55,10 @@ const Uv = struct {
         var uv = Uv.init(ctx.allocator);
         errdefer uv.deinit(ctx);
 
-        uv.tool_list = proc.trimmedText(ctx, &.{ "uv", "tool", "list", "--show-paths" }) catch |err| switch (err) {
-            error.FileNotFound, error.CommandFailed => return uv,
-            else => return err,
-        };
+        const uv_path = try proc.pathOf(ctx, "uv") orelse return uv;
+        defer ctx.allocator.free(uv_path);
+
+        uv.tool_list = try proc.trimmedText(ctx, &.{ uv_path, "tool", "list", "--show-paths" });
         try uv.parse();
         return uv;
     }
@@ -108,6 +109,10 @@ fn testingContext(env: *std.process.Environ.Map) Context {
     };
 }
 
+fn tmpPath(allocator: std.mem.Allocator, tmp: std.testing.TmpDir, parts: []const []const u8) ![]u8 {
+    return common.testing.tmpPath(allocator, tmp, parts);
+}
+
 test "package inventory parses uv-managed bins once into a map" {
     var env = std.process.Environ.Map.init(std.testing.allocator);
     defer env.deinit();
@@ -126,4 +131,33 @@ test "package inventory parses uv-managed bins once into a map" {
     try std.testing.expect(inventory.binIsManaged(package, "ruff", "/Users/example/.local/bin/ruff"));
     try std.testing.expect(inventory.binIsManaged(package, "ruff-lsp", "/Users/example/.local/bin/ruff-lsp"));
     try std.testing.expect(!inventory.binIsManaged(package, "ruff", "/usr/bin/ruff"));
+}
+
+test "uv inventory ignores missing uv and propagates failing uv" {
+    if (comptime builtin.os.tag == .windows) return;
+
+    var env = std.process.Environ.Map.init(std.testing.allocator);
+    defer env.deinit();
+    var ctx = testingContext(&env);
+
+    try env.put("PATH", "");
+    var missing = try Uv.collect(&ctx);
+    defer missing.deinit(&ctx);
+    try std.testing.expectEqual(@as(usize, 0), missing.bins.count());
+
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+
+    const bin_dir = try tmpPath(ctx.allocator, tmp, &.{"bin"});
+    defer ctx.allocator.free(bin_dir);
+    const uv_path = try tmpPath(ctx.allocator, tmp, &.{ "bin", "uv" });
+    defer ctx.allocator.free(uv_path);
+    try common.fs.writeExecutableFile(ctx.io, uv_path,
+        \\#!/bin/sh
+        \\exit 42
+        \\
+    );
+    try env.put("PATH", bin_dir);
+
+    try std.testing.expectError(error.CommandFailed, Uv.collect(&ctx));
 }

@@ -169,9 +169,7 @@ fn linkApplications(ctx: *Context, install_dir: []const u8, entries: []const lin
 }
 
 fn deleteTreeQuiet(ctx: *Context, path: []const u8) void {
-    std.Io.Dir.cwd().deleteTree(ctx.io, path) catch |err| {
-        std.log.debug("failed to delete temporary directory {s}: {s}", .{ path, @errorName(err) });
-    };
+    fs.deleteTreeWarning(ctx.io, "temporary directory", path);
 }
 
 fn repairExecutablePermissions(ctx: *Context, root: []const u8) !void {
