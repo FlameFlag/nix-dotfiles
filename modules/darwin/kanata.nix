@@ -4,10 +4,23 @@
   ...
 }:
 let
+  kanataPackage = pkgs.kanata-with-cmd;
+  karabinerDriver = kanataPackage.passthru.darwinDriver;
+  plist = pkgs.formats.plist { };
+
+  kanataLabel = "org.nixos.kanata";
   kanataApp = "/Applications/Kanata.app";
   kanataStableBinary = "${kanataApp}/Contents/MacOS/kanata";
   kanataConfig = ../../dotfiles/dot_config/kanata/kanata-macos.kbd;
-  karabinerVirtualHidDaemon = "/Library/Application Support/org.pqrs/Karabiner-DriverKit-VirtualHIDDevice/Applications/Karabiner-VirtualHIDDevice-Daemon.app/Contents/MacOS/Karabiner-VirtualHIDDevice-Daemon";
+  kanataLaunchdPlist = "/Library/LaunchDaemons/${kanataLabel}.plist";
+  kanataLog = "/var/log/kanata.log";
+
+  karabinerVirtualHidLabel = "org.pqrs.service.daemon.Karabiner-VirtualHIDDevice-Daemon";
+  karabinerDriverSupport = "${karabinerDriver}/Library/Application Support/org.pqrs/Karabiner-DriverKit-VirtualHIDDevice";
+  karabinerVirtualHidDaemon = "${karabinerDriverSupport}/Applications/Karabiner-VirtualHIDDevice-Daemon.app/Contents/MacOS/Karabiner-VirtualHIDDevice-Daemon";
+  karabinerVirtualHidLogDir = "/var/log/karabiner";
+  karabinerVirtualHidLog = "${karabinerVirtualHidLogDir}/virtual_hid_device_service.log";
+
   kanataSigningIdentity = "Kanata Local Code Signing";
   kanataSigningKeychain = "/Library/Keychains/System.keychain";
   kanataSigningOpenSslConfig = pkgs.writeText "kanata-codesign-openssl.cnf" ''
@@ -22,18 +35,16 @@ let
     extendedKeyUsage = codeSigning
     basicConstraints = critical, CA:false
   '';
-  kanataInfoPlist = pkgs.writeText "Kanata-Info.plist" (
-    lib.generators.toPlist { escape = true; } {
-      CFBundleDisplayName = "Kanata";
-      CFBundleExecutable = "kanata";
-      CFBundleIdentifier = "org.nixos.kanata";
-      CFBundleName = "Kanata";
-      CFBundlePackageType = "APPL";
-      CFBundleShortVersionString = "1.0";
-      CFBundleVersion = "1";
-      LSUIElement = true;
-    }
-  );
+  kanataInfoPlist = plist.generate "Kanata-Info.plist" {
+    CFBundleDisplayName = "Kanata";
+    CFBundleExecutable = "kanata";
+    CFBundleIdentifier = kanataLabel;
+    CFBundleName = "Kanata";
+    CFBundlePackageType = "APPL";
+    CFBundleShortVersionString = "1.0";
+    CFBundleVersion = "1";
+    LSUIElement = true;
+  };
   keepAliveUnlessStopped = {
     Crashed = true;
     SuccessfulExit = false;
@@ -41,13 +52,14 @@ let
 in
 {
   environment.systemPackages = [
-    pkgs.kanata-with-cmd
-    pkgs.kanata-with-cmd.passthru.darwinDriver
+    kanataPackage
+    karabinerDriver
   ];
 
   system.activationScripts.extraActivation.text = lib.modules.mkAfter ''
     install -d -m 0755 -o root -g wheel ${kanataApp}/Contents/MacOS
-    install -m 0755 -o root -g wheel ${lib.meta.getExe pkgs.kanata-with-cmd} ${kanataStableBinary}
+    install -d -m 0755 -o root -g wheel ${karabinerVirtualHidLogDir}
+    install -m 0755 -o root -g wheel ${lib.meta.getExe kanataPackage} ${kanataStableBinary}
     install -m 0644 -o root -g wheel ${kanataInfoPlist} ${kanataApp}/Contents/Info.plist
     chmod 0644 ${kanataApp}/Contents/Info.plist
     chown -R root:wheel ${kanataApp}
@@ -72,10 +84,10 @@ in
   '';
 
   system.activationScripts.postActivation.text = lib.modules.mkAfter ''
-    if [ -f /Library/LaunchDaemons/org.nixos.kanata.plist ]; then
-      launchctl bootstrap system /Library/LaunchDaemons/org.nixos.kanata.plist 2>/dev/null || true
-      launchctl enable system/org.nixos.kanata 2>/dev/null || true
-      launchctl kickstart -k system/org.nixos.kanata 2>/dev/null || true
+    if [ -f ${kanataLaunchdPlist} ]; then
+      launchctl bootstrap system ${kanataLaunchdPlist} 2>/dev/null || true
+      launchctl enable system/${kanataLabel} 2>/dev/null || true
+      launchctl kickstart -k system/${kanataLabel} 2>/dev/null || true
     fi
   '';
 
@@ -88,18 +100,18 @@ in
     RunAtLoad = true;
     KeepAlive = keepAliveUnlessStopped;
     ProcessType = "Interactive";
-    StandardOutPath = "/var/log/kanata.log";
-    StandardErrorPath = "/var/log/kanata.log";
+    StandardOutPath = kanataLog;
+    StandardErrorPath = kanataLog;
   };
 
   launchd.daemons.karabiner-virtualhiddevice-daemon.serviceConfig = {
-    Label = "org.pqrs.service.daemon.Karabiner-VirtualHIDDevice-Daemon";
+    Label = karabinerVirtualHidLabel;
     ProgramArguments = [
       karabinerVirtualHidDaemon
     ];
     KeepAlive = true;
     ProcessType = "Interactive";
-    StandardOutPath = "/var/log/karabiner/virtual_hid_device_service.log";
-    StandardErrorPath = "/var/log/karabiner/virtual_hid_device_service.log";
+    StandardOutPath = karabinerVirtualHidLog;
+    StandardErrorPath = karabinerVirtualHidLog;
   };
 }
