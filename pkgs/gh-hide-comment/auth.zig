@@ -29,7 +29,12 @@ fn ghCliToken(allocator: std.mem.Allocator, io: std.Io, stderr: *std.Io.Writer) 
     defer result.deinit(allocator);
 
     if (result.exit_code == 0) {
-        return allocator.dupe(u8, common.fs.trimAsciiWhitespace(result.stdout));
+        const trimmed = common.fs.trimAsciiWhitespace(result.stdout);
+        if (trimmed.len > 0) return allocator.dupe(u8, trimmed);
+
+        try stderr.print("error: gh auth token returned an empty token\n", .{});
+        try stderr.flush();
+        return error.AuthTokenFailed;
     }
 
     const message = common.fs.trimAsciiWhitespace(result.stderr);
@@ -42,11 +47,12 @@ fn ghCliToken(allocator: std.mem.Allocator, io: std.Io, stderr: *std.Io.Writer) 
     return error.AuthTokenFailed;
 }
 
-test "envToken copies non-empty tokens only" {
+test "token prefers trimmed environment tokens" {
     var map = std.process.Environ.Map.init(std.testing.allocator);
     defer map.deinit();
-    try map.put("GH_TOKEN", "secret");
+    try map.put("GH_TOKEN", " \tsecret\n");
     try map.put("EMPTY", "");
+    try map.put("WHITESPACE", " \r\n\t");
 
     const rt: Runtime = .{ .allocator = std.testing.allocator, .env = &map };
     const value = try common.env.nonEmptyOrNull(rt, "GH_TOKEN") orelse return error.TestExpectedEnvValue;
@@ -54,5 +60,6 @@ test "envToken copies non-empty tokens only" {
     try std.testing.expectEqualStrings("secret", value);
 
     try std.testing.expectEqual(null, try common.env.nonEmptyOrNull(rt, "EMPTY"));
+    try std.testing.expectEqual(null, try common.env.nonEmptyOrNull(rt, "WHITESPACE"));
     try std.testing.expectEqual(null, try common.env.nonEmptyOrNull(rt, "MISSING"));
 }

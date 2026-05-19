@@ -1,5 +1,7 @@
 const std = @import("std");
 
+const ascii_whitespace = " \t\r\n";
+
 /// Returns a copy of an environment variable or `null` when unset.
 ///
 /// Caller owns returned memory.
@@ -8,13 +10,14 @@ pub fn envOrNull(rt: anytype, name: []const u8) !?[]u8 {
     return @as(?[]u8, try rt.allocator.dupe(u8, result));
 }
 
-/// Returns a copy of a non-empty environment variable or `null`.
+/// Returns a trimmed copy of a non-empty environment variable or `null`.
 ///
 /// Caller owns returned memory.
 pub fn nonEmptyOrNull(rt: anytype, name: []const u8) !?[]u8 {
     const result = rt.env.get(name) orelse return null;
-    if (result.len == 0) return null;
-    return @as(?[]u8, try rt.allocator.dupe(u8, result));
+    const trimmed = std.mem.trim(u8, result, ascii_whitespace);
+    if (trimmed.len == 0) return null;
+    return @as(?[]u8, try rt.allocator.dupe(u8, trimmed));
 }
 
 /// Returns a required, non-empty environment variable.
@@ -55,17 +58,19 @@ test "envOrNull duplicates values and returns null for missing keys" {
     try std.testing.expectEqual(null, try envOrNull(rt, "MISSING"));
 }
 
-test "nonEmptyOrNull skips empty variables" {
+test "nonEmptyOrNull trims values and skips blank variables" {
     var map = std.process.Environ.Map.init(std.testing.allocator);
     defer map.deinit();
-    try map.put("PRESENT", "value");
+    try map.put("PRESENT", " \tvalue\n");
     try map.put("EMPTY", "");
+    try map.put("WHITESPACE", " \r\n\t");
 
     const rt = testRuntime(&map);
     const present = try nonEmptyOrNull(rt, "PRESENT") orelse return error.TestExpectedEnvValue;
     defer std.testing.allocator.free(present);
     try std.testing.expectEqualStrings("value", present);
     try std.testing.expectEqual(null, try nonEmptyOrNull(rt, "EMPTY"));
+    try std.testing.expectEqual(null, try nonEmptyOrNull(rt, "WHITESPACE"));
     try std.testing.expectEqual(null, try nonEmptyOrNull(rt, "MISSING"));
 }
 
@@ -79,7 +84,10 @@ test "required rejects missing and empty values" {
     try map.put("HOME", "");
     try std.testing.expectError(error.EmptyEnvironmentVariable, required(rt, "HOME"));
 
-    try map.put("HOME", "/home/me");
+    try map.put("HOME", " \t");
+    try std.testing.expectError(error.EmptyEnvironmentVariable, required(rt, "HOME"));
+
+    try map.put("HOME", " /home/me\n");
     const home = try required(rt, "HOME");
     defer std.testing.allocator.free(home);
     try std.testing.expectEqualStrings("/home/me", home);

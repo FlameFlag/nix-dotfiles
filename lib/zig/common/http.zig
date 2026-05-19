@@ -33,6 +33,31 @@ pub const Response = struct {
     }
 };
 
+const HeaderList = struct {
+    allocator: std.mem.Allocator,
+    values: []const std.http.Header,
+    owned: bool,
+
+    fn init(
+        allocator: std.mem.Allocator,
+        extra_headers: []const std.http.Header,
+        privileged_headers: []const std.http.Header,
+    ) !HeaderList {
+        if (privileged_headers.len == 0) {
+            return .{ .allocator = allocator, .values = extra_headers, .owned = false };
+        }
+
+        const values = try allocator.alloc(std.http.Header, extra_headers.len + privileged_headers.len);
+        @memcpy(values[0..extra_headers.len], extra_headers);
+        @memcpy(values[extra_headers.len..], privileged_headers);
+        return .{ .allocator = allocator, .values = values, .owned = true };
+    }
+
+    fn deinit(self: HeaderList) void {
+        if (self.owned) self.allocator.free(self.values);
+    }
+};
+
 pub const Client = struct {
     allocator: std.mem.Allocator,
     io: std.Io,
@@ -73,6 +98,8 @@ pub const Client = struct {
 
         var body: std.Io.Writer.Allocating = .init(self.allocator);
         errdefer body.deinit();
+        const headers = try HeaderList.init(self.allocator, options.extra_headers, options.privileged_headers);
+        defer headers.deinit();
 
         const result = try self.http.fetch(.{
             .location = .{ .url = url },
@@ -83,8 +110,7 @@ pub const Client = struct {
                 .user_agent = .{ .override = options.user_agent },
                 .content_type = if (options.content_type) |value| .{ .override = value } else .omit,
             },
-            .extra_headers = options.extra_headers,
-            .privileged_headers = options.privileged_headers,
+            .extra_headers = headers.values,
         });
 
         return .{
@@ -106,6 +132,8 @@ pub const Client = struct {
     /// Downloads a URL to `path` atomically, leaving any existing file intact on failure.
     pub fn downloadFile(self: *Client, url: []const u8, path: []const u8, options: RequestOptions) !void {
         try self.prepare();
+        const headers = try HeaderList.init(self.allocator, options.extra_headers, options.privileged_headers);
+        defer headers.deinit();
 
         if (std.fs.path.dirname(path)) |dir| {
             try std.Io.Dir.cwd().createDirPath(self.io, dir);
@@ -125,8 +153,7 @@ pub const Client = struct {
                 .user_agent = .{ .override = options.user_agent },
                 .content_type = if (options.content_type) |value| .{ .override = value } else .omit,
             },
-            .extra_headers = options.extra_headers,
-            .privileged_headers = options.privileged_headers,
+            .extra_headers = headers.values,
         });
         try writer.interface.flush();
         try expectStatus(result.status, options.status_policy);
@@ -234,4 +261,19 @@ test "HTTP client preparation is cached per client" {
     try std.testing.expect(client.prepared);
     try client.prepare();
     try std.testing.expect(client.prepared);
+}
+
+test "privileged headers are included in emitted header list" {
+    const headers = try HeaderList.init(
+        std.testing.allocator,
+        &.{.{ .name = "accept", .value = "application/json" }},
+        &.{.{ .name = "authorization", .value = "Bearer token" }},
+    );
+    defer headers.deinit();
+
+    try std.testing.expectEqual(@as(usize, 2), headers.values.len);
+    try std.testing.expectEqualStrings("accept", headers.values[0].name);
+    try std.testing.expectEqualStrings("application/json", headers.values[0].value);
+    try std.testing.expectEqualStrings("authorization", headers.values[1].name);
+    try std.testing.expectEqualStrings("Bearer token", headers.values[1].value);
 }
