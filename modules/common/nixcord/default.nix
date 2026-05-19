@@ -3,6 +3,7 @@ _: {
     enable = true;
     discord.vencord.enable = false;
     discord.equicord.enable = true;
+    discord.krisp.enable = true;
   };
   programs.nixcord.config.useQuickCss = true;
   programs.nixcord.config.plugins = {
