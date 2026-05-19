@@ -887,6 +887,38 @@
       }
     },
     {
+      "name": "zellij-theme-tools",
+      "platforms": [
+        "macos",
+        "linux"
+      ],
+      "bins": [
+        {
+          "name": "codex-zellij-theme",
+          "version_argv": [
+            "sh",
+            "-c",
+            "command -v codex-zellij-theme >/dev/null && printf installed"
+          ]
+        },
+        {
+          "name": "zellij-auto-theme",
+          "version_argv": [
+            "sh",
+            "-c",
+            "command -v zellij-auto-theme >/dev/null && printf installed"
+          ]
+        }
+      ],
+      "action": {
+        "type": "build",
+        "build": {
+          "system": "zig",
+          "path": "pkgs/zellij-theme-tools"
+        }
+      }
+    },
+    {
       "name": "lenovo-con-mode",
       "platforms": [
         "linux",

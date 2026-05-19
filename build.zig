@@ -95,6 +95,29 @@ const executables = [_]ExecutableSpec{
         },
     },
     .{
+        .name = "codex-zellij-theme",
+        .root = "pkgs/zellij-theme-tools/codex_main.zig",
+        .imports = &.{.common},
+        .link_libc = true,
+        .install = .tool,
+        .extra_tests = &.{
+            .{ .name = "zellij-theme-tools-codex", .root = "pkgs/zellij-theme-tools/codex.zig" },
+            .{ .name = "zellij-theme-tools-command", .root = "pkgs/zellij-theme-tools/command.zig" },
+            .{ .name = "zellij-theme-tools-theme", .root = "pkgs/zellij-theme-tools/theme.zig" },
+            .{ .name = "zellij-theme-tools-zellij", .root = "pkgs/zellij-theme-tools/zellij.zig" },
+        },
+    },
+    .{
+        .name = "zellij-auto-theme",
+        .root = "pkgs/zellij-theme-tools/auto_theme_main.zig",
+        .imports = &.{.common},
+        .link_libc = true,
+        .install = .tool,
+        .extra_tests = &.{
+            .{ .name = "zellij-theme-tools-auto-theme", .root = "pkgs/zellij-theme-tools/auto_theme.zig" },
+        },
+    },
+    .{
         .name = "dev_tools",
         .root = "bootstrap/dev_tools/main.zig",
         .imports = &.{ .bootstrap, .common },

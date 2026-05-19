@@ -3,9 +3,9 @@ if [[ "$TERM" == "xterm-ghostty" ]] && ! infocmp xterm-ghostty &>/dev/null; then
   export TERM=xterm-256color
 fi
 
-# Prefer user-local tools installed by bootstrap, uv, and rustup.
+# Prefer user-local tools installed by bootstrap and language toolchains.
 typeset -U path PATH
-path=("$HOME/.local/bin" "$HOME/.cargo/bin" $path)
+path=("$HOME/.bun/bin" "$HOME/.npm/bin" "$HOME/.local/bin" "$HOME/.cargo/bin" "$HOME/.go/bin" "$HOME/.yarn/bin" $path)
 export PATH
 
 # Load Oh My Zsh without its prompt or self-update behavior.

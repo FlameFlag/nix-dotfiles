@@ -15,7 +15,7 @@ pub fn install(ctx: *Context, tool: model.Tool) !void {
         .script => try installScript(ctx, tool.name, tool.action.script orelse return error.JsonFieldMissing),
         .toolchain => try installToolchain(ctx, tool.action.toolchain orelse return error.JsonFieldMissing),
         .package => try installPackage(ctx, tool.action.package orelse return error.JsonFieldMissing),
-        .build => try installBuild(ctx, tool.name, tool.action.build orelse return error.JsonFieldMissing),
+        .build => try installBuild(ctx, tool, tool.action.build orelse return error.JsonFieldMissing),
         .archive => {
             const spec = try bootstrap.manifest.toArchiveSpec(ctx, tool);
             defer ctx.allocator.free(spec.links);
@@ -48,28 +48,30 @@ fn installPackage(ctx: *Context, package: model.Package) !void {
     };
 }
 
-fn installBuild(ctx: *Context, name: []const u8, build: model.Build) !void {
+fn installBuild(ctx: *Context, tool: model.Tool, build: model.Build) !void {
     return switch (build.system) {
-        .zig => installZigBuild(ctx, name, build.path),
+        .zig => installZigBuild(ctx, tool, build.path),
     };
 }
 
-fn installZigBuild(ctx: *Context, name: []const u8, relative_path: []const u8) !void {
+fn installZigBuild(ctx: *Context, tool: model.Tool, relative_path: []const u8) !void {
     const root = try repoRoot(ctx);
     defer ctx.allocator.free(root);
     const build_dir = try std.fs.path.join(ctx.allocator, &.{ root, relative_path });
     defer ctx.allocator.free(build_dir);
-    const prefix = try std.fs.path.join(ctx.allocator, &.{ ctx.opt_dir, name, "latest" });
+    const prefix = try std.fs.path.join(ctx.allocator, &.{ ctx.opt_dir, tool.name, "latest" });
     defer ctx.allocator.free(prefix);
 
     const zig = ctx.env.get("BOOTSTRAP_ZIG_EXE") orelse "zig";
     try proc.runInCwd(ctx, .{ .path = build_dir }, &.{ zig, "build", "install", "--prefix", prefix });
 
-    const bin_name = try exeName(ctx, name);
-    defer ctx.allocator.free(bin_name);
-    const target = try std.fs.path.join(ctx.allocator, &.{ prefix, "bin", bin_name });
-    defer ctx.allocator.free(target);
-    try bootstrap.links.managed(ctx, name, target, bin_name);
+    for (tool.bins) |bin| {
+        const bin_name = try exeName(ctx, bin.name);
+        defer ctx.allocator.free(bin_name);
+        const target = try std.fs.path.join(ctx.allocator, &.{ prefix, "bin", bin_name });
+        defer ctx.allocator.free(target);
+        try bootstrap.links.managed(ctx, tool.name, target, bin_name);
+    }
 }
 
 fn repoRoot(ctx: *Context) ![]u8 {
