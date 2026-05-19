@@ -32,6 +32,12 @@
               ../../pkgs/patches/kanata-macos-window-dsl.patch
             ];
 
+            cargoCheckFeatures =
+              (old.cargoCheckFeatures or [ ])
+              ++ final.lib.optionals final.stdenv.hostPlatform.isLinux [
+                "simulated_output"
+              ];
+
             cargoDeps = final.rustPlatform.fetchCargoVendor {
               inherit src;
               name = "kanata-unstable-2026-05-09";
