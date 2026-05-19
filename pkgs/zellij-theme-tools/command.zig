@@ -88,6 +88,7 @@ const SignalForwarder = if (supports_signal_forwarding) struct {
     }
 
     fn deinit(self: *SignalForwarder) void {
+        defer self.* = undefined;
         if (!self.installed) return;
         active_child_pid.store(0, .seq_cst);
         std.posix.sigaction(.INT, &self.old_int, null);
@@ -107,7 +108,10 @@ const SignalForwarder = if (supports_signal_forwarding) struct {
         return .{};
     }
 
-    fn deinit(_: *SignalForwarder) void {}
+    fn deinit(self: *SignalForwarder) void {
+        self.* = undefined;
+    }
+
     fn setChild(_: *SignalForwarder, _: anytype) void {}
     fn clearChild(_: *SignalForwarder) void {}
 };
@@ -117,7 +121,7 @@ var active_child_pid = std.atomic.Value(i32).init(0);
 fn handleSignal(sig: std.posix.SIG) callconv(.c) void {
     const pid = active_child_pid.load(.seq_cst);
     if (pid > 0) {
-        std.posix.kill(@intCast(pid), sig) catch {};
+        std.posix.kill(@intCast(pid), sig) catch return;
     }
 }
 

@@ -38,11 +38,11 @@ pub fn run(ctx: *Context) !void {
         rows.deinit(ctx.allocator);
     }
 
-    for (catalog.parsed.value.tools) |tool| {
+    for (catalog.tools) |tool| {
         if (!try host.supportsTool(tool, ctx)) continue;
         for (tool.bins) |bin| {
             const path = try proc.pathOf(ctx, bin.name);
-            const version = if (tool.usesBuildSystem(.zig) and path != null)
+            const version = if (tool.usesBuildInstaller() and path != null)
                 try ctx.allocator.dupe(u8, "installed")
             else blk: {
                 const raw = proc.trimmedText(ctx, bin.version_argv) catch |err|

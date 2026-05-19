@@ -28,7 +28,7 @@ pub const Inventory = struct {
     }
 
     pub fn binIsManaged(self: Inventory, package: manifest.Package, bin: []const u8, path: []const u8) bool {
-        return switch (package.manager) {
+        return switch (package.inventory orelse return false) {
             .uv => if (self.state.uv) |uv| uv.binIsManaged(bin, path) else false,
         };
     }
@@ -126,7 +126,11 @@ test "package inventory parses uv-managed bins once into a map" {
     defer uv.deinit(&ctx);
 
     const inventory: Inventory = .{ .state = .{ .uv = uv } };
-    const package: manifest.Package = .{ .manager = .uv, .name = "ruff" };
+    const package: manifest.Package = .{
+        .name = "ruff",
+        .install_argv = &.{ "uv", "tool", "install", "--upgrade", "{package}" },
+        .inventory = .uv,
+    };
 
     try std.testing.expect(inventory.binIsManaged(package, "ruff", "/Users/example/.local/bin/ruff"));
     try std.testing.expect(inventory.binIsManaged(package, "ruff-lsp", "/Users/example/.local/bin/ruff-lsp"));

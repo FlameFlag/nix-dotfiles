@@ -25,20 +25,25 @@ pub fn classifyBin(
 ) !Classification {
     const executable_path = path orelse return .missing;
 
-    if (tool.usesToolchainManager(.rustup)) {
-        const cargo_bin = try rust.cargoBin(ctx);
-        defer ctx.allocator.free(cargo_bin);
-        return if (try pathIsUnder(ctx, cwd, executable_path, cargo_bin)) .managed else .external;
+    switch (tool.action) {
+        .toolchain => |toolchain| {
+            const bin_dir = try rust.toolchainBinDir(ctx, toolchain);
+            defer ctx.allocator.free(bin_dir);
+            return if (try pathIsUnder(ctx, cwd, executable_path, bin_dir)) .managed else .external;
+        },
+        else => {},
     }
 
     const in_bin_dir = try pathIsUnder(ctx, cwd, executable_path, ctx.bin_dir);
     if (!in_bin_dir) return .external;
 
-    if (tool.usesBuildSystem(.zig) or tool.usesScriptInstaller()) return .managed;
+    if (tool.usesBuildInstaller() or tool.usesScriptInstaller()) return .managed;
 
-    if (tool.action.type == .package) {
-        const package = tool.action.package orelse return .external;
-        return if (package_inventory.binIsManaged(package, bin, executable_path)) .managed else .external;
+    switch (tool.action) {
+        .package => |package_spec| {
+            return if (package_inventory.binIsManaged(package_spec, bin, executable_path)) .managed else .external;
+        },
+        else => {},
     }
 
     if (builtin.os.tag == .windows) return .managed;
@@ -136,7 +141,7 @@ test "archive bins must be managed rather than merely present" {
     const tool: manifest.Tool = .{
         .name = "demo",
         .bins = &.{.{ .name = "demo", .version_argv = &.{"demo"} }},
-        .action = .{ .type = .archive },
+        .action = .{ .archive = .{ .platforms = &.{} } },
     };
     const cwd = try std.process.currentPathAlloc(ctx.io, ctx.allocator);
     defer ctx.allocator.free(cwd);
@@ -154,7 +159,7 @@ test "missing bins classify distinctly" {
     const tool: manifest.Tool = .{
         .name = "demo",
         .bins = &.{.{ .name = "demo", .version_argv = &.{"demo"} }},
-        .action = .{ .type = .archive },
+        .action = .{ .archive = .{ .platforms = &.{} } },
     };
     const cwd = try std.process.currentPathAlloc(ctx.io, ctx.allocator);
     defer ctx.allocator.free(cwd);

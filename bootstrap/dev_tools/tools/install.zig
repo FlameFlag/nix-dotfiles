@@ -20,7 +20,7 @@ pub fn all(ctx: *Context, policy: model.Policy) !void {
 
     var failures: usize = 0;
     inline for (std.enums.values(model.Phase)) |install_phase| {
-        for (loaded.parsed.value.tools) |tool| {
+        for (loaded.tools) |tool| {
             if (tool.phase() != install_phase) continue;
             failures += try one(ctx, policy, tool);
         }
@@ -67,14 +67,14 @@ fn one(ctx: *Context, policy: model.Policy, tool: model.Tool) !usize {
 
 fn installVerb(policy: model.Policy, tool: model.Tool) []const u8 {
     if (policy == .update_all) return "updating";
-    return switch (tool.action.type) {
+    return switch (tool.action) {
         .toolchain => "ensuring",
         else => "installing",
     };
 }
 
 fn shouldInstall(ctx: *Context, tool: model.Tool) !bool {
-    return switch (tool.action.type) {
+    return switch (tool.action) {
         .toolchain => true,
         .build => true,
         .script => !try localBinsPresent(ctx, tool),
@@ -105,25 +105,28 @@ fn managedBinsPresent(ctx: *Context, tool: model.Tool) !bool {
     const cwd = try std.process.currentPathAlloc(ctx.io, ctx.allocator);
     defer ctx.allocator.free(cwd);
 
-    var packages = if (tool.action.type == .package)
-        try package_managers.Inventory.collect(ctx)
-    else
-        package_managers.Inventory.empty();
-    defer if (tool.action.type == .package) packages.deinit(ctx);
+    const is_package = switch (tool.action) {
+        .package => true,
+        else => false,
+    };
+    var packages = if (is_package) try package_managers.Inventory.collect(ctx) else package_managers.Inventory.empty();
+    defer if (is_package) packages.deinit(ctx);
 
     for (tool.bins) |bin| {
         const classification = try ownership.classifyBinOnPath(ctx, cwd, tool, bin.name, packages);
         if (classification != .managed) return false;
     }
-    if (tool.action.type == .archive and !try managedAppLinksPresent(ctx, tool)) return false;
+    switch (tool.action) {
+        .archive => |archive_spec| if (!try managedAppLinksPresent(ctx, tool, archive_spec)) return false,
+        else => {},
+    }
     return true;
 }
 
-fn managedAppLinksPresent(ctx: *Context, tool: model.Tool) !bool {
+fn managedAppLinksPresent(ctx: *Context, tool: model.Tool, archive_spec: model.Archive) !bool {
     if (builtin.os.tag != .macos) return true;
 
-    const platforms = tool.action.platforms orelse return true;
-    const selected = model.selectArchivePlatform(platforms) catch |err| switch (err) {
+    const selected = model.selectArchivePlatform(archive_spec.platforms) catch |err| switch (err) {
         error.UnsupportedPlatform => return true,
     };
     for (selected.app_links) |app_link| {
@@ -156,14 +159,26 @@ test "install verbs are stable user-facing labels" {
     const toolchain: model.Tool = .{
         .name = "rustup",
         .bins = &.{},
-        .action = .{
-            .type = .toolchain,
-        },
+        .action = .{ .toolchain = .{
+            .manager_bin = "rustup",
+            .name = "stable",
+            .bin_dir = .{ .env_var = "CARGO_HOME", .home_relative = ".cargo/bin" },
+            .components = &.{"rustfmt"},
+            .install = .{ .unix = .{
+                .url = "https://example.test",
+                .file = "install.sh",
+                .argv = &.{"{file}"},
+            } },
+            .update_argv = &.{"{manager_bin}"},
+            .active_argv = &.{"{manager_bin}"},
+            .default_argv = &.{"{manager_bin}"},
+            .component_argv = &.{"{component}"},
+        } },
     };
     const archive_tool: model.Tool = .{
         .name = "zls",
         .bins = &.{},
-        .action = .{ .type = .archive },
+        .action = .{ .archive = .{ .platforms = &.{} } },
     };
 
     try std.testing.expectEqualStrings("ensuring", installVerb(.install_missing, toolchain));
@@ -203,7 +218,7 @@ test "install_missing reinstalls archive bins that are external on PATH" {
     const tool: model.Tool = .{
         .name = "demo",
         .bins = &.{.{ .name = "demo", .version_argv = &.{"demo"} }},
-        .action = .{ .type = .archive },
+        .action = .{ .archive = .{ .platforms = &.{} } },
     };
 
     try std.testing.expect(try shouldInstall(&ctx, tool));
@@ -235,7 +250,7 @@ test "install_missing skips managed archive symlinks" {
     const tool: model.Tool = .{
         .name = "demo",
         .bins = &.{.{ .name = "demo", .version_argv = &.{"demo"} }},
-        .action = .{ .type = .archive },
+        .action = .{ .archive = .{ .platforms = &.{} } },
     };
 
     try std.testing.expect(!try shouldInstall(&ctx, tool));

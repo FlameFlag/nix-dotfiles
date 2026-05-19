@@ -9,25 +9,25 @@ const fs = common.fs;
 const proc = common.process;
 
 pub fn installOrUpdate(ctx: *Context, spec: manifest.Toolchain) !void {
-    const resolved_toolchain = ctx.env.get("BOOTSTRAP_RUST_TOOLCHAIN") orelse spec.name;
-    var rustup = try localRustup(ctx);
-    defer if (rustup) |path| ctx.allocator.free(path);
+    const resolved_toolchain = if (spec.name_env) |env_name| ctx.env.get(env_name) orelse spec.name else spec.name;
+    var manager = try localManager(ctx, spec);
+    defer if (manager) |path| ctx.allocator.free(path);
 
-    if (rustup == null) {
-        try installRustup(ctx, spec, resolved_toolchain);
-        rustup = try installedRustupPath(ctx);
+    if (manager == null) {
+        try installManager(ctx, spec, resolved_toolchain);
+        manager = try installedManagerPath(ctx, spec);
     }
 
-    const rustup_path = rustup orelse return error.CommandFailed;
+    const manager_path = manager orelse return error.CommandFailed;
     const update_argv = try renderToolchainArgv(ctx, spec, spec.update_argv, .{
-        .manager_bin = rustup_path,
+        .manager_bin = manager_path,
         .toolchain = resolved_toolchain,
     });
     defer freeArgv(ctx, update_argv);
     try proc.run(ctx, update_argv);
 
     const active_argv = try renderToolchainArgv(ctx, spec, spec.active_argv, .{
-        .manager_bin = rustup_path,
+        .manager_bin = manager_path,
         .toolchain = resolved_toolchain,
     });
     defer freeArgv(ctx, active_argv);
@@ -36,7 +36,7 @@ pub fn installOrUpdate(ctx: *Context, spec: manifest.Toolchain) !void {
     defer active.deinit(ctx.allocator);
     if (active.exit_code != 0) {
         const default_argv = try renderToolchainArgv(ctx, spec, spec.default_argv, .{
-            .manager_bin = rustup_path,
+            .manager_bin = manager_path,
             .toolchain = resolved_toolchain,
         });
         defer freeArgv(ctx, default_argv);
@@ -44,14 +44,16 @@ pub fn installOrUpdate(ctx: *Context, spec: manifest.Toolchain) !void {
     }
 }
 
-pub fn cargoBin(ctx: *Context) ![]u8 {
-    if (ctx.env.get("CARGO_HOME")) |cargo_home| {
-        return std.fs.path.join(ctx.allocator, &.{ cargo_home, "bin" });
+pub fn toolchainBinDir(ctx: *Context, spec: manifest.Toolchain) ![]u8 {
+    if (spec.bin_dir.env_var) |env_var| {
+        if (ctx.env.get(env_var)) |root| {
+            return std.fs.path.join(ctx.allocator, &.{ root, "bin" });
+        }
     }
-    return std.fs.path.join(ctx.allocator, &.{ ctx.home, ".cargo", "bin" });
+    return std.fs.path.join(ctx.allocator, &.{ ctx.home, spec.bin_dir.home_relative });
 }
 
-fn installRustup(ctx: *Context, spec: manifest.Toolchain, toolchain: []const u8) !void {
+fn installManager(ctx: *Context, spec: manifest.Toolchain, toolchain: []const u8) !void {
     const command = if (builtin.os.tag == .windows) spec.install.windows else spec.install.unix;
     const selected = command orelse return error.UnsupportedPlatform;
 
@@ -111,12 +113,12 @@ fn freeArgv(ctx: *Context, argv: []const []const u8) void {
     ctx.allocator.free(argv);
 }
 
-fn localRustup(ctx: *Context) !?[]u8 {
-    const cargo_bin = try cargoBin(ctx);
-    defer ctx.allocator.free(cargo_bin);
-    const rustup_name = try executableName(ctx, "rustup");
-    defer ctx.allocator.free(rustup_name);
-    const candidate = try std.fs.path.join(ctx.allocator, &.{ cargo_bin, rustup_name });
+fn localManager(ctx: *Context, spec: manifest.Toolchain) !?[]u8 {
+    const bin_dir = try toolchainBinDir(ctx, spec);
+    defer ctx.allocator.free(bin_dir);
+    const manager_name = try executableName(ctx, spec.manager_bin);
+    defer ctx.allocator.free(manager_name);
+    const candidate = try std.fs.path.join(ctx.allocator, &.{ bin_dir, manager_name });
     errdefer ctx.allocator.free(candidate);
     std.Io.Dir.cwd().access(ctx.io, candidate, .{ .execute = true }) catch |err| switch (err) {
         error.FileNotFound, error.AccessDenied => {
@@ -128,12 +130,12 @@ fn localRustup(ctx: *Context) !?[]u8 {
     return candidate;
 }
 
-fn installedRustupPath(ctx: *Context) ![]u8 {
-    const cargo_bin = try cargoBin(ctx);
-    defer ctx.allocator.free(cargo_bin);
-    const rustup_name = try executableName(ctx, "rustup");
-    defer ctx.allocator.free(rustup_name);
-    return std.fs.path.join(ctx.allocator, &.{ cargo_bin, rustup_name });
+fn installedManagerPath(ctx: *Context, spec: manifest.Toolchain) ![]u8 {
+    const bin_dir = try toolchainBinDir(ctx, spec);
+    defer ctx.allocator.free(bin_dir);
+    const manager_name = try executableName(ctx, spec.manager_bin);
+    defer ctx.allocator.free(manager_name);
+    return std.fs.path.join(ctx.allocator, &.{ bin_dir, manager_name });
 }
 
 fn downloadFile(ctx: *Context, prefix: []const u8, file_name: []const u8, url: []const u8) ![]u8 {
@@ -180,8 +182,10 @@ fn testingContext(env: *std.process.Environ.Map, home: []const u8) Context {
 
 fn testingToolchain() manifest.Toolchain {
     return .{
-        .manager = .rustup,
+        .manager_bin = "rustup",
         .name = "stable",
+        .name_env = "BOOTSTRAP_RUST_TOOLCHAIN",
+        .bin_dir = .{ .env_var = "CARGO_HOME", .home_relative = ".cargo/bin" },
         .components = &.{ "rustfmt", "clippy" },
         .install = .{
             .unix = .{
@@ -229,17 +233,17 @@ test "rustup argv templates expand requested components" {
     try std.testing.expectEqualStrings("clippy", argv[9]);
 }
 
-test "cargoBin honors CARGO_HOME and defaults under home" {
+test "toolchainBinDir honors env override and defaults under home" {
     var env = std.process.Environ.Map.init(std.testing.allocator);
     defer env.deinit();
     var ctx = testingContext(&env, "/home/me");
 
-    const default_bin = try cargoBin(&ctx);
+    const default_bin = try toolchainBinDir(&ctx, testingToolchain());
     defer ctx.allocator.free(default_bin);
     try std.testing.expectEqualStrings("/home/me/.cargo/bin", default_bin);
 
     try env.put("CARGO_HOME", "/cargo");
-    const custom_bin = try cargoBin(&ctx);
+    const custom_bin = try toolchainBinDir(&ctx, testingToolchain());
     defer ctx.allocator.free(custom_bin);
     try std.testing.expectEqualStrings("/cargo/bin", custom_bin);
 }

@@ -159,7 +159,12 @@ fn writeTrustedConfig(rt: anytype, codex_home: []const u8, overlay_home: []const
     const overlay_config = try std.fs.path.join(rt.allocator, &.{ overlay_home, "config.toml" });
     defer rt.allocator.free(overlay_config);
 
-    const existing = std.Io.Dir.cwd().readFileAlloc(rt.io, source_config, rt.allocator, .limited(config_file_limit)) catch |err| switch (err) {
+    const existing = std.Io.Dir.cwd().readFileAlloc(
+        rt.io,
+        source_config,
+        rt.allocator,
+        .limited(config_file_limit),
+    ) catch |err| switch (err) {
         error.FileNotFound => try rt.allocator.dupe(u8, ""),
         else => return err,
     };

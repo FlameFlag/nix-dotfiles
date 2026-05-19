@@ -4,6 +4,7 @@ const bootstrap = @import("bootstrap");
 const common = @import("common");
 
 const Context = bootstrap.Context;
+const manifest = bootstrap.manifest;
 const fs = common.fs;
 const proc = common.process;
 
@@ -12,7 +13,7 @@ const linux_dmi_board_vendor_path = "/sys/class/dmi/id/board_vendor";
 const linux_dmi_product_name_path = "/sys/class/dmi/id/product_name";
 const linux_dmi_chassis_type_path = "/sys/class/dmi/id/chassis_type";
 
-pub fn supportsTool(tool: anytype, ctx: *Context) !bool {
+pub fn supportsTool(tool: manifest.Tool, ctx: *Context) !bool {
     if (tool.platforms) |allowed| {
         const host_os = currentHostOs() orelse return false;
         for (allowed) |entry| {
@@ -22,15 +23,16 @@ pub fn supportsTool(tool: anytype, ctx: *Context) !bool {
         }
     }
 
-    if (tool.action.type == .archive) {
-        if (tool.action.platforms) |cases| {
+    switch (tool.action) {
+        .archive => |archive_spec| {
             const host = bootstrap.platform.current();
-            for (cases) |case| {
+            for (archive_spec.platforms) |case| {
                 if (host.matches(case.when)) break;
             } else {
                 return false;
             }
-        }
+        },
+        else => {},
     }
 
     const requirements = tool.requires orelse return true;
@@ -40,7 +42,7 @@ pub fn supportsTool(tool: anytype, ctx: *Context) !bool {
     return true;
 }
 
-fn currentHostOs() ?@TypeOf(.enum_literal) {
+fn currentHostOs() ?manifest.HostOs {
     return switch (builtin.os.tag) {
         .macos => .macos,
         .linux => .linux,
@@ -49,7 +51,7 @@ fn currentHostOs() ?@TypeOf(.enum_literal) {
     };
 }
 
-fn meetsRequirement(ctx: *Context, requirement: anytype) !bool {
+fn meetsRequirement(ctx: *Context, requirement: manifest.HostRequirement) !bool {
     return switch (requirement) {
         .lenovo_laptop => isLenovoLaptop(ctx),
     };

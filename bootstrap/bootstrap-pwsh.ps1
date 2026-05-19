@@ -363,11 +363,9 @@ function Invoke-ZigBootstrapInstaller {
     # Pass repo-local paths through the environment so the Zig code can stay
     # relocatable and testable. Restore the caller's environment afterwards
     # because users often run this from an interactive PowerShell session.
-    $oldToolsJson = $env:BOOTSTRAP_TOOLS_JSON
     $oldRepoDir = $env:BOOTSTRAP_REPO_DIR
     $oldZigExe = $env:BOOTSTRAP_ZIG_EXE
     try {
-        $env:BOOTSTRAP_TOOLS_JSON = Join-Path $RepoRoot 'bootstrap\dev_tools\tools\tools.json'
         $env:BOOTSTRAP_REPO_DIR = $RepoRoot
         $env:BOOTSTRAP_ZIG_EXE = $ZigExe
         Invoke-Native -FilePath $ZigExe -ArgumentList @(
@@ -382,7 +380,6 @@ function Invoke-ZigBootstrapInstaller {
             'install'
         )
     } finally {
-        $env:BOOTSTRAP_TOOLS_JSON = $oldToolsJson
         $env:BOOTSTRAP_REPO_DIR = $oldRepoDir
         $env:BOOTSTRAP_ZIG_EXE = $oldZigExe
     }

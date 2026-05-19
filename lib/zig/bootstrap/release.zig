@@ -13,19 +13,19 @@ const GithubAssetJson = struct {
 };
 
 pub const GithubRelease = struct {
-    parsed: std.json.Parsed(GithubReleaseJson),
+    json: std.json.Parsed(GithubReleaseJson),
 
     pub fn deinit(self: *GithubRelease) void {
-        self.parsed.deinit();
+        self.json.deinit();
         self.* = undefined;
     }
 
     pub fn tag(self: GithubRelease) []const u8 {
-        return self.parsed.value.tag_name;
+        return self.json.value.tag_name;
     }
 
     pub fn assetUrl(self: GithubRelease, name: []const u8) ![]const u8 {
-        for (self.parsed.value.assets) |asset| {
+        for (self.json.value.assets) |asset| {
             if (std.mem.eql(u8, asset.name, name)) return asset.browser_download_url;
         }
         return error.AssetNotFound;
@@ -37,7 +37,7 @@ pub fn latestGithub(ctx: *Context, repo: []const u8) !GithubRelease {
     defer ctx.allocator.free(url);
     const json = try http.getBytes(ctx, url);
     defer ctx.allocator.free(json);
-    return .{ .parsed = try std.json.parseFromSlice(GithubReleaseJson, ctx.allocator, json, .{
+    return .{ .json = try std.json.parseFromSlice(GithubReleaseJson, ctx.allocator, json, .{
         .allocate = .alloc_always,
         .ignore_unknown_fields = true,
     }) };
@@ -54,7 +54,7 @@ test "version strings trim configured prefixes" {
 }
 
 test "github release lookup validates tag and assets" {
-    const parsed = try std.json.parseFromSlice(GithubReleaseJson, std.testing.allocator,
+    const release_json = try std.json.parseFromSlice(GithubReleaseJson, std.testing.allocator,
         \\{
         \\  "tag_name": "v1.2.3",
         \\  "extra": "ignored",
@@ -67,7 +67,7 @@ test "github release lookup validates tag and assets" {
         \\  ]
         \\}
     , .{ .ignore_unknown_fields = true });
-    var github_release: GithubRelease = .{ .parsed = parsed };
+    var github_release: GithubRelease = .{ .json = release_json };
     defer github_release.deinit();
 
     try std.testing.expectEqualStrings("v1.2.3", github_release.tag());

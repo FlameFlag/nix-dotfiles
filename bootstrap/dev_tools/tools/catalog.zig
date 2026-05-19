@@ -1,22 +1,16 @@
 const std = @import("std");
 const bootstrap = @import("bootstrap");
 
+const catalog_data = @import("catalog_data.zig");
+
 const Context = bootstrap.Context;
 
 pub const Catalog = bootstrap.manifest.Catalog;
 
 pub fn load(ctx: *Context) !Catalog {
-    const manifest_path = try catalogPath(ctx);
-    defer ctx.allocator.free(manifest_path);
-    return bootstrap.manifest.loadPath(ctx, manifest_path);
-}
-
-fn catalogPath(ctx: *const Context) ![]u8 {
-    if (ctx.env.get("BOOTSTRAP_TOOLS_JSON")) |env_path| return ctx.allocator.dupe(u8, env_path);
-
-    const cwd = try std.process.currentPathAlloc(ctx.io, ctx.allocator);
-    defer ctx.allocator.free(cwd);
-    return std.fs.path.join(ctx.allocator, &.{ cwd, "bootstrap", "dev_tools", "tools", "tools.json" });
+    const result: Catalog = .{ .tools = &catalog_data.tools };
+    try bootstrap.manifest.validate(ctx, result);
+    return result;
 }
 
 fn testingContext(env: *std.process.Environ.Map) Context {
@@ -30,14 +24,37 @@ fn testingContext(env: *std.process.Environ.Map) Context {
     };
 }
 
-test "catalog path honors BOOTSTRAP_TOOLS_JSON" {
+test "static catalog validates" {
     var env = std.process.Environ.Map.init(std.testing.allocator);
     defer env.deinit();
-    try env.put("BOOTSTRAP_TOOLS_JSON", "/tmp/custom-tools.json");
+    var ctx = testingContext(&env);
+    var loaded = try load(&ctx);
+    defer loaded.deinit(&ctx);
+    try std.testing.expectEqual(@as(usize, 16), loaded.tools.len);
+}
 
-    const ctx = testingContext(&env);
-    const resolved = try catalogPath(&ctx);
-    defer ctx.allocator.free(resolved);
+test "static catalog tool order is stable" {
+    const expected = [_][]const u8{
+        "chezmoi",
+        "uv",
+        "zig",
+        "rustup",
+        "zls",
+        "ziglint",
+        "node",
+        "bun",
+        "vscode",
+        "yt-dlp",
+        "yt-dlp-script",
+        "ruff",
+        "ty",
+        "gh-hide-comment",
+        "zellij-theme-tools",
+        "lenovo-con-mode",
+    };
 
-    try std.testing.expectEqualStrings("/tmp/custom-tools.json", resolved);
+    try std.testing.expectEqual(expected.len, catalog_data.tools.len);
+    for (expected, catalog_data.tools) |name, tool| {
+        try std.testing.expectEqualStrings(name, tool.name);
+    }
 }

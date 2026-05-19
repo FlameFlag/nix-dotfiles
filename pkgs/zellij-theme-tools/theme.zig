@@ -56,7 +56,12 @@ fn linuxPrefersLight(rt: anytype) !bool {
     const gsettings = try common.process.pathOf(rt, "gsettings") orelse return false;
     defer rt.allocator.free(gsettings);
 
-    var result = common.process.capture(rt, &.{ gsettings, "get", "org.gnome.desktop.interface", "color-scheme" }) catch {
+    var result = common.process.capture(rt, &.{
+        gsettings,
+        "get",
+        "org.gnome.desktop.interface",
+        "color-scheme",
+    }) catch {
         return false;
     };
     defer result.deinit(rt.allocator);

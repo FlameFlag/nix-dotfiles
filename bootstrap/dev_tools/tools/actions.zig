@@ -10,12 +10,14 @@ const output = common.output;
 const proc = common.process;
 
 pub fn install(ctx: *Context, tool: model.Tool) !void {
-    switch (tool.action.type) {
+    switch (tool.action) {
         .required => return error.BootstrapPrerequisite,
-        .script => try installScript(ctx, tool.name, tool.action.script orelse return error.JsonFieldMissing),
-        .toolchain => try installToolchain(ctx, tool.action.toolchain orelse return error.JsonFieldMissing),
-        .package => try installPackage(ctx, tool.action.package orelse return error.JsonFieldMissing),
-        .build => try installBuild(ctx, tool, tool.action.build orelse return error.JsonFieldMissing),
+        .script => |script_spec| try installScript(ctx, tool.name, script_spec),
+        .toolchain => |toolchain_spec| try bootstrap.rust.installOrUpdate(ctx, toolchain_spec),
+        .package => |package_spec| try installCommand(ctx, package_spec.install_argv, .{
+            .package = package_spec.name,
+        }),
+        .build => |build_spec| try installBuildCommand(ctx, tool, build_spec),
         .archive => {
             const spec = try bootstrap.manifest.toArchiveSpec(ctx, tool);
             defer ctx.allocator.free(spec.links);
@@ -36,34 +38,32 @@ fn installScript(ctx: *Context, name: []const u8, script: model.Script) !void {
     try proc.run(ctx, argv);
 }
 
-fn installToolchain(ctx: *Context, toolchain: model.Toolchain) !void {
-    return switch (toolchain.manager) {
-        .rustup => bootstrap.rust.installOrUpdate(ctx, toolchain),
-    };
-}
-
-fn installPackage(ctx: *Context, package: model.Package) !void {
-    return switch (package.manager) {
-        .uv => proc.run(ctx, &.{ "uv", "tool", "install", "--upgrade", package.name }),
-    };
-}
-
-fn installBuild(ctx: *Context, tool: model.Tool, build: model.Build) !void {
-    return switch (build.system) {
-        .zig => installZigBuild(ctx, tool, build.path),
-    };
-}
-
-fn installZigBuild(ctx: *Context, tool: model.Tool, relative_path: []const u8) !void {
+fn installBuildCommand(ctx: *Context, tool: model.Tool, build: model.Build) !void {
     const root = try repoRoot(ctx);
     defer ctx.allocator.free(root);
-    const build_dir = try std.fs.path.join(ctx.allocator, &.{ root, relative_path });
+    const build_dir = try std.fs.path.join(ctx.allocator, &.{ root, build.path });
     defer ctx.allocator.free(build_dir);
     const prefix = try std.fs.path.join(ctx.allocator, &.{ ctx.opt_dir, tool.name, "latest" });
     defer ctx.allocator.free(prefix);
 
-    const zig = ctx.env.get("BOOTSTRAP_ZIG_EXE") orelse "zig";
-    try proc.runInCwd(ctx, .{ .path = build_dir }, &.{ zig, "build", "install", "--prefix", prefix });
+    const argv = try common.template.Template.renderSlice(ctx.allocator, build.argv, .{
+        .repo_dir = root,
+        .build_dir = build_dir,
+        .prefix = prefix,
+        .tool = tool.name,
+        .zig = ctx.env.get("BOOTSTRAP_ZIG_EXE") orelse "zig",
+    });
+    defer common.template.freeSlice(ctx.allocator, argv);
+    try proc.runInCwd(ctx, .{ .path = build_dir }, argv);
+
+    if (build.links.len != 0) {
+        for (build.links) |link| {
+            const target = try std.fs.path.join(ctx.allocator, &.{ prefix, link.path });
+            defer ctx.allocator.free(target);
+            try bootstrap.links.managed(ctx, tool.name, target, link.name);
+        }
+        return;
+    }
 
     for (tool.bins) |bin| {
         const bin_name = try exeName(ctx, bin.name);
@@ -72,6 +72,12 @@ fn installZigBuild(ctx: *Context, tool: model.Tool, relative_path: []const u8) !
         defer ctx.allocator.free(target);
         try bootstrap.links.managed(ctx, tool.name, target, bin_name);
     }
+}
+
+fn installCommand(ctx: *Context, templates: []const []const u8, bindings: common.template.Bindings) !void {
+    const argv = try common.template.Template.renderSlice(ctx.allocator, templates, bindings);
+    defer common.template.freeSlice(ctx.allocator, argv);
+    try proc.run(ctx, argv);
 }
 
 fn repoRoot(ctx: *Context) ![]u8 {

@@ -1,4 +1,3 @@
-const std = @import("std");
 const common = @import("common");
 
 const command = @import("command.zig");

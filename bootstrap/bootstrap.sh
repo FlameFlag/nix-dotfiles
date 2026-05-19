@@ -217,7 +217,7 @@ if ! zig_satisfies_bootstrap; then
   install_bootstrap_zig
 fi
 
-BOOTSTRAP_REPO_DIR="$repo_dir" BOOTSTRAP_TOOLS_JSON="$script_dir/dev_tools/tools/tools.json" zig run \
+BOOTSTRAP_REPO_DIR="$repo_dir" zig run \
   --dep bootstrap --dep common -Mroot="$script_dir/dev_tools/main.zig" \
   --dep common -Mbootstrap="$repo_dir/lib/zig/bootstrap/root.zig" \
   -Mcommon="$repo_dir/lib/zig/common/root.zig" \

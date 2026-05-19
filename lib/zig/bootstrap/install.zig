@@ -278,15 +278,15 @@ fn resolveNodeLatestJson(
         version: []const u8,
     };
 
-    var parsed = try std.json.parseFromSlice(
+    var node_releases = try std.json.parseFromSlice(
         []const NodeRelease,
         ctx.allocator,
         json,
         .{ .ignore_unknown_fields = true },
     );
-    defer parsed.deinit();
+    defer node_releases.deinit();
 
-    for (parsed.value) |entry| {
+    for (node_releases.value) |entry| {
         const version = try ctx.allocator.dupe(u8, entry.version);
         errdefer ctx.allocator.free(version);
         const template_args: RenderArgs = .{ .version = version, .platform = target_name };

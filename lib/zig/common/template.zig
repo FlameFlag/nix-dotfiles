@@ -72,6 +72,12 @@ pub const Bindings = struct {
     toolchain: []const u8 = "",
     manager_bin: []const u8 = "",
     component: []const u8 = "",
+    package: []const u8 = "",
+    repo_dir: []const u8 = "",
+    build_dir: []const u8 = "",
+    prefix: []const u8 = "",
+    tool: []const u8 = "",
+    zig: []const u8 = "",
 
     fn value(self: Bindings, name: []const u8) ?[]const u8 {
         inline for (@typeInfo(Bindings).@"struct".fields) |field| {
