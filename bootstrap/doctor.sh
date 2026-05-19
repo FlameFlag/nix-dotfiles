@@ -10,7 +10,26 @@ local_bin="${HOME}/.local/bin"
 cargo_home="${CARGO_HOME:-"$HOME/.cargo"}"
 cargo_bin="$cargo_home/bin"
 tools_json="$script_dir/dev_tools/tools/tools.json"
-zig_min="${BOOTSTRAP_ZIG_VERSION:-0.17.0-dev.304+9787df942}"
+
+zig_bootstrap_version() {
+  artifacts_file=${BOOTSTRAP_ZIG_ARTIFACTS:-"$script_dir/zig-artifacts.tsv"}
+
+  while read -r artifact_version _; do
+    case "${artifact_version:-}" in
+    '' | '#'*)
+      continue
+      ;;
+    esac
+
+    printf '%s\n' "$artifact_version"
+    return 0
+  done <"$artifacts_file"
+
+  printf 'error: no Zig bootstrap artifacts found in %s\n' "$artifacts_file" >&2
+  return 1
+}
+
+zig_min="${BOOTSTRAP_ZIG_VERSION:-$(zig_bootstrap_version)}"
 
 require_bootstrap_ready() {
   if [ ! -x "$local_bin/zig" ]; then

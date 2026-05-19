@@ -1,8 +1,5 @@
-# version target url sha256
-0.17.0-dev.304+9787df942	aarch64-macos	https://zigmirror.com/zig-aarch64-macos-0.17.0-dev.304+9787df942.tar.xz?source=nix-dotfiles-bootstrap	95d47d5bdb520544ffcb31cb56831009d7f5b2176546d0ea1411e59946ac10d6
-0.17.0-dev.304+9787df942	x86_64-linux	https://zigmirror.com/zig-x86_64-linux-0.17.0-dev.304+9787df942.tar.xz?source=nix-dotfiles-bootstrap	cc96628030e54ad9ff38df7bb858bd7c05dd522977a7c73e900c730f1d00be75
-0.17.0-dev.304+9787df942	aarch64-linux	https://zigmirror.com/zig-aarch64-linux-0.17.0-dev.304+9787df942.tar.xz?source=nix-dotfiles-bootstrap	e22447f474155b6b849498cb6c7bc75c233733e5c63df78006d61000a28b0d1f
-0.17.0-dev.304+9787df942	x86_64-windows	https://zigmirror.com/zig-x86_64-windows-0.17.0-dev.304+9787df942.zip?source=nix-dotfiles-bootstrap	8caa47dacec5d6040888c2086368664b6b4aec2ae569454cdf947a06404a724b
-0.16.0	aarch64-macos	https://zigmirror.com/zig-aarch64-macos-0.16.0.tar.xz?source=nix-dotfiles-bootstrap	b23d70deaa879b5c2d486ed3316f7eaa53e84acf6fc9cc747de152450d401489
-0.16.0	x86_64-linux	https://zigmirror.com/zig-x86_64-linux-0.16.0.tar.xz?source=nix-dotfiles-bootstrap	70e49664a74374b48b51e6f3fdfbf437f6395d42509050588bd49abe52ba3d00
-0.16.0	aarch64-linux	https://zigmirror.com/zig-aarch64-linux-0.16.0.tar.xz?source=nix-dotfiles-bootstrap	ea4b09bfb22ec6f6c6ceac57ab63efb6b46e17ab08d21f69f3a48b38e1534f17
+#version                  target          url                                                                                                    sha256
+0.17.0-dev.305+bdfbf432d  aarch64-macos   https://zigmirror.com/zig-aarch64-macos-0.17.0-dev.305+bdfbf432d.tar.xz?source=nix-dotfiles-bootstrap  842313e4e47f72b601994dcb9114bd88d7be2ad8ecfd37a2d7d882a51045d2cc
+0.17.0-dev.305+bdfbf432d  x86_64-linux    https://zigmirror.com/zig-x86_64-linux-0.17.0-dev.305+bdfbf432d.tar.xz?source=nix-dotfiles-bootstrap   df39f7482ea8a60d19d973a7b42167c74457fca844cace4953dedb73af7c033a
+0.17.0-dev.305+bdfbf432d  aarch64-linux   https://zigmirror.com/zig-aarch64-linux-0.17.0-dev.305+bdfbf432d.tar.xz?source=nix-dotfiles-bootstrap  2adf4da7ea5f690e155191ca4bceeee6dd7f1dccc9554f03d9bcc05f562d7975
+0.17.0-dev.305+bdfbf432d  x86_64-windows  https://zigmirror.com/zig-x86_64-windows-0.17.0-dev.305+bdfbf432d.zip?source=nix-dotfiles-bootstrap    320ca93d269708864f8214b1643cbf3a374adfc821d23a849ea1c8a8ab89205c

@@ -223,7 +223,6 @@ function Read-ZigArtifact {
         [Parameter(Mandatory)]
         [string] $ArtifactsFile,
 
-        [Parameter(Mandatory)]
         [string] $Version
     )
 
@@ -236,8 +235,13 @@ function Read-ZigArtifact {
         }
 
         $parts = $trimmed -split '\s+'
+        if ([string]::IsNullOrWhiteSpace($Version)) {
+            $Version = $parts[0]
+        }
+
         if ($parts.Count -ge 4 -and $parts[0] -eq $Version -and $parts[1] -eq 'x86_64-windows') {
             return @{
+                Version = $parts[0]
                 Url = $parts[2]
                 Sha256 = $parts[3]
             }
@@ -260,8 +264,9 @@ function Install-Zig {
     )
 
     # Everything after this point is built by Zig, so first ensure that the
-    # exact pinned Zig version is available and shimmed into ~/.local/bin.
-    $version = if ($env:BOOTSTRAP_ZIG_VERSION) { $env:BOOTSTRAP_ZIG_VERSION } else { '0.17.0-dev.304+9787df942' }
+    # manifest-selected Zig version is available and shimmed into ~/.local/bin.
+    $artifact = Read-ZigArtifact -ArtifactsFile (Join-Path $RepoRoot 'bootstrap\zig-artifacts.tsv') -Version $env:BOOTSTRAP_ZIG_VERSION
+    $version = $artifact.Version
     $zigParent = Join-Path $LocalOpt 'zig'
     $zigDir = Join-Path $zigParent $version
     $zigExe = Join-Path $zigDir 'zig.exe'
@@ -307,7 +312,6 @@ function Install-Zig {
 
     # Slow path: download the pinned archive, verify its hash, extract into a
     # temporary directory, and only then move it into the stable install path.
-    $artifact = Read-ZigArtifact -ArtifactsFile (Join-Path $RepoRoot 'bootstrap\zig-artifacts.tsv') -Version $version
     $downloadDir = Join-Path ([System.IO.Path]::GetTempPath()) ("zig-bootstrap-{0}" -f [System.Guid]::NewGuid())
     $archive = Join-Path $downloadDir 'zig.zip'
     $extractDir = Join-Path $downloadDir 'extract'

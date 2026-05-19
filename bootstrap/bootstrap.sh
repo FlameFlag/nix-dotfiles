@@ -58,6 +58,24 @@ zig_download_info() {
   return 1
 }
 
+zig_bootstrap_version() {
+  artifacts_file=${BOOTSTRAP_ZIG_ARTIFACTS:-"$script_dir/zig-artifacts.tsv"}
+
+  while read -r artifact_version _; do
+    case "${artifact_version:-}" in
+    '' | '#'*)
+      continue
+      ;;
+    esac
+
+    printf '%s\n' "$artifact_version"
+    return 0
+  done <"$artifacts_file"
+
+  printf 'error: no Zig bootstrap artifacts found in %s\n' "$artifacts_file" >&2
+  return 1
+}
+
 hash_file() {
   file=$1
   if command -v sha256sum >/dev/null 2>&1; then
@@ -189,7 +207,7 @@ mkdir -p "$local_bin" "$local_opt"
 ensure_shell_path
 ensure_chezmoi_config
 
-zig_min="${BOOTSTRAP_ZIG_VERSION:-0.17.0-dev.304+9787df942}"
+zig_min="${BOOTSTRAP_ZIG_VERSION:-$(zig_bootstrap_version)}"
 
 export PATH="$local_bin:$PATH"
 
