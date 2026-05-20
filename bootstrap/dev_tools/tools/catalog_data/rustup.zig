@@ -9,7 +9,7 @@ pub const tool: m.Tool = m.tool("rustup", &.{
     m.bin("rustfmt", &.{ "rustfmt", "--version" }),
     m.bin("cargo-clippy", &.{ "cargo", "clippy", "--version" }),
     m.bin("rust-analyzer", &.{ "rust-analyzer", "--version" }),
-}, m.rustupToolchain(.{
+}, m.toolchainAction(.{
     .manager_bin = "rustup",
     .name = "stable",
     .name_env = "BOOTSTRAP_RUST_TOOLCHAIN",
@@ -23,7 +23,6 @@ pub const tool: m.Tool = m.tool("rustup", &.{
                 "sh",
                 "{file}",
                 "-y",
-                "--no-modify-path",
                 "--profile",
                 "minimal",
                 "--default-toolchain",
@@ -37,7 +36,6 @@ pub const tool: m.Tool = m.tool("rustup", &.{
             .argv = &.{
                 "{file}",
                 "-y",
-                "--no-modify-path",
                 "--profile",
                 "minimal",
                 "--default-toolchain",

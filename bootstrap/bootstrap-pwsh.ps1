@@ -137,14 +137,6 @@ function Add-PathEntry {
     }
 }
 
-function Get-CargoBin {
-    if (-not [string]::IsNullOrWhiteSpace($env:CARGO_HOME)) {
-        return (Join-Path $env:CARGO_HOME 'bin')
-    }
-
-    return (Join-Path (Get-LocalRoot) '.cargo\bin')
-}
-
 function Invoke-Winget {
     param(
         [Parameter(Mandatory)]
@@ -165,7 +157,6 @@ function Invoke-Winget {
 }
 
 function Test-MsvcBuildToolset {
-    # Rust's default Windows target needs the MSVC linker and Windows SDK.
     # vswhere is the supported Visual Studio discovery API, so use it instead of
     # guessing install directories by hand.
     $vswhereCandidates = @()
@@ -211,7 +202,7 @@ function Install-MsvcBuildToolset {
 
     if (-not $installed -or -not (Test-MsvcBuildToolset)) {
         $exitCode = if ($null -ne $script:LastWingetExitCode) { $script:LastWingetExitCode } else { 'unknown' }
-        Write-Warning "Native Windows Rust builds need MSVC C++ build tools and a Windows SDK, but WinGet did not finish installing them (exit: ${exitCode})."
+        Write-Warning "Native Windows builds may need MSVC C++ build tools and a Windows SDK, but WinGet did not finish installing them (exit: ${exitCode})."
         return $false
     }
 
@@ -526,18 +517,12 @@ $repoRoot = Get-RepoRoot
 $homeRoot = Get-LocalRoot
 $localBin = Join-Path $homeRoot '.local\bin'
 $localOpt = Join-Path $homeRoot '.local\opt'
-$cargoBin = Get-CargoBin
 New-Item -ItemType Directory -Force -Path $localBin, $localOpt | Out-Null
 Add-PathEntry -Path $localBin
 
 $zig = Install-Zig -RepoRoot $repoRoot -LocalBin $localBin -LocalOpt $localOpt
-$hasMsvcBuildTools = Install-MsvcBuildToolset
-if (-not $hasMsvcBuildTools) {
-    throw 'Rust on Windows requires MSVC C++ build tools and a Windows SDK. Re-run without -SkipMsvcBuildTools or install Visual Studio Build Tools manually.'
-}
-$env:BOOTSTRAP_RUST_TOOLCHAIN = 'stable'
+[void] (Install-MsvcBuildToolset)
 Invoke-ZigBootstrapInstaller -RepoRoot $repoRoot -ZigExe $zig
-Add-PathEntry -Path $cargoBin
 try {
     Set-WindowsTerminalDefaultPowerShell
 } catch {
@@ -558,8 +543,4 @@ Write-Output "zig: $(Get-NativeText -FilePath $zig -ArgumentList @('version'))"
 $chezmoi = Get-Command chezmoi.exe -ErrorAction SilentlyContinue
 if ($chezmoi) {
     Write-Output "chezmoi: $(Get-NativeText -FilePath $chezmoi.Source -ArgumentList @('--version'))"
-}
-$rustup = Get-Command rustup.exe -ErrorAction SilentlyContinue
-if ($rustup) {
-    Write-Output "rustup: $(Get-NativeText -FilePath $rustup.Source -ArgumentList @('--version'))"
 }

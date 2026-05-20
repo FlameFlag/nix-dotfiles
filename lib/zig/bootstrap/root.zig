@@ -10,7 +10,7 @@ pub const ownership = @import("ownership.zig");
 pub const packages = @import("packages.zig");
 pub const platform = @import("platform.zig");
 pub const release = @import("release.zig");
-pub const rust = @import("rust.zig");
+pub const toolchain = @import("toolchain.zig");
 
 test {
     std.testing.refAllDecls(@This());

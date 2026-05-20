@@ -57,9 +57,7 @@ fn installManager(ctx: *Context, spec: manifest.Toolchain, toolchain: []const u8
     const command = if (builtin.os.tag == .windows) spec.install.windows else spec.install.unix;
     const selected = command orelse return error.UnsupportedPlatform;
 
-    if (try installLinuxStaticManager(ctx, spec, selected, toolchain)) return;
-
-    const installer = try downloadFile(ctx, "rustup-install", selected.file, selected.url);
+    const installer = try downloadFile(ctx, "toolchain-install", selected.file, selected.url);
     defer removeDownloadedScript(ctx, installer);
     const install_argv = try renderToolchainArgv(ctx, spec, selected.argv, .{
         .file = installer,
@@ -67,58 +65,6 @@ fn installManager(ctx: *Context, spec: manifest.Toolchain, toolchain: []const u8
     });
     defer freeArgv(ctx, install_argv);
     try proc.run(ctx, install_argv);
-}
-
-fn installLinuxStaticManager(
-    ctx: *Context,
-    spec: manifest.Toolchain,
-    selected: manifest.Toolchain.Install.Command,
-    toolchain: []const u8,
-) !bool {
-    const target = rustupLinuxMuslTarget() orelse return false;
-    const url = try std.fmt.allocPrint(
-        ctx.allocator,
-        "https://static.rust-lang.org/rustup/dist/{s}/rustup-init",
-        .{target},
-    );
-    defer ctx.allocator.free(url);
-
-    const installer = try downloadFile(ctx, "rustup-install", "rustup-init", url);
-    defer removeDownloadedScript(ctx, installer);
-
-    const install_argv = try renderDirectRustupArgv(ctx, spec, selected.argv, installer, toolchain);
-    defer freeArgv(ctx, install_argv);
-    try proc.run(ctx, install_argv);
-    return true;
-}
-
-fn rustupLinuxMuslTarget() ?[]const u8 {
-    if (builtin.os.tag != .linux) return null;
-    return switch (builtin.cpu.arch) {
-        .x86_64 => "x86_64-unknown-linux-musl",
-        .aarch64 => "aarch64-unknown-linux-musl",
-        else => null,
-    };
-}
-
-fn renderDirectRustupArgv(
-    ctx: *Context,
-    spec: manifest.Toolchain,
-    templates: []const []const u8,
-    installer: []const u8,
-    toolchain: []const u8,
-) ![]const []const u8 {
-    const direct_templates = if (templates.len >= 2 and
-        std.mem.eql(u8, templates[0], "sh") and
-        std.mem.eql(u8, templates[1], "{file}"))
-        templates[1..]
-    else
-        templates;
-
-    return renderToolchainArgv(ctx, spec, direct_templates, .{
-        .file = installer,
-        .toolchain = toolchain,
-    });
 }
 
 fn renderToolchainArgv(
@@ -236,20 +182,20 @@ fn testingContext(env: *std.process.Environ.Map, home: []const u8) Context {
 
 fn testingToolchain() manifest.Toolchain {
     return .{
-        .manager_bin = "rustup",
+        .manager_bin = "manager",
         .name = "stable",
-        .name_env = "BOOTSTRAP_RUST_TOOLCHAIN",
-        .bin_dir = .{ .env_var = "CARGO_HOME", .home_relative = ".cargo/bin" },
-        .components = &.{ "rustfmt", "clippy" },
+        .name_env = "BOOTSTRAP_TEST_TOOLCHAIN",
+        .bin_dir = .{ .env_var = "TOOLCHAIN_HOME", .home_relative = ".toolchain/bin" },
+        .components = &.{ "formatter", "linter" },
         .install = .{
             .unix = .{
-                .url = "https://sh.rustup.rs",
+                .url = "https://example.test/install.sh",
                 .file = "install.sh",
                 .argv = &.{ "sh", "{file}", "-y", "--default-toolchain", "{toolchain}", "{components}" },
             },
             .windows = .{
-                .url = "https://static.rust-lang.org/rustup/dist/x86_64-pc-windows-msvc/rustup-init.exe",
-                .file = "rustup-init.exe",
+                .url = "https://example.test/install.exe",
+                .file = "install.exe",
                 .argv = &.{ "{file}", "-y", "--default-toolchain", "{toolchain}", "{components}" },
             },
         },
@@ -268,40 +214,23 @@ fn testingToolchain() manifest.Toolchain {
     };
 }
 
-test "rustup argv templates expand requested components" {
+test "toolchain argv templates expand requested components" {
     var env = std.process.Environ.Map.init(std.testing.allocator);
     defer env.deinit();
     var ctx = testingContext(&env, "/home/me");
 
     const argv = try renderToolchainArgv(&ctx, testingToolchain(), testingToolchain().update_argv, .{
-        .manager_bin = "rustup",
+        .manager_bin = "manager",
         .toolchain = "stable",
     });
     defer freeArgv(&ctx, argv);
 
-    try std.testing.expectEqualStrings("rustup", argv[0]);
+    try std.testing.expectEqualStrings("manager", argv[0]);
     try std.testing.expectEqualStrings("toolchain", argv[1]);
     try std.testing.expectEqualStrings("stable", argv[3]);
     try std.testing.expectEqualStrings("--component", argv[6]);
-    try std.testing.expectEqualStrings("rustfmt", argv[7]);
-    try std.testing.expectEqualStrings("clippy", argv[9]);
-}
-
-test "direct rustup argv drops shell wrapper" {
-    var env = std.process.Environ.Map.init(std.testing.allocator);
-    defer env.deinit();
-    var ctx = testingContext(&env, "/home/me");
-    const toolchain = testingToolchain();
-    const command = toolchain.install.unix.?;
-
-    const argv = try renderDirectRustupArgv(&ctx, toolchain, command.argv, "/tmp/rustup-init", "stable");
-    defer freeArgv(&ctx, argv);
-
-    try std.testing.expectEqualStrings("/tmp/rustup-init", argv[0]);
-    try std.testing.expectEqualStrings("-y", argv[1]);
-    try std.testing.expectEqualStrings("stable", argv[3]);
-    try std.testing.expectEqualStrings("--component", argv[4]);
-    try std.testing.expectEqualStrings("rustfmt", argv[5]);
+    try std.testing.expectEqualStrings("formatter", argv[7]);
+    try std.testing.expectEqualStrings("linter", argv[9]);
 }
 
 test "toolchainBinDir honors env override and defaults under home" {
@@ -311,21 +240,21 @@ test "toolchainBinDir honors env override and defaults under home" {
 
     const default_bin = try toolchainBinDir(&ctx, testingToolchain());
     defer ctx.allocator.free(default_bin);
-    try std.testing.expectEqualStrings("/home/me/.cargo/bin", default_bin);
+    try std.testing.expectEqualStrings("/home/me/.toolchain/bin", default_bin);
 
-    try env.put("CARGO_HOME", "/cargo");
+    try env.put("TOOLCHAIN_HOME", "/toolchain");
     const custom_bin = try toolchainBinDir(&ctx, testingToolchain());
     defer ctx.allocator.free(custom_bin);
-    try std.testing.expectEqualStrings("/cargo/bin", custom_bin);
+    try std.testing.expectEqualStrings("/toolchain/bin", custom_bin);
 }
 
-test "rustup executable name follows host executable suffix" {
-    const expected = if (builtin.os.tag == .windows) "rustup.exe" else "rustup";
+test "toolchain manager executable name follows host executable suffix" {
+    const expected = if (builtin.os.tag == .windows) "manager.exe" else "manager";
     var env = std.process.Environ.Map.init(std.testing.allocator);
     defer env.deinit();
     var ctx = testingContext(&env, "/home/me");
 
-    const rustup_name = try executableName(&ctx, "rustup");
-    defer ctx.allocator.free(rustup_name);
-    try std.testing.expectEqualStrings(expected, rustup_name);
+    const manager_name = try executableName(&ctx, "manager");
+    defer ctx.allocator.free(manager_name);
+    try std.testing.expectEqualStrings(expected, manager_name);
 }

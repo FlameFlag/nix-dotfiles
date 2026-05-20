@@ -118,7 +118,6 @@ ensure_shell_path() {
     printf '# %s\n' "$marker"
     printf 'typeset -U path PATH 2>/dev/null || true\n'
     printf 'case ":${PATH}:" in *":${HOME}/.local/bin:"*) ;; *) PATH="${HOME}/.local/bin:${PATH}" ;; esac\n'
-    printf 'case ":${PATH}:" in *":${HOME}/.cargo/bin:"*) ;; *) PATH="${HOME}/.cargo/bin:${PATH}" ;; esac\n'
     printf 'export PATH\n'
   } >>"$zshenv"
 }

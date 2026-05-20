@@ -5,7 +5,7 @@ const common = @import("common");
 const Context = @import("context.zig").Context;
 const manifest = @import("manifest.zig");
 const packages = @import("packages.zig");
-const rust = @import("rust.zig");
+const toolchain_installer = @import("toolchain.zig");
 
 const proc = common.process;
 
@@ -27,7 +27,7 @@ pub fn classifyBin(
 
     switch (tool.action) {
         .toolchain => |toolchain| {
-            const bin_dir = try rust.toolchainBinDir(ctx, toolchain);
+            const bin_dir = try toolchain_installer.toolchainBinDir(ctx, toolchain);
             defer ctx.allocator.free(bin_dir);
             return if (try pathIsUnder(ctx, cwd, executable_path, bin_dir)) .managed else .external;
         },

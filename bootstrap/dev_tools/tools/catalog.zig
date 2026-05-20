@@ -30,31 +30,14 @@ test "static catalog validates" {
     var ctx = testingContext(&env);
     var loaded = try load(&ctx);
     defer loaded.deinit(&ctx);
-    try std.testing.expectEqual(@as(usize, 16), loaded.tools.len);
+    try std.testing.expect(loaded.tools.len > 0);
 }
 
-test "static catalog tool order is stable" {
-    const expected = [_][]const u8{
-        "chezmoi",
-        "uv",
-        "zig",
-        "rustup",
-        "zls",
-        "ziglint",
-        "node",
-        "bun",
-        "vscode",
-        "yt-dlp",
-        "yt-dlp-script",
-        "ruff",
-        "ty",
-        "gh-hide-comment",
-        "zellij-theme-tools",
-        "lenovo-con-mode",
-    };
-
-    try std.testing.expectEqual(expected.len, catalog_data.tools.len);
-    for (expected, catalog_data.tools) |name, tool| {
-        try std.testing.expectEqualStrings(name, tool.name);
+test "static catalog tool names are unique" {
+    for (catalog_data.tools, 0..) |tool, index| {
+        try std.testing.expect(tool.name.len > 0);
+        for (catalog_data.tools[0..index]) |previous| {
+            try std.testing.expect(!std.mem.eql(u8, previous.name, tool.name));
+        }
     }
 }

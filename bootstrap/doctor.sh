@@ -7,8 +7,6 @@ set -eu
 script_dir=$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)
 repo_dir=$(CDPATH='' cd -- "$script_dir/.." && pwd)
 local_bin="${HOME}/.local/bin"
-cargo_home="${CARGO_HOME:-"$HOME/.cargo"}"
-cargo_bin="$cargo_home/bin"
 
 zig_bootstrap_version() {
   artifacts_file=${BOOTSTRAP_ZIG_ARTIFACTS:-"$script_dir/zig-artifacts.tsv"}
@@ -56,7 +54,7 @@ fi
 # on PATH so it can explain whether each visible tool came from bootstrap or
 # from an external install.
 require_bootstrap_ready
-export PATH="$local_bin:$cargo_bin:$PATH"
+export PATH="$local_bin:$PATH"
 BOOTSTRAP_REPO_DIR="$repo_dir" exec "$local_bin/zig" run \
   --dep bootstrap --dep common -Mroot="$script_dir/dev_tools/main.zig" \
   --dep common -Mbootstrap="$repo_dir/lib/zig/bootstrap/root.zig" \

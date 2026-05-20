@@ -7,8 +7,6 @@ set -eu
 script_dir=$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)
 repo_dir=$(CDPATH='' cd -- "$script_dir/.." && pwd)
 local_bin="${HOME}/.local/bin"
-cargo_home="${CARGO_HOME:-"$HOME/.cargo"}"
-cargo_bin="$cargo_home/bin"
 
 zig_bootstrap_version() {
   artifacts_file=${BOOTSTRAP_ZIG_ARTIFACTS:-"$script_dir/zig-artifacts.tsv"}
@@ -54,11 +52,10 @@ if [ "$#" -gt 0 ]; then
 fi
 mkdir -p "$local_bin"
 
-# The update command assumes bootstrap already installed Zig, uv, and Rust. Put
-# the managed bins first so the Zig installer sees the same toolchain layout that
-# `bootstrap.sh` created.
+# Put the managed bin directory first so helper commands resolve to the
+# bootstrap-managed tools before external installs.
 require_bootstrap_ready
-export PATH="$local_bin:$cargo_bin:$PATH"
+export PATH="$local_bin:$PATH"
 BOOTSTRAP_REPO_DIR="$repo_dir" exec "$local_bin/zig" run \
   --dep bootstrap --dep common -Mroot="$script_dir/dev_tools/main.zig" \
   --dep common -Mbootstrap="$repo_dir/lib/zig/bootstrap/root.zig" \

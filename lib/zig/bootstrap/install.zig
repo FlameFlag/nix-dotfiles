@@ -23,7 +23,7 @@ pub const Source = union(enum) {
     github_latest: GithubLatest,
     direct: Direct,
     command: Command,
-    node_latest: NodeLatest,
+    version_index: VersionIndex,
 
     pub const GithubLatest = struct {
         repo: []const u8,
@@ -41,7 +41,7 @@ pub const Source = union(enum) {
         url: Template,
     };
 
-    pub const NodeLatest = struct {
+    pub const VersionIndex = struct {
         index_url: []const u8,
         url: Template,
     };
@@ -248,45 +248,35 @@ fn resolveSource(ctx: *Context, source: Source, target_name: []const u8) !Resolv
                 .owns_version = true,
             };
         },
-        .node_latest => |node| try resolveNodeLatest(ctx, node, target_name),
+        .version_index => |version_index| try resolveVersionIndex(ctx, version_index, target_name),
     };
 }
 
-fn resolveNodeLatest(ctx: *Context, source: Source.NodeLatest, target_name: []const u8) !ResolvedSource {
-    const resolved_source = if (std.mem.endsWith(u8, target_name, "-musl"))
-        Source.NodeLatest{
-            .index_url = "https://unofficial-builds.nodejs.org/download/release/index.json",
-            .url = .literal(
-                "https://unofficial-builds.nodejs.org/download/release/{version}/node-{version}-{platform}.tar.xz",
-            ),
-        }
-    else
-        source;
-
-    const json = try http.getBytes(ctx, resolved_source.index_url);
+fn resolveVersionIndex(ctx: *Context, source: Source.VersionIndex, target_name: []const u8) !ResolvedSource {
+    const json = try http.getBytes(ctx, source.index_url);
     defer ctx.allocator.free(json);
-    return resolveNodeLatestJson(ctx, resolved_source, target_name, json);
+    return resolveVersionIndexJson(ctx, source, target_name, json);
 }
 
-fn resolveNodeLatestJson(
+fn resolveVersionIndexJson(
     ctx: *Context,
-    source: Source.NodeLatest,
+    source: Source.VersionIndex,
     target_name: []const u8,
     json: []const u8,
 ) !ResolvedSource {
-    const NodeRelease = struct {
+    const IndexedRelease = struct {
         version: []const u8,
     };
 
-    var node_releases = try std.json.parseFromSlice(
-        []const NodeRelease,
+    var releases = try std.json.parseFromSlice(
+        []const IndexedRelease,
         ctx.allocator,
         json,
         .{ .ignore_unknown_fields = true },
     );
-    defer node_releases.deinit();
+    defer releases.deinit();
 
-    for (node_releases.value) |entry| {
+    for (releases.value) |entry| {
         const version = try ctx.allocator.dupe(u8, entry.version);
         errdefer ctx.allocator.free(version);
         const template_args: RenderArgs = .{ .version = version, .platform = target_name };
@@ -363,13 +353,13 @@ test "direct archive source resolves URL from declarative data" {
     try std.testing.expectEqualStrings("https://example.test/tool-1.2.3-aarch64-macos.tar.gz", resolved.url);
 }
 
-test "node source resolves first indexed release declaratively" {
+test "version index source resolves first indexed release declaratively" {
     var env = std.process.Environ.Map.init(std.testing.allocator);
     defer env.deinit();
     var ctx = testingContext(&env);
-    const spec: Source.NodeLatest = .{
+    const spec: Source.VersionIndex = .{
         .index_url = "unused",
-        .url = .literal("https://example.test/{version}/node-{version}-{platform}.tar.xz"),
+        .url = .literal("https://example.test/{version}/tool-{version}-{platform}.tar.xz"),
     };
     const json =
         \\[
@@ -378,20 +368,20 @@ test "node source resolves first indexed release declaratively" {
         \\]
     ;
 
-    var resolved = try resolveNodeLatestJson(&ctx, spec, "darwin-arm64", json);
+    var resolved = try resolveVersionIndexJson(&ctx, spec, "darwin-arm64", json);
     defer resolved.deinit(&ctx);
 
     try std.testing.expectEqualStrings("v24.0.0", resolved.version);
-    try std.testing.expectEqualStrings("https://example.test/v24.0.0/node-v24.0.0-darwin-arm64.tar.xz", resolved.url);
+    try std.testing.expectEqualStrings("https://example.test/v24.0.0/tool-v24.0.0-darwin-arm64.tar.xz", resolved.url);
 }
 
-test "node source resolves musl release from unofficial builds URL" {
+test "version index source honors configured platform templates" {
     var env = std.process.Environ.Map.init(std.testing.allocator);
     defer env.deinit();
     var ctx = testingContext(&env);
-    const spec: Source.NodeLatest = .{
+    const spec: Source.VersionIndex = .{
         .index_url = "unused",
-        .url = .literal("https://example.test/{version}/node-{version}-{platform}.tar.xz"),
+        .url = .literal("https://example.test/{version}/tool-{version}-{platform}.tar.xz"),
     };
     const json =
         \\[
@@ -399,26 +389,26 @@ test "node source resolves musl release from unofficial builds URL" {
         \\]
     ;
 
-    var resolved = try resolveNodeLatestJson(&ctx, spec, "linux-arm64-musl", json);
+    var resolved = try resolveVersionIndexJson(&ctx, spec, "linux-arm64-musl", json);
     defer resolved.deinit(&ctx);
 
     try std.testing.expectEqualStrings("v24.0.0", resolved.version);
     try std.testing.expectEqualStrings(
-        "https://example.test/v24.0.0/node-v24.0.0-linux-arm64-musl.tar.xz",
+        "https://example.test/v24.0.0/tool-v24.0.0-linux-arm64-musl.tar.xz",
         resolved.url,
     );
 }
 
-test "node source reports empty and malformed indexes" {
+test "version index source reports empty and malformed indexes" {
     var env = std.process.Environ.Map.init(std.testing.allocator);
     defer env.deinit();
     var ctx = testingContext(&env);
-    const spec: Source.NodeLatest = .{
+    const spec: Source.VersionIndex = .{
         .index_url = "unused",
-        .url = .literal("https://example.test/{version}/node-{version}-{platform}.tar.xz"),
+        .url = .literal("https://example.test/{version}/tool-{version}-{platform}.tar.xz"),
     };
 
-    try std.testing.expectError(error.AssetNotFound, resolveNodeLatestJson(&ctx, spec, "darwin-arm64", "[]"));
-    try std.testing.expectError(error.UnexpectedToken, resolveNodeLatestJson(&ctx, spec, "darwin-arm64", "{}"));
-    try std.testing.expectError(error.MissingField, resolveNodeLatestJson(&ctx, spec, "darwin-arm64", "[{}]"));
+    try std.testing.expectError(error.AssetNotFound, resolveVersionIndexJson(&ctx, spec, "darwin-arm64", "[]"));
+    try std.testing.expectError(error.UnexpectedToken, resolveVersionIndexJson(&ctx, spec, "darwin-arm64", "{}"));
+    try std.testing.expectError(error.MissingField, resolveVersionIndexJson(&ctx, spec, "darwin-arm64", "[{}]"));
 }

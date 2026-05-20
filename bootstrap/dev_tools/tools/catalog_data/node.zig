@@ -7,7 +7,7 @@ pub const tool: m.Tool = m.tool("node", &.{
     m.bin("npm", &.{ "npm", "--version" }),
     m.bin("npx", &.{ "npx", "--version" }),
 }, m.archive(
-    m.nodeLatest(
+    m.versionIndex(
         "https://nodejs.org/dist/index.json",
         "https://nodejs.org/dist/{version}/node-{version}-{platform}.tar.xz",
     ),
@@ -17,20 +17,40 @@ pub const tool: m.Tool = m.tool("node", &.{
             m.link("npm", "bin/npm"),
             m.link("npx", "bin/npx"),
         }, &.{}),
-        m.archivePlatform(m.linuxAarch64(), "linux-arm64-musl", .tar_xz, 1, &.{
-            m.link("node", "bin/node"),
-            m.link("npm", "bin/npm"),
-            m.link("npx", "bin/npx"),
-        }, &.{}),
-        m.archivePlatform(m.linuxX8664(), "linux-x64-musl", .tar_xz, 1, &.{
-            m.link("node", "bin/node"),
-            m.link("npm", "bin/npm"),
-            m.link("npx", "bin/npx"),
-        }, &.{}),
+        .{
+            .when = m.linuxAarch64(),
+            .platform = "linux-arm64-musl",
+            .source = m.versionIndex(
+                "https://unofficial-builds.nodejs.org/download/release/index.json",
+                "https://unofficial-builds.nodejs.org/download/release/{version}/node-{version}-{platform}.tar.xz",
+            ),
+            .kind = .tar_xz,
+            .strip_components = 1,
+            .links = &.{
+                m.link("node", "bin/node"),
+                m.link("npm", "bin/npm"),
+                m.link("npx", "bin/npx"),
+            },
+        },
+        .{
+            .when = m.linuxX8664(),
+            .platform = "linux-x64-musl",
+            .source = m.versionIndex(
+                "https://unofficial-builds.nodejs.org/download/release/index.json",
+                "https://unofficial-builds.nodejs.org/download/release/{version}/node-{version}-{platform}.tar.xz",
+            ),
+            .kind = .tar_xz,
+            .strip_components = 1,
+            .links = &.{
+                m.link("node", "bin/node"),
+                m.link("npm", "bin/npm"),
+                m.link("npx", "bin/npx"),
+            },
+        },
         .{
             .when = m.windowsX8664(),
             .platform = "win-x64",
-            .source = m.nodeLatest(
+            .source = m.versionIndex(
                 "https://nodejs.org/dist/index.json",
                 "https://nodejs.org/dist/{version}/node-{version}-{platform}.zip",
             ),

@@ -49,7 +49,7 @@ pub fn versionFromTag(tag: []const u8, prefix: []const u8) []const u8 {
 
 test "version strings trim configured prefixes" {
     try std.testing.expectEqualStrings("2.70.3", versionFromTag("v2.70.3", "v"));
-    try std.testing.expectEqualStrings("1.2.0", versionFromTag("bun-1.2.0", "bun-"));
+    try std.testing.expectEqualStrings("1.2.0", versionFromTag("tool-1.2.0", "tool-"));
     try std.testing.expectEqualStrings("0.16.0", versionFromTag("0.16.0", "v"));
 }
 

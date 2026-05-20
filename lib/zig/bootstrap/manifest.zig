@@ -101,7 +101,7 @@ pub const Source = union(enum) {
     github_latest: GithubLatestSource,
     direct: DirectSource,
     command: CommandSource,
-    node_latest: NodeLatestSource,
+    version_index: VersionIndexSource,
 };
 
 pub const GithubLatestSource = struct {
@@ -120,7 +120,7 @@ pub const CommandSource = struct {
     url: []const u8,
 };
 
-pub const NodeLatestSource = struct {
+pub const VersionIndexSource = struct {
     index_url: []const u8,
     url: []const u8,
 };
@@ -234,7 +234,7 @@ pub fn scriptCommand(url: []const u8, file: []const u8, argv: []const []const u8
     return .{ .url = url, .file = file, .argv = argv };
 }
 
-pub fn rustupToolchain(spec: Toolchain) Tool.Action {
+pub fn toolchainAction(spec: Toolchain) Tool.Action {
     return .{ .toolchain = spec };
 }
 
@@ -250,8 +250,8 @@ pub fn commandSource(argv: []const []const u8, url: []const u8) Source {
     return .{ .command = .{ .argv = argv, .url = url } };
 }
 
-pub fn nodeLatest(index_url: []const u8, url: []const u8) Source {
-    return .{ .node_latest = .{ .index_url = index_url, .url = url } };
+pub fn versionIndex(index_url: []const u8, url: []const u8) Source {
+    return .{ .version_index = .{ .index_url = index_url, .url = url } };
 }
 
 pub fn link(name: []const u8, path: []const u8) Link {
@@ -673,10 +673,10 @@ fn validateSource(comptime path_fmt: []const u8, ctx: *Context, source: Source, 
             }
             try validateTemplate(path_fmt ++ ".url", ctx, command_source.url, args, &.{ "version", "platform" });
         },
-        .node_latest => |node| {
-            if (node.index_url.len == 0) return fail(path_fmt ++ ".index_url: must not be empty", ctx, args);
-            if (node.url.len == 0) return fail(path_fmt ++ ".url: must not be empty", ctx, args);
-            try validateTemplate(path_fmt ++ ".url", ctx, node.url, args, &.{ "version", "platform" });
+        .version_index => |version_index| {
+            if (version_index.index_url.len == 0) return fail(path_fmt ++ ".index_url: must not be empty", ctx, args);
+            if (version_index.url.len == 0) return fail(path_fmt ++ ".url: must not be empty", ctx, args);
+            try validateTemplate(path_fmt ++ ".url", ctx, version_index.url, args, &.{ "version", "platform" });
         },
     }
 }
@@ -709,9 +709,9 @@ fn archiveSource(input: Source) !install_archive.Source {
             .argv = command_source.argv,
             .url = .literal(command_source.url),
         } },
-        .node_latest => |node| .{ .node_latest = .{
-            .index_url = node.index_url,
-            .url = .literal(node.url),
+        .version_index => |version_index| .{ .version_index = .{
+            .index_url = version_index.index_url,
+            .url = .literal(version_index.url),
         } },
     };
 }
@@ -866,11 +866,11 @@ test "tool phase defaults match action type" {
             archivePlatform(.{}, "any", .tar_gz, 0, &.{link("zls", "zls")}, &.{}),
         }),
     );
-    const toolchain_tool = tool("rustup", &.{bin("rustup", &.{"rustup"})}, rustupToolchain(.{
-        .manager_bin = "rustup",
+    const toolchain_tool = tool("demo-toolchain", &.{bin("manager", &.{"manager"})}, toolchainAction(.{
+        .manager_bin = "manager",
         .name = "stable",
-        .bin_dir = .{ .env_var = "CARGO_HOME", .home_relative = ".cargo/bin" },
-        .components = &.{"rustfmt"},
+        .bin_dir = .{ .env_var = "TOOLCHAIN_HOME", .home_relative = ".toolchain/bin" },
+        .components = &.{"formatter"},
         .install = .{ .unix = .{
             .url = "https://example.test",
             .file = "install.sh",

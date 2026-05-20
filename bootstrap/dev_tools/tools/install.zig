@@ -113,9 +113,20 @@ fn managedBinsPresent(ctx: *Context, tool: model.Tool) !bool {
     defer if (is_package) packages.deinit(ctx);
 
     for (tool.bins) |bin| {
-        const classification = try ownership.classifyBinOnPath(ctx, cwd, tool, bin.name, packages);
-        if (classification != .managed) return false;
-        if (!try binRuns(ctx, bin)) return false;
+        const path = try proc.pathOf(ctx, bin.name);
+        defer if (path) |value| ctx.allocator.free(value);
+
+        const classification = try ownership.classifyBin(ctx, cwd, tool, bin.name, path, packages);
+        switch (classification) {
+            .missing => return false,
+            .external => {
+                if (path) |value| {
+                    if (try ownership.pathIsUnder(ctx, cwd, value, ctx.bin_dir)) continue;
+                }
+                return false;
+            },
+            .managed => if (!try binRuns(ctx, bin)) return false,
+        }
     }
     switch (tool.action) {
         .archive => |archive_spec| if (!try managedAppLinksPresent(ctx, tool, archive_spec)) return false,
@@ -164,13 +175,13 @@ fn managedAppLinksPresent(ctx: *Context, tool: model.Tool, archive_spec: model.A
 
 test "install verbs are stable user-facing labels" {
     const toolchain: model.Tool = .{
-        .name = "rustup",
+        .name = "demo-toolchain",
         .bins = &.{},
         .action = .{ .toolchain = .{
-            .manager_bin = "rustup",
+            .manager_bin = "manager",
             .name = "stable",
-            .bin_dir = .{ .env_var = "CARGO_HOME", .home_relative = ".cargo/bin" },
-            .components = &.{"rustfmt"},
+            .bin_dir = .{ .env_var = "TOOLCHAIN_HOME", .home_relative = ".toolchain/bin" },
+            .components = &.{"formatter"},
             .install = .{ .unix = .{
                 .url = "https://example.test",
                 .file = "install.sh",
@@ -183,7 +194,7 @@ test "install verbs are stable user-facing labels" {
         } },
     };
     const archive_tool: model.Tool = .{
-        .name = "zls",
+        .name = "demo-archive",
         .bins = &.{},
         .action = .{ .archive = .{ .platforms = &.{} } },
     };
@@ -229,6 +240,31 @@ test "install_missing reinstalls archive bins that are external on PATH" {
     };
 
     try std.testing.expect(try shouldInstall(&ctx, tool));
+}
+
+test "install_missing skips local non-managed archive bins" {
+    var env = std.process.Environ.Map.init(std.testing.allocator);
+    defer env.deinit();
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+
+    const bin_dir = try tmpPath(std.testing.allocator, tmp, &.{"bin"});
+    defer std.testing.allocator.free(bin_dir);
+    const opt_dir = try tmpPath(std.testing.allocator, tmp, &.{"opt"});
+    defer std.testing.allocator.free(opt_dir);
+    const tool_path = try tmpPath(std.testing.allocator, tmp, &.{ "bin", "demo" });
+    defer std.testing.allocator.free(tool_path);
+    try common.fs.writeExecutableFile(std.testing.io, tool_path, "");
+    try env.put("PATH", bin_dir);
+
+    var ctx = testingContext(&env, bin_dir, opt_dir);
+    const tool: model.Tool = .{
+        .name = "demo",
+        .bins = &.{.{ .name = "demo", .version_argv = &.{tool_path} }},
+        .action = .{ .archive = .{ .platforms = &.{} } },
+    };
+
+    try std.testing.expect(!try shouldInstall(&ctx, tool));
 }
 
 test "install_missing skips managed archive symlinks" {

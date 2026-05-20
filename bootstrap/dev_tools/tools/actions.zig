@@ -14,7 +14,7 @@ pub fn install(ctx: *Context, tool: model.Tool) !void {
     switch (tool.action) {
         .required => return error.BootstrapPrerequisite,
         .script => |script_spec| try installScript(ctx, tool.name, script_spec),
-        .toolchain => |toolchain_spec| try bootstrap.rust.installOrUpdate(ctx, toolchain_spec),
+        .toolchain => |toolchain_spec| try bootstrap.toolchain.installOrUpdate(ctx, toolchain_spec),
         .package => |package_spec| try installPackage(ctx, package_spec),
         .build => |build_spec| try installBuildCommand(ctx, tool, build_spec),
         .archive => {
