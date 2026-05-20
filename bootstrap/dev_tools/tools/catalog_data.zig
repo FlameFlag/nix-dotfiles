@@ -5,19 +5,25 @@ const m = bootstrap.manifest;
 pub const tools = [_]m.Tool{
     m.tool("chezmoi", &.{
         m.bin("chezmoi", &.{ "chezmoi", "--version" }),
-    }, m.script(
-        m.scriptCommand("https://get.chezmoi.io", "install.sh", &.{ "sh", "{file}", "-b", "{bin_dir}" }),
-        m.scriptCommand("https://get.chezmoi.io/ps1", "install.ps1", &.{
-            "pwsh",
-            "-NoProfile",
-            "-ExecutionPolicy",
-            "Bypass",
-            "-File",
-            "{file}",
-            "-BinDir",
-            "{bin_dir}",
-        }),
-    )),
+    }, m.archive(m.githubLatest("twpayne/chezmoi", "v", "chezmoi_{version}_{platform}.tar.gz"), &.{
+        m.archivePlatform(m.macosAarch64(), "darwin_arm64", .tar_gz, 0, &.{
+            m.link("chezmoi", "chezmoi"),
+        }, &.{}),
+        m.archivePlatform(m.linuxAarch64(), "linux_arm64", .tar_gz, 0, &.{
+            m.link("chezmoi", "chezmoi"),
+        }, &.{}),
+        m.archivePlatform(m.linuxX8664(), "linux-musl_amd64", .tar_gz, 0, &.{
+            m.link("chezmoi", "chezmoi"),
+        }, &.{}),
+        .{
+            .when = m.windowsX8664(),
+            .platform = "windows_amd64",
+            .source = m.githubLatest("twpayne/chezmoi", "v", "chezmoi_{version}_{platform}.zip"),
+            .kind = .zip,
+            .strip_components = 0,
+            .links = &.{m.link("chezmoi", "chezmoi.exe")},
+        },
+    })),
 
     m.tool("uv", &.{
         m.bin("uv", &.{ "uv", "--version" }),
@@ -27,11 +33,11 @@ pub const tools = [_]m.Tool{
             m.link("uv", "uv"),
             m.link("uvx", "uvx"),
         }, &.{}),
-        m.archivePlatform(m.linuxAarch64(), "aarch64-unknown-linux-gnu", .tar_gz, 1, &.{
+        m.archivePlatform(m.linuxAarch64(), "aarch64-unknown-linux-musl", .tar_gz, 1, &.{
             m.link("uv", "uv"),
             m.link("uvx", "uvx"),
         }, &.{}),
-        m.archivePlatform(m.linuxX8664(), "x86_64-unknown-linux-gnu", .tar_gz, 1, &.{
+        m.archivePlatform(m.linuxX8664(), "x86_64-unknown-linux-musl", .tar_gz, 1, &.{
             m.link("uv", "uv"),
             m.link("uvx", "uvx"),
         }, &.{}),
@@ -193,11 +199,11 @@ pub const tools = [_]m.Tool{
             m.link("bun", "bun-{platform}/bun"),
             m.link("bunx", "bun-{platform}/bun"),
         }, &.{}),
-        m.archivePlatform(m.linuxAarch64(), "linux-aarch64", .zip, 0, &.{
+        m.archivePlatform(m.linuxAarch64(), "linux-aarch64-musl", .zip, 0, &.{
             m.link("bun", "bun-{platform}/bun"),
             m.link("bunx", "bun-{platform}/bun"),
         }, &.{}),
-        m.archivePlatform(m.linuxX8664(), "linux-x64", .zip, 0, &.{
+        m.archivePlatform(m.linuxX8664(), "linux-x64-musl", .zip, 0, &.{
             m.link("bun", "bun-{platform}/bun"),
             m.link("bunx", "bun-{platform}/bun"),
         }, &.{}),
@@ -207,21 +213,26 @@ pub const tools = [_]m.Tool{
         }, &.{}),
     })),
 
-    m.tool("vscode", &.{
-        m.bin("code", &.{ "code", "--version" }),
-    }, m.archive(m.direct("latest", "https://update.code.visualstudio.com/latest/{platform}/stable"), &.{
-        m.archivePlatform(m.macosAarch64(), "darwin-arm64", .zip, 0, &.{
-            m.link("code", "Visual Studio Code.app/Contents/Resources/app/bin/code"),
-        }, &.{
-            m.link("Visual Studio Code.app", "Visual Studio Code.app"),
+    .{
+        .name = "vscode",
+        .requires = &.{.not_nixos},
+        .bins = &.{
+            m.bin("code", &.{ "code", "--version" }),
+        },
+        .action = m.archive(m.direct("latest", "https://update.code.visualstudio.com/latest/{platform}/stable"), &.{
+            m.archivePlatform(m.macosAarch64(), "darwin-arm64", .zip, 0, &.{
+                m.link("code", "Visual Studio Code.app/Contents/Resources/app/bin/code"),
+            }, &.{
+                m.link("Visual Studio Code.app", "Visual Studio Code.app"),
+            }),
+            m.archivePlatform(m.linuxAarch64(), "linux-arm64", .tar_gz, 1, &.{
+                m.link("code", "bin/code"),
+            }, &.{}),
+            m.archivePlatform(m.linuxX8664(), "linux-x64", .tar_gz, 1, &.{
+                m.link("code", "bin/code"),
+            }, &.{}),
         }),
-        m.archivePlatform(m.linuxAarch64(), "linux-arm64", .tar_gz, 1, &.{
-            m.link("code", "bin/code"),
-        }, &.{}),
-        m.archivePlatform(m.linuxX8664(), "linux-x64", .tar_gz, 1, &.{
-            m.link("code", "bin/code"),
-        }, &.{}),
-    })),
+    },
 
     m.tool("yt-dlp", &.{
         m.bin("yt-dlp", &.{ "yt-dlp", "--version" }),
@@ -261,11 +272,47 @@ pub const tools = [_]m.Tool{
 
     m.tool("ruff", &.{
         m.bin("ruff", &.{ "ruff", "--version" }),
-    }, m.uvPackage("ruff")),
+    }, m.archive(m.githubLatest("astral-sh/ruff", "", "ruff-{platform}.tar.gz"), &.{
+        m.archivePlatform(m.macosAarch64(), "aarch64-apple-darwin", .tar_gz, 1, &.{
+            m.link("ruff", "ruff"),
+        }, &.{}),
+        m.archivePlatform(m.linuxAarch64(), "aarch64-unknown-linux-musl", .tar_gz, 1, &.{
+            m.link("ruff", "ruff"),
+        }, &.{}),
+        m.archivePlatform(m.linuxX8664(), "x86_64-unknown-linux-musl", .tar_gz, 1, &.{
+            m.link("ruff", "ruff"),
+        }, &.{}),
+        .{
+            .when = m.windowsX8664(),
+            .platform = "x86_64-pc-windows-msvc",
+            .source = m.githubLatest("astral-sh/ruff", "", "ruff-{platform}.zip"),
+            .kind = .zip,
+            .strip_components = 1,
+            .links = &.{m.link("ruff", "ruff.exe")},
+        },
+    })),
 
     m.tool("ty", &.{
         m.bin("ty", &.{ "ty", "--version" }),
-    }, m.uvPackage("ty")),
+    }, m.archive(m.githubLatest("astral-sh/ty", "", "ty-{platform}.tar.gz"), &.{
+        m.archivePlatform(m.macosAarch64(), "aarch64-apple-darwin", .tar_gz, 1, &.{
+            m.link("ty", "ty"),
+        }, &.{}),
+        m.archivePlatform(m.linuxAarch64(), "aarch64-unknown-linux-musl", .tar_gz, 1, &.{
+            m.link("ty", "ty"),
+        }, &.{}),
+        m.archivePlatform(m.linuxX8664(), "x86_64-unknown-linux-musl", .tar_gz, 1, &.{
+            m.link("ty", "ty"),
+        }, &.{}),
+        .{
+            .when = m.windowsX8664(),
+            .platform = "x86_64-pc-windows-msvc",
+            .source = m.githubLatest("astral-sh/ty", "", "ty-{platform}.zip"),
+            .kind = .zip,
+            .strip_components = 1,
+            .links = &.{m.link("ty", "ty.exe")},
+        },
+    })),
 
     .{
         .name = "gh-hide-comment",

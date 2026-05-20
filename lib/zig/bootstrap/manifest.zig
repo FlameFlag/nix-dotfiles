@@ -12,7 +12,7 @@ pub const Policy = enum { install_missing, update_all };
 pub const Phase = enum { prerequisites, archives, packages, builds };
 pub const HostOs = platform.Os;
 pub const HostArch = platform.Arch;
-pub const HostRequirement = enum { lenovo_laptop };
+pub const HostRequirement = enum { lenovo_laptop, not_nixos };
 pub const ArchiveKind = archive_lib.Kind;
 
 pub const Catalog = struct {

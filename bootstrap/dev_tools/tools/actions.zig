@@ -8,15 +8,14 @@ const fs = common.fs;
 const model = bootstrap.manifest;
 const output = common.output;
 const proc = common.process;
+const nix_os_release_path = "/etc/os-release";
 
 pub fn install(ctx: *Context, tool: model.Tool) !void {
     switch (tool.action) {
         .required => return error.BootstrapPrerequisite,
         .script => |script_spec| try installScript(ctx, tool.name, script_spec),
         .toolchain => |toolchain_spec| try bootstrap.rust.installOrUpdate(ctx, toolchain_spec),
-        .package => |package_spec| try installCommand(ctx, package_spec.install_argv, .{
-            .package = package_spec.name,
-        }),
+        .package => |package_spec| try installPackage(ctx, package_spec),
         .build => |build_spec| try installBuildCommand(ctx, tool, build_spec),
         .archive => {
             const spec = try bootstrap.manifest.toArchiveSpec(ctx, tool);
@@ -25,6 +24,56 @@ pub fn install(ctx: *Context, tool: model.Tool) !void {
             try spec.install(ctx);
         },
     }
+}
+
+fn installPackage(ctx: *Context, package_spec: model.Package) !void {
+    if (try installUvPackageViaNixPython(ctx, package_spec)) return;
+
+    try installCommand(ctx, package_spec.install_argv, .{
+        .package = package_spec.name,
+    });
+}
+
+fn installUvPackageViaNixPython(ctx: *Context, package_spec: model.Package) !bool {
+    if (package_spec.inventory != .uv) return false;
+    if (!try shouldUseNixPython(ctx)) return false;
+
+    const uv_path = try proc.pathOf(ctx, "uv") orelse return false;
+    defer ctx.allocator.free(uv_path);
+
+    try proc.run(ctx, &.{
+        "nix",
+        "shell",
+        "nixpkgs#python3",
+        "--command",
+        uv_path,
+        "tool",
+        "install",
+        "--upgrade",
+        "--python",
+        "python3",
+        package_spec.name,
+    });
+    return true;
+}
+
+fn shouldUseNixPython(ctx: *Context) !bool {
+    if (builtin.os.tag != .linux) return false;
+    if (!try proc.hasBin(ctx, "nix")) return false;
+    return isNixOs(ctx);
+}
+
+fn isNixOs(ctx: *Context) !bool {
+    var buffer: [4096]u8 = undefined;
+    const contents = std.Io.Dir.cwd().readFile(ctx.io, nix_os_release_path, &buffer) catch |err| switch (err) {
+        error.FileNotFound, error.AccessDenied => return false,
+        else => return err,
+    };
+    var lines = std.mem.splitScalar(u8, contents, '\n');
+    while (lines.next()) |line| {
+        if (std.mem.eql(u8, line, "ID=nixos")) return true;
+    }
+    return false;
 }
 
 fn installScript(ctx: *Context, name: []const u8, script: model.Script) !void {

@@ -57,6 +57,8 @@ fn installManager(ctx: *Context, spec: manifest.Toolchain, toolchain: []const u8
     const command = if (builtin.os.tag == .windows) spec.install.windows else spec.install.unix;
     const selected = command orelse return error.UnsupportedPlatform;
 
+    if (try installLinuxStaticManager(ctx, spec, selected, toolchain)) return;
+
     const installer = try downloadFile(ctx, "rustup-install", selected.file, selected.url);
     defer removeDownloadedScript(ctx, installer);
     const install_argv = try renderToolchainArgv(ctx, spec, selected.argv, .{
@@ -65,6 +67,58 @@ fn installManager(ctx: *Context, spec: manifest.Toolchain, toolchain: []const u8
     });
     defer freeArgv(ctx, install_argv);
     try proc.run(ctx, install_argv);
+}
+
+fn installLinuxStaticManager(
+    ctx: *Context,
+    spec: manifest.Toolchain,
+    selected: manifest.Toolchain.Install.Command,
+    toolchain: []const u8,
+) !bool {
+    const target = rustupLinuxMuslTarget() orelse return false;
+    const url = try std.fmt.allocPrint(
+        ctx.allocator,
+        "https://static.rust-lang.org/rustup/dist/{s}/rustup-init",
+        .{target},
+    );
+    defer ctx.allocator.free(url);
+
+    const installer = try downloadFile(ctx, "rustup-install", "rustup-init", url);
+    defer removeDownloadedScript(ctx, installer);
+
+    const install_argv = try renderDirectRustupArgv(ctx, spec, selected.argv, installer, toolchain);
+    defer freeArgv(ctx, install_argv);
+    try proc.run(ctx, install_argv);
+    return true;
+}
+
+fn rustupLinuxMuslTarget() ?[]const u8 {
+    if (builtin.os.tag != .linux) return null;
+    return switch (builtin.cpu.arch) {
+        .x86_64 => "x86_64-unknown-linux-musl",
+        .aarch64 => "aarch64-unknown-linux-musl",
+        else => null,
+    };
+}
+
+fn renderDirectRustupArgv(
+    ctx: *Context,
+    spec: manifest.Toolchain,
+    templates: []const []const u8,
+    installer: []const u8,
+    toolchain: []const u8,
+) ![]const []const u8 {
+    const direct_templates = if (templates.len >= 2 and
+        std.mem.eql(u8, templates[0], "sh") and
+        std.mem.eql(u8, templates[1], "{file}"))
+        templates[1..]
+    else
+        templates;
+
+    return renderToolchainArgv(ctx, spec, direct_templates, .{
+        .file = installer,
+        .toolchain = toolchain,
+    });
 }
 
 fn renderToolchainArgv(
@@ -231,6 +285,23 @@ test "rustup argv templates expand requested components" {
     try std.testing.expectEqualStrings("--component", argv[6]);
     try std.testing.expectEqualStrings("rustfmt", argv[7]);
     try std.testing.expectEqualStrings("clippy", argv[9]);
+}
+
+test "direct rustup argv drops shell wrapper" {
+    var env = std.process.Environ.Map.init(std.testing.allocator);
+    defer env.deinit();
+    var ctx = testingContext(&env, "/home/me");
+    const toolchain = testingToolchain();
+    const command = toolchain.install.unix.?;
+
+    const argv = try renderDirectRustupArgv(&ctx, toolchain, command.argv, "/tmp/rustup-init", "stable");
+    defer freeArgv(&ctx, argv);
+
+    try std.testing.expectEqualStrings("/tmp/rustup-init", argv[0]);
+    try std.testing.expectEqualStrings("-y", argv[1]);
+    try std.testing.expectEqualStrings("stable", argv[3]);
+    try std.testing.expectEqualStrings("--component", argv[4]);
+    try std.testing.expectEqualStrings("rustfmt", argv[5]);
 }
 
 test "toolchainBinDir honors env override and defaults under home" {

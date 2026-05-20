@@ -115,12 +115,19 @@ fn managedBinsPresent(ctx: *Context, tool: model.Tool) !bool {
     for (tool.bins) |bin| {
         const classification = try ownership.classifyBinOnPath(ctx, cwd, tool, bin.name, packages);
         if (classification != .managed) return false;
+        if (!try binRuns(ctx, bin)) return false;
     }
     switch (tool.action) {
         .archive => |archive_spec| if (!try managedAppLinksPresent(ctx, tool, archive_spec)) return false,
         else => {},
     }
     return true;
+}
+
+fn binRuns(ctx: *Context, bin: model.Bin) !bool {
+    var result = try proc.capture(ctx, bin.version_argv);
+    defer result.deinit(ctx.allocator);
+    return result.succeeded();
 }
 
 fn managedAppLinksPresent(ctx: *Context, tool: model.Tool, archive_spec: model.Archive) !bool {
@@ -241,7 +248,11 @@ test "install_missing skips managed archive symlinks" {
     const link = try tmpPath(std.testing.allocator, tmp, &.{ "bin", "demo" });
     defer std.testing.allocator.free(link);
 
-    try common.fs.writeExecutableFile(std.testing.io, target, "");
+    try common.fs.writeExecutableFile(std.testing.io, target,
+        \\#!/bin/sh
+        \\exit 0
+        \\
+    );
     try std.Io.Dir.cwd().createDirPath(std.testing.io, bin_dir);
     try std.Io.Dir.symLinkAbsolute(std.testing.io, target, link, .{});
     try env.put("PATH", bin_dir);
@@ -249,9 +260,45 @@ test "install_missing skips managed archive symlinks" {
     var ctx = testingContext(&env, bin_dir, opt_dir);
     const tool: model.Tool = .{
         .name = "demo",
-        .bins = &.{.{ .name = "demo", .version_argv = &.{"demo"} }},
+        .bins = &.{.{ .name = "demo", .version_argv = &.{link} }},
         .action = .{ .archive = .{ .platforms = &.{} } },
     };
 
     try std.testing.expect(!try shouldInstall(&ctx, tool));
+}
+
+test "install_missing reinstalls managed archive symlinks that do not run" {
+    if (builtin.os.tag == .windows) return;
+
+    var env = std.process.Environ.Map.init(std.testing.allocator);
+    defer env.deinit();
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+
+    const bin_dir = try tmpPath(std.testing.allocator, tmp, &.{"bin"});
+    defer std.testing.allocator.free(bin_dir);
+    const opt_dir = try tmpPath(std.testing.allocator, tmp, &.{"opt"});
+    defer std.testing.allocator.free(opt_dir);
+    const target = try tmpPath(std.testing.allocator, tmp, &.{ "opt", "demo", "1.0.0", "demo" });
+    defer std.testing.allocator.free(target);
+    const link = try tmpPath(std.testing.allocator, tmp, &.{ "bin", "demo" });
+    defer std.testing.allocator.free(link);
+
+    try common.fs.writeExecutableFile(std.testing.io, target,
+        \\#!/bin/sh
+        \\exit 42
+        \\
+    );
+    try std.Io.Dir.cwd().createDirPath(std.testing.io, bin_dir);
+    try std.Io.Dir.symLinkAbsolute(std.testing.io, target, link, .{});
+    try env.put("PATH", bin_dir);
+
+    var ctx = testingContext(&env, bin_dir, opt_dir);
+    const tool: model.Tool = .{
+        .name = "demo",
+        .bins = &.{.{ .name = "demo", .version_argv = &.{link} }},
+        .action = .{ .archive = .{ .platforms = &.{} } },
+    };
+
+    try std.testing.expect(try shouldInstall(&ctx, tool));
 }

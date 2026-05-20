@@ -12,6 +12,7 @@ const linux_dmi_vendor_path = "/sys/class/dmi/id/sys_vendor";
 const linux_dmi_board_vendor_path = "/sys/class/dmi/id/board_vendor";
 const linux_dmi_product_name_path = "/sys/class/dmi/id/product_name";
 const linux_dmi_chassis_type_path = "/sys/class/dmi/id/chassis_type";
+const linux_os_release_path = "/etc/os-release";
 
 pub fn supportsTool(tool: manifest.Tool, ctx: *Context) !bool {
     if (tool.platforms) |allowed| {
@@ -54,7 +55,23 @@ fn currentHostOs() ?manifest.HostOs {
 fn meetsRequirement(ctx: *Context, requirement: manifest.HostRequirement) !bool {
     return switch (requirement) {
         .lenovo_laptop => isLenovoLaptop(ctx),
+        .not_nixos => !try isNixOs(ctx),
     };
+}
+
+fn isNixOs(ctx: *Context) !bool {
+    if (builtin.os.tag != .linux) return false;
+
+    var buffer: [4096]u8 = undefined;
+    const contents = std.Io.Dir.cwd().readFile(ctx.io, linux_os_release_path, &buffer) catch |err| switch (err) {
+        error.FileNotFound, error.AccessDenied => return false,
+        else => return err,
+    };
+    var lines = std.mem.splitScalar(u8, contents, '\n');
+    while (lines.next()) |line| {
+        if (std.mem.eql(u8, line, "ID=nixos")) return true;
+    }
+    return false;
 }
 
 fn isLenovoLaptop(ctx: *Context) !bool {
