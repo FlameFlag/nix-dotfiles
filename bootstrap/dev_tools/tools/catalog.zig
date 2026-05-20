@@ -1,7 +1,7 @@
 const std = @import("std");
 const bootstrap = @import("bootstrap");
 
-const catalog_data = @import("catalog_data.zig");
+const catalog_data = @import("catalog_data/root.zig");
 
 const Context = bootstrap.Context;
 
