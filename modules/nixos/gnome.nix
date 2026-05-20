@@ -5,6 +5,16 @@
   ...
 }:
 let
+  inherit (builtins) map;
+  inherit (lib.attrsets)
+    attrValues
+    genAttrs
+    genAttrs'
+    nameValuePair
+    ;
+  inherit (lib.meta) getExe';
+  inherit (lib.modules) mkIf mkMerge;
+  inherit (lib.options) mkEnableOption;
   inherit (lib.gvariant)
     mkBoolean
     mkInt32
@@ -21,23 +31,29 @@ let
     let
       modifierStr = lib.strings.concatStrings modifiers;
     in
-    lib.attrsets.listToAttrs (
-      map (
-        num: lib.attrsets.nameValuePair "${prefix}-${num}" (mkArray [ "${super}${modifierStr}${num}" ])
-      ) workspaceNumbers
+    genAttrs' workspaceNumbers (
+      num: nameValuePair "${prefix}-${num}" (mkArray [ "${super}${modifierStr}${num}" ])
     );
+
+  sleepTargets = [
+    "systemd-suspend.service"
+    "systemd-hibernate.service"
+  ];
+
+  gnomeShell = getExe' pkgs.gnome-shell "gnome-shell";
+  pkill = getExe' pkgs.procps "pkill";
 in
 {
-  options.nixOS.gnome.enable = lib.options.mkEnableOption "GNOME";
-  options.nixOS.dconf.enable = lib.options.mkEnableOption "Dconf";
+  options.nixOS.gnome.enable = mkEnableOption "GNOME";
+  options.nixOS.dconf.enable = mkEnableOption "Dconf";
 
-  config = lib.modules.mkMerge [
-    (lib.modules.mkIf config.nixOS.gnome.enable {
+  config = mkMerge [
+    (mkIf config.nixOS.gnome.enable {
       services = {
         displayManager.gdm.enable = true;
         desktopManager.gnome.enable = true;
       };
-      environment.systemPackages = builtins.attrValues {
+      environment.systemPackages = attrValues {
         inherit (pkgs) wl-clipboard;
         inherit (pkgs)
           apostrophe # Markdown Editor
@@ -50,7 +66,7 @@ in
           showtime # Video Player
           ;
       };
-      environment.gnome.excludePackages = builtins.attrValues {
+      environment.gnome.excludePackages = attrValues {
         inherit (pkgs)
           gnome-maps
           gnome-music
@@ -64,45 +80,35 @@ in
       };
     })
     # Fix for GNOME suspend/resume issues with NVIDIA GPUs
-    (lib.modules.mkIf config.nixOS.nvidia.enable {
+    (mkIf config.nixOS.nvidia.enable {
       systemd.services = {
         gnome-suspend = {
           description = "Suspend gnome shell";
-          before = [
-            "systemd-suspend.service"
-            "systemd-hibernate.service"
+          before = sleepTargets ++ [
             "nvidia-suspend.service"
             "nvidia-hibernate.service"
           ];
-          wantedBy = [
-            "systemd-suspend.service"
-            "systemd-hibernate.service"
-          ];
+          wantedBy = sleepTargets;
           serviceConfig = {
             Type = "oneshot";
-            ExecStart = "${lib.meta.getExe' pkgs.procps "pkill"} -f -STOP ${lib.meta.getExe' pkgs.gnome-shell "gnome-shell"}";
+            ExecStart = "${pkill} -f -STOP ${gnomeShell}";
           };
         };
         gnome-resume = {
           description = "Resume gnome shell";
-          after = [
-            "systemd-suspend.service"
-            "systemd-hibernate.service"
+          after = sleepTargets ++ [
             "nvidia-resume.service"
           ];
-          wantedBy = [
-            "systemd-suspend.service"
-            "systemd-hibernate.service"
-          ];
+          wantedBy = sleepTargets;
           serviceConfig = {
             Type = "oneshot";
-            ExecStart = "${lib.meta.getExe' pkgs.procps "pkill"} -f -CONT ${lib.meta.getExe' pkgs.gnome-shell "gnome-shell"}";
+            ExecStart = "${pkill} -f -CONT ${gnomeShell}";
           };
         };
       };
     })
-    (lib.modules.mkIf config.nixOS.dconf.enable {
-      environment.systemPackages = builtins.attrValues {
+    (mkIf config.nixOS.dconf.enable {
+      environment.systemPackages = attrValues {
         inherit (pkgs.gnomeExtensions) appindicator clipboard-indicator pip-on-top;
       };
       programs.dconf.profiles.user.databases = [
@@ -128,9 +134,9 @@ in
               `switch-to-application`, which we do not want as it breaks
               everything, so we have to explicitly set it to nothing
             */
-            "org/gnome/shell/keybindings" = lib.attrsets.genAttrs (map (
-              n: "switch-to-application-${n}"
-            ) workspaceNumbers) (_: mkEmptyArray type.string);
+            "org/gnome/shell/keybindings" = genAttrs (map (n: "switch-to-application-${n}") workspaceNumbers) (
+              _: mkEmptyArray type.string
+            );
 
             "org/gnome/desktop/wm/keybindings" = {
               maximize = mkArray [ "<Super><Shift>Return" ];

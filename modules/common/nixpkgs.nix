@@ -34,7 +34,7 @@
 
             cargoCheckFeatures =
               (old.cargoCheckFeatures or [ ])
-              ++ final.lib.optionals final.stdenv.hostPlatform.isLinux [
+              ++ final.lib.lists.optionals final.stdenv.hostPlatform.isLinux [
                 "simulated_output"
               ];
 

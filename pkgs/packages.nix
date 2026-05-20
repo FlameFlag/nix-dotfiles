@@ -1,7 +1,11 @@
 { pkgs, lib, ... }:
+let
+  inherit (lib.attrsets) attrValues;
+  inherit (lib.meta) hiPrio;
+in
 {
   environment.systemPackages =
-    builtins.attrValues {
+    attrValues {
       # Dotfiles
       inherit (pkgs.unstable) sops;
 
@@ -22,9 +26,9 @@
         golangci-lint
         gopls
         ;
-      uutils-coreutils-noprefix = (lib.meta.hiPrio pkgs.unstable.uutils-coreutils-noprefix);
-      uutils-diffutils = (lib.meta.hiPrio pkgs.unstable.uutils-diffutils);
-      uutils-findutils = (lib.meta.hiPrio pkgs.unstable.uutils-findutils);
+      uutils-coreutils-noprefix = hiPrio pkgs.unstable.uutils-coreutils-noprefix;
+      uutils-diffutils = hiPrio pkgs.unstable.uutils-diffutils;
+      uutils-findutils = hiPrio pkgs.unstable.uutils-findutils;
 
       # Shells (No Config)
       inherit (pkgs.unstable) bash zsh;
@@ -139,21 +143,19 @@
         ;
 
     }
-    ++ lib.lists.optionals pkgs.stdenv.hostPlatform.isLinux (
-      builtins.attrValues {
-        inherit (pkgs.unstable)
-          ghostty
-          google-chrome
-          networkmanagerapplet
-          pavucontrol # PulseAudio Volume Control GUI
-          playerctl # Control media players via MPRIS (CLI)
-          wl-clipboard
-          ;
+    ++ lib.lists.optionals pkgs.stdenv.hostPlatform.isLinux (attrValues {
+      inherit (pkgs.unstable)
+        ghostty
+        google-chrome
+        networkmanagerapplet
+        pavucontrol # PulseAudio Volume Control GUI
+        playerctl # Control media players via MPRIS (CLI)
+        wl-clipboard
+        ;
 
-        inherit (pkgs.unstable.kdePackages) ffmpegthumbs;
-        inherit (pkgs.unstable) nufraw-thumbnailer;
+      inherit (pkgs.unstable.kdePackages) ffmpegthumbs;
+      inherit (pkgs.unstable) nufraw-thumbnailer;
 
-        inherit (pkgs.unstable.kdePackages) breeze breeze-gtk breeze-icons;
-      }
-    );
+      inherit (pkgs.unstable.kdePackages) breeze breeze-gtk breeze-icons;
+    });
 }

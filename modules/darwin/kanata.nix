@@ -4,6 +4,9 @@
   ...
 }:
 let
+  inherit (lib.modules) mkAfter;
+  inherit (lib.strings) escapeShellArg;
+
   kanataPackage = pkgs.kanata-with-cmd;
   karabinerDriver = kanataPackage.passthru.darwinDriver;
   plist = pkgs.formats.plist { };
@@ -57,14 +60,14 @@ in
     karabinerDriver
   ];
 
-  system.activationScripts.extraActivation.text = lib.modules.mkAfter ''
+  system.activationScripts.extraActivation.text = mkAfter ''
     install -d -m 0755 -o root -g wheel ${kanataApp}/Contents/MacOS
     install -d -m 0755 -o root -g wheel ${karabinerVirtualHidLogDir}
     install -d -m 0755 -o root -g admin "/Library/Application Support/org.pqrs"
-    rm -rf ${lib.escapeShellArg karabinerDriverSupport}
-    /usr/bin/ditto ${lib.escapeShellArg karabinerDriverSupportStore} ${lib.escapeShellArg karabinerDriverSupport}
-    chown -R root:wheel ${lib.escapeShellArg karabinerDriverSupport}
-    chmod -R a+rX ${lib.escapeShellArg karabinerDriverSupport}
+    rm -rf ${escapeShellArg karabinerDriverSupport}
+    /usr/bin/ditto ${escapeShellArg karabinerDriverSupportStore} ${escapeShellArg karabinerDriverSupport}
+    chown -R root:wheel ${escapeShellArg karabinerDriverSupport}
+    chmod -R a+rX ${escapeShellArg karabinerDriverSupport}
     install -m 0755 -o root -g wheel ${lib.meta.getExe kanataPackage} ${kanataStableBinary}
     install -m 0644 -o root -g wheel ${kanataInfoPlist} ${kanataApp}/Contents/Info.plist
     chmod 0644 ${kanataApp}/Contents/Info.plist
@@ -89,7 +92,7 @@ in
     /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -f ${kanataApp}
   '';
 
-  system.activationScripts.postActivation.text = lib.modules.mkAfter ''
+  system.activationScripts.postActivation.text = mkAfter ''
     if [ -f /Library/LaunchDaemons/${karabinerVirtualHidLabel}.plist ]; then
       launchctl bootstrap system /Library/LaunchDaemons/${karabinerVirtualHidLabel}.plist 2>/dev/null || true
       launchctl enable system/${karabinerVirtualHidLabel} 2>/dev/null || true

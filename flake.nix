@@ -22,6 +22,11 @@
   };
 
   outputs = inputs: {
+    formatter = {
+      aarch64-darwin = inputs.nixpkgs.legacyPackages.aarch64-darwin.nixfmt-tree;
+      x86_64-linux = inputs.nixpkgs.legacyPackages.x86_64-linux.nixfmt-tree;
+    };
+
     nixosModules.default = import ./modules/nixos;
     darwinModules.default = import ./modules/darwin;
 

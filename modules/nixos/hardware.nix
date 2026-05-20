@@ -4,14 +4,20 @@
   config,
   ...
 }:
+let
+  inherit (lib.attrsets) attrValues;
+  inherit (lib.modules) mkIf mkMerge;
+  inherit (lib.options) mkEnableOption;
+  inherit (config.nixpkgs.hostPlatform) isx86_64;
+in
 {
-  options.nixOS.nvidia.enable = lib.options.mkEnableOption "NVIDIA";
-  options.nixOS.amd.enable = lib.options.mkEnableOption "AMD";
+  options.nixOS.nvidia.enable = mkEnableOption "NVIDIA";
+  options.nixOS.amd.enable = mkEnableOption "AMD";
 
-  config = lib.modules.mkMerge [
+  config = mkMerge [
     ({
       # General hardware configuration
-      environment.systemPackages = builtins.attrValues { inherit (pkgs) libva-utils; };
+      environment.systemPackages = attrValues { inherit (pkgs) libva-utils; };
       environment.sessionVariables = {
         # It tells supported apps to use the Ozone/Wayland backend
         NIXOS_OZONE_WL = "1";
@@ -41,8 +47,8 @@
 
       hardware.graphics = {
         enable = true;
-        enable32Bit = lib.modules.mkIf config.nixpkgs.hostPlatform.isx86_64 true;
-        extraPackages = builtins.attrValues {
+        enable32Bit = mkIf isx86_64 true;
+        extraPackages = attrValues {
           inherit (pkgs)
             libva-vdpau-driver
             libvdpau-va-gl
@@ -51,13 +57,13 @@
             ;
         };
       }
-      // lib.attrsets.optionalAttrs config.nixpkgs.hostPlatform.isx86_64 {
-        extraPackages32 = builtins.attrValues {
+      // lib.attrsets.optionalAttrs isx86_64 {
+        extraPackages32 = attrValues {
           inherit (pkgs.pkgsi686Linux) libva-vdpau-driver libvdpau-va-gl mesa;
         };
       };
     })
-    (lib.modules.mkIf config.nixOS.nvidia.enable {
+    (mkIf config.nixOS.nvidia.enable {
       # nixpkgs.config.cudaSupport = true;
       boot.extraModprobeConfig =
         "options nvidia "
@@ -99,25 +105,25 @@
           powerManagement.finegrained = true;
         };
 
-        graphics.extraPackages = builtins.attrValues {
+        graphics.extraPackages = attrValues {
           inherit (pkgs) nv-codec-headers-12;
         };
       };
     })
-    (lib.modules.mkIf config.nixOS.amd.enable {
+    (mkIf config.nixOS.amd.enable {
       # HIP libraries support - many applications hard-code HIP library paths
       systemd.tmpfiles.rules =
         let
           rocmEnv = pkgs.symlinkJoin {
             name = "rocm-combined";
-            paths = builtins.attrValues {
+            paths = attrValues {
               inherit (pkgs.pkgs.rocmPackages) rocblas hipblas clr;
             };
           };
         in
         [ "L+    /opt/rocm   -    -    -     -    ${rocmEnv}" ];
 
-      hardware.graphics.extraPackages = builtins.attrValues {
+      hardware.graphics.extraPackages = attrValues {
         inherit (pkgs.rocmPackages) clr;
       };
     })

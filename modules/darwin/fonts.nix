@@ -10,7 +10,7 @@
       let
         paidFonts = (pkgs.callPackage ../../pkgs/paid-fonts/build-font.nix { }).packages;
       in
-      builtins.attrValues paidFonts
+      lib.attrsets.attrValues paidFonts
     );
   };
 }

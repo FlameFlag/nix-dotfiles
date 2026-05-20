@@ -5,27 +5,34 @@
   ...
 }:
 let
+  inherit (lib.options) mkOption;
+  inherit (lib.meta) getExe;
+  inherit (lib.strings)
+    concatMapStringsSep
+    escapeShellArg
+    escapeShellArgs
+    optionalString
+    ;
+
   cfg = config.services.ghidra-mcp;
+  types = lib.types;
   user = config.system.primaryUser;
   packageSet = pkgs.ghidra-mcp-headless;
   stateDir = cfg.stateDir;
   logDir = cfg.logDir;
+  envExe = lib.meta.getExe' pkgs.coreutils "env";
+  httpdExe = getExe packageSet.httpd;
+  bridgeExe = getExe packageSet.bridge;
   keepAlive = {
     Crashed = true;
     SuccessfulExit = false;
   };
-  sourceEnvironmentFiles = lib.strings.optionalString (cfg.environmentFiles != [ ]) ''
+  sourceEnvironmentFiles = optionalString (cfg.environmentFiles != [ ]) ''
     set -a
-    ${lib.strings.concatMapStringsSep "\n" (
-      file: ". ${lib.strings.escapeShellArg (toString file)}"
-    ) cfg.environmentFiles}
+    ${concatMapStringsSep "\n" (file: ". ${escapeShellArg (toString file)}") cfg.environmentFiles}
     set +a
   '';
-  envArgs =
-    env:
-    lib.strings.concatStringsSep " " (
-      lib.attrsets.mapAttrsToList (name: value: lib.strings.escapeShellArg "${name}=${value}") env
-    );
+  envArgs = env: escapeShellArgs (lib.attrsets.mapAttrsToList (name: value: "${name}=${value}") env);
   httpEnvironment = cfg.extraEnvironment // {
     GHIDRA_MCP_BIND = cfg.httpHost;
     GHIDRA_MCP_PORT = toString cfg.httpPort;
@@ -47,45 +54,45 @@ in
   options.services.ghidra-mcp = {
     enable = lib.options.mkEnableOption "Ghidra MCP headless HTTP backend plus streamable HTTP MCP bridge";
 
-    httpHost = lib.options.mkOption {
-      type = lib.types.str;
+    httpHost = mkOption {
+      type = types.str;
       default = "127.0.0.1";
     };
 
-    httpPort = lib.options.mkOption {
-      type = lib.types.port;
+    httpPort = mkOption {
+      type = types.port;
       default = 8089;
     };
 
-    mcpHost = lib.options.mkOption {
-      type = lib.types.str;
+    mcpHost = mkOption {
+      type = types.str;
       default = "127.0.0.1";
     };
 
-    mcpPort = lib.options.mkOption {
-      type = lib.types.port;
+    mcpPort = mkOption {
+      type = types.port;
       default = 8090;
     };
 
-    stateDir = lib.options.mkOption {
-      type = lib.types.path;
+    stateDir = mkOption {
+      type = types.path;
       default = "/Users/${user}/.local/state/ghidra-mcp-headless";
     };
 
-    logDir = lib.options.mkOption {
-      type = lib.types.path;
+    logDir = mkOption {
+      type = types.path;
       default = "/Users/${user}/Library/Logs/ghidra-mcp";
       description = "Directory where the Ghidra MCP launchd services write logs.";
     };
 
-    allowScripts = lib.options.mkOption {
-      type = lib.types.bool;
+    allowScripts = mkOption {
+      type = types.bool;
       default = true;
       description = "Enable Ghidra MCP script endpoints in the local headless backend.";
     };
 
-    environmentFiles = lib.options.mkOption {
-      type = lib.types.listOf lib.types.path;
+    environmentFiles = mkOption {
+      type = types.listOf types.path;
       default = [ ];
       example = [ "/run/keys/ghidra-mcp.env" ];
       description = ''
@@ -95,8 +102,8 @@ in
       '';
     };
 
-    extraEnvironment = lib.options.mkOption {
-      type = lib.types.attrsOf lib.types.str;
+    extraEnvironment = mkOption {
+      type = types.attrsOf types.str;
       default = { };
       description = "Extra environment variables passed to the Ghidra MCP launchd services.";
     };
@@ -116,7 +123,7 @@ in
     launchd.daemons.ghidra-mcp-httpd = {
       script = ''
         ${sourceEnvironmentFiles}
-        exec ${pkgs.coreutils}/bin/env ${envArgs httpEnvironment} ${lib.strings.escapeShellArg (lib.meta.getExe packageSet.httpd)}
+        exec ${envExe} ${envArgs httpEnvironment} ${escapeShellArg httpdExe}
       '';
       serviceConfig = {
         Label = "org.nixos.ghidra-mcp-httpd";
@@ -134,7 +141,7 @@ in
     launchd.daemons.ghidra-mcp-bridge = {
       script = ''
         ${sourceEnvironmentFiles}
-        exec ${pkgs.coreutils}/bin/env ${envArgs bridgeEnvironment} ${lib.strings.escapeShellArg (lib.meta.getExe packageSet.bridge)}
+        exec ${envExe} ${envArgs bridgeEnvironment} ${escapeShellArg bridgeExe}
       '';
       serviceConfig = {
         Label = "org.nixos.ghidra-mcp-bridge";

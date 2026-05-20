@@ -1,6 +1,6 @@
-{ pkgs, ... }:
+{ lib, pkgs, ... }:
 {
-  environment.systemPackages = builtins.attrValues {
+  environment.systemPackages = lib.attrsets.attrValues {
     inherit (pkgs) telegram-desktop;
     inherit (pkgs.unstable) jq;
   };

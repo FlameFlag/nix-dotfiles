@@ -13,8 +13,6 @@
           amd.enable = true;
         };
       }
-    ]
-    ++ [
       inputs.sops-nix.nixosModules.sops
       {
         sops = {

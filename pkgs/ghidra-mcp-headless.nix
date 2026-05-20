@@ -32,7 +32,7 @@ let
     ps.requests
   ]);
   jarVersion = "5.10.0";
-  sourceStamp = builtins.concatStringsSep ":" [
+  sourceStamp = lib.strings.concatStringsSep ":" [
     "ghidra-mcp"
     upstreamRev
     jarVersion
