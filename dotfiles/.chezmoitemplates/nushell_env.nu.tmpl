@@ -32,10 +32,13 @@ source $zoxide_init
 $env.ATUIN_NOBIND = true
 
 {{- if eq .chezmoi.os "darwin" }}
-$env.SSH_AUTH_SOCK = ([$nu.home-dir "Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock"] | path join)
+let onepassword_ssh_auth_sock = ([$nu.home-dir "Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock"] | path join)
 {{- else }}
-$env.SSH_AUTH_SOCK = ([$nu.home-dir ".1password/agent.sock"] | path join)
+let onepassword_ssh_auth_sock = ([$nu.home-dir ".1password/agent.sock"] | path join)
 {{- end }}
+if ($env.SSH_CONNECTION? == null) {
+    $env.SSH_AUTH_SOCK = $onepassword_ssh_auth_sock
+}
 
 # Shadow system python
 $env.UV_PYTHON_PREFERENCE = "only-managed"

@@ -14,11 +14,18 @@ Host codeberg.org
   IdentitiesOnly yes
   ForwardAgent no
 
+Host lenovo-legion lenovo-legion-windows lenovo-legion-windows-raw
+  ForwardAgent yes
+
+Host lenovo-legion
+  HostName lenovo-legion
+  User nyx
+
 Host lenovo-legion-windows
   HostName lenovo-legion-windows
   User admin
-  RequestTTY yes
-  RemoteCommand powershell.exe -NoLogo -NoProfile
+  RequestTTY no
+  RemoteCommand powershell.exe -NoLogo -NoProfile -NoExit
 
 Host lenovo-legion-windows-raw
   HostName lenovo-legion-windows

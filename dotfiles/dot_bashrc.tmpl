@@ -47,12 +47,16 @@ for f in "$HOME/.cache/bash/completions"/*; do
   [ -f "$f" ] && source "$f"
 done
 
-# 1Password SSH Agent
+# Use 1Password locally, but preserve sshd's forwarded agent in SSH sessions.
 {{- if eq .chezmoi.os "darwin" }}
-export SSH_AUTH_SOCK="$HOME/Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock"
+_1p_ssh_auth_sock="$HOME/Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock"
 {{- else }}
-export SSH_AUTH_SOCK="$HOME/.1password/agent.sock"
+_1p_ssh_auth_sock="$HOME/.1password/agent.sock"
 {{- end }}
+if [[ -z "${SSH_CONNECTION:-}" ]]; then
+  export SSH_AUTH_SOCK="$_1p_ssh_auth_sock"
+fi
+unset _1p_ssh_auth_sock
 
 # Environment
 export EDITOR="hx"
