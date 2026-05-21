@@ -285,7 +285,7 @@ function Install-Zig {
         if ($actual -eq $version) {
             @(
                 '@echo off',
-                '"' + $zigExe + '" %*'
+                ('"{0}" %*' -f $zigExe)
             ) | Set-Content -LiteralPath $zigShim -Encoding ascii
             return $zigExe
         }
@@ -302,7 +302,7 @@ function Install-Zig {
             if ($actual -eq $version -and (Test-Path -LiteralPath (Join-Path $installRoot 'lib'))) {
                 @(
                     '@echo off',
-                    '"' + $current.Source + '" %*'
+                    ('"{0}" %*' -f $current.Source)
                 ) | Set-Content -LiteralPath $zigShim -Encoding ascii
                 return $current.Source
             }
@@ -342,7 +342,7 @@ function Install-Zig {
 
         @(
             '@echo off',
-            '"' + $zigExe + '" %*'
+            ('"{0}" %*' -f $zigExe)
         ) | Set-Content -LiteralPath $zigShim -Encoding ascii
         return $zigExe
     } finally {

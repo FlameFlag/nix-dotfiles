@@ -51,19 +51,45 @@ function Invoke-WebFile {
     }
 }
 
-function Find-Pwsh {
-    $command = Get-Command pwsh.exe -ErrorAction SilentlyContinue
-    if ($command) {
-        return $command.Source
+function Test-PwshCandidate {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string] $Path
+    )
+
+    if ([string]::IsNullOrWhiteSpace($Path) -or -not (Test-Path -LiteralPath $Path)) {
+        return $false
+    }
+    if ($Path -like '*\Microsoft\WindowsApps\*') {
+        return $false
     }
 
+    try {
+        $major = & $Path -NoLogo -NoProfile -NonInteractive -Command '$PSVersionTable.PSVersion.Major' 2>$null
+        if ($LASTEXITCODE -ne 0) {
+            return $false
+        }
+
+        $parsed = 0
+        return [int]::TryParse([string] ($major | Select-Object -First 1), [ref] $parsed) -and $parsed -ge 7
+    } catch {
+        return $false
+    }
+}
+
+function Find-Pwsh {
     $candidates = @(
         (Join-Path $env:ProgramFiles 'PowerShell\7\pwsh.exe'),
         (Join-Path $env:LOCALAPPDATA 'Microsoft\powershell\pwsh.exe')
     )
 
+    $command = Get-Command pwsh.exe -ErrorAction SilentlyContinue
+    if ($command) {
+        $candidates += $command.Source
+    }
+
     foreach ($candidate in $candidates) {
-        if (Test-Path -LiteralPath $candidate) {
+        if (Test-PwshCandidate -Path $candidate) {
             return $candidate
         }
     }
