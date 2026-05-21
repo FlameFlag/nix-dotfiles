@@ -119,15 +119,6 @@ in
         ;
       inherit (pkgs.unstable) prettier;
 
-      git = pkgs.unstable.git.overrideAttrs (old: {
-        postInstall = (old.postInstall or "") + ''
-          sed -i "s|export GITPERLLIB='\(.*\)'|export GITPERLLIB='\1:${
-            pkgs.unstable.perlPackages.makePerlPath [ pkgs.unstable.perlPackages.EmailValid ]
-          }'|" \
-            $out/libexec/git-core/git-send-email
-        '';
-      });
-
       inherit (pkgs.unstable)
         atuin
         gh

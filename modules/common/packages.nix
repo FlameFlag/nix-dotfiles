@@ -11,28 +11,19 @@ let
 
   cfg = config.flame.packages.profiles;
 
-  enabledOption =
+  enabledOption = (
     description:
     mkOption {
       type = bool;
       default = true;
       inherit description;
-    };
-
-  gitWithEmailValid = pkgs.unstable.git.overrideAttrs (old: {
-    postInstall = (old.postInstall or "") + ''
-      sed -i "s|export GITPERLLIB='\(.*\)'|export GITPERLLIB='\1:${
-        pkgs.unstable.perlPackages.makePerlPath [ pkgs.unstable.perlPackages.EmailValid ]
-      }'|" \
-        $out/libexec/git-core/git-send-email
-    '';
-  });
+    }
+  );
 
   basePackages = [
     (hiPrio pkgs.unstable.uutils-coreutils-noprefix)
     (hiPrio pkgs.unstable.uutils-diffutils)
     (hiPrio pkgs.unstable.uutils-findutils)
-    gitWithEmailValid
   ]
   ++ (with pkgs.unstable; [
     atuin
@@ -122,8 +113,6 @@ let
     imagemagick
     mediainfo
     pandoc
-  ])
-  ++ (with pkgs.eupkgs; [
   ]);
 
   archivePackages = with pkgs.unstable; [
@@ -137,7 +126,7 @@ let
     gitui
   ];
 
-  linuxDesktopPackages =
+  linuxDesktopPackages = (
     (with pkgs.unstable; [
       ghostty
       google-chrome
@@ -152,7 +141,8 @@ let
       breeze-gtk
       breeze-icons
       ffmpegthumbs
-    ]);
+    ])
+  );
 in
 {
   options.flame.packages.profiles = {
@@ -168,32 +158,32 @@ in
     };
   };
 
-  config.environment.systemPackages =
-    lib.lists.concatMap (profile: lib.lists.optionals profile.enable profile.packages)
-      [
-        {
-          enable = cfg.base;
-          packages = basePackages;
-        }
-        {
-          enable = cfg.dev;
-          packages = devPackages;
-        }
-        {
-          enable = cfg.media;
-          packages = mediaPackages;
-        }
-        {
-          enable = cfg.archive;
-          packages = archivePackages;
-        }
-        {
-          enable = cfg.gui;
-          packages = guiPackages;
-        }
-        {
-          enable = cfg.linuxDesktop;
-          packages = linuxDesktopPackages;
-        }
-      ];
+  config.environment.systemPackages = (
+    lib.lists.concatMap (profile: lib.lists.optionals profile.enable profile.packages) [
+      {
+        enable = cfg.base;
+        packages = basePackages;
+      }
+      {
+        enable = cfg.dev;
+        packages = devPackages;
+      }
+      {
+        enable = cfg.media;
+        packages = mediaPackages;
+      }
+      {
+        enable = cfg.archive;
+        packages = archivePackages;
+      }
+      {
+        enable = cfg.gui;
+        packages = guiPackages;
+      }
+      {
+        enable = cfg.linuxDesktop;
+        packages = linuxDesktopPackages;
+      }
+    ]
+  );
 }
