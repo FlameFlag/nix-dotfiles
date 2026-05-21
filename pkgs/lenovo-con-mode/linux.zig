@@ -1,4 +1,5 @@
 const std = @import("std");
+const bootstrap = @import("bootstrap");
 const common = @import("common");
 
 const cli = @import("cli.zig");
@@ -15,16 +16,15 @@ pub fn isSupported(allocator: std.mem.Allocator, io: std.Io) !bool {
 fn isLenovoMachine(allocator: std.mem.Allocator, io: std.Io) !bool {
     if (try common.fs.readTrimmedAllocOptional(allocator, io, constants.dmi_vendor_path)) |vendor| {
         defer allocator.free(vendor);
-        if (isLenovoVendor(vendor)) return true;
+        if (bootstrap.host.isLenovoVendor(vendor)) return true;
     }
     if (try common.fs.readTrimmedAllocOptional(allocator, io, constants.dmi_board_vendor_path)) |vendor| {
         defer allocator.free(vendor);
-        if (isLenovoVendor(vendor)) return true;
+        if (bootstrap.host.isLenovoVendor(vendor)) return true;
     }
     if (try common.fs.readTrimmedAllocOptional(allocator, io, constants.dmi_product_name_path)) |product| {
         defer allocator.free(product);
-        if (std.ascii.findIgnoreCase(product, "lenovo") != null or
-            std.ascii.findIgnoreCase(product, "legion") != null)
+        if (bootstrap.host.isLenovoVendor(product) or bootstrap.host.isLegionModel(product))
         {
             return true;
         }
@@ -38,10 +38,6 @@ fn sysfsNodeExists(io: std.Io, path: []const u8) !bool {
         else => return err,
     };
     return true;
-}
-
-fn isLenovoVendor(value: []const u8) bool {
-    return std.ascii.findIgnoreCase(value, "lenovo") != null;
 }
 
 pub fn readMode(io: std.Io, stderr: *std.Io.Writer) !bool {
@@ -131,8 +127,8 @@ test "parse sysfs mode values" {
 }
 
 test "detect Lenovo vendor strings" {
-    try std.testing.expect(isLenovoVendor("LENOVO"));
-    try std.testing.expect(isLenovoVendor("Lenovo Group Limited"));
-    try std.testing.expect(!isLenovoVendor("Dell Inc."));
-    try std.testing.expect(!isLenovoVendor(""));
+    try std.testing.expect(bootstrap.host.isLenovoVendor("LENOVO"));
+    try std.testing.expect(bootstrap.host.isLenovoVendor("Lenovo Group Limited"));
+    try std.testing.expect(!bootstrap.host.isLenovoVendor("Dell Inc."));
+    try std.testing.expect(!bootstrap.host.isLenovoVendor(""));
 }

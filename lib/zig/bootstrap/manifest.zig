@@ -1,12 +1,11 @@
 const std = @import("std");
-const common = @import("common");
 
 const archive_lib = @import("archive.zig");
 const Context = @import("context.zig").Context;
 const install_archive = @import("install.zig");
+const planning = @import("manifest/plan.zig");
 const platform = @import("platform.zig");
-
-const output = common.output;
+const validator = @import("manifest/validator.zig");
 
 pub const Policy = enum { install_missing, update_all };
 pub const Phase = enum { prerequisites, archives, packages, builds };
@@ -14,6 +13,8 @@ pub const HostOs = platform.Os;
 pub const HostArch = platform.Arch;
 pub const HostRequirement = enum { lenovo_laptop, not_nixos };
 pub const ArchiveKind = archive_lib.Kind;
+pub const Diagnostics = validator.Diagnostics;
+pub const Diagnostic = validator.Diagnostic;
 
 pub const Catalog = struct {
     tools: []const Tool,
@@ -296,429 +297,20 @@ pub fn windowsX8664() platform.Predicate {
     return host(.windows, .x86_64);
 }
 
-pub fn validate(ctx: *Context, catalog: Catalog) !void {
-    try validateTools(ctx, catalog.tools);
+pub fn validate(catalog: Catalog, diagnostics: *Diagnostics) !void {
+    try validator.validate(catalog, diagnostics);
 }
 
-fn validateTools(ctx: *Context, tools: []const Tool) !void {
-    if (tools.len == 0) return fail("tools: must not be empty", ctx, .{});
-
-    var seen_tools = std.StringHashMap(usize).init(ctx.allocator);
-    defer seen_tools.deinit();
-    var seen_bins = std.StringHashMap(BinLocation).init(ctx.allocator);
-    defer seen_bins.deinit();
-
-    for (tools, 0..) |tool_entry, tool_index| {
-        try validateTool(ctx, tool_entry, tool_index);
-
-        if (seen_tools.get(tool_entry.name)) |first_index| {
-            return fail(
-                "tools[{d}].name: duplicate tool name also used by tools[{d}]",
-                ctx,
-                .{ tool_index, first_index },
-            );
-        }
-        try seen_tools.put(tool_entry.name, tool_index);
-
-        for (tool_entry.bins, 0..) |bin_entry, bin_index| {
-            if (seen_bins.get(bin_entry.name)) |first| {
-                return fail(
-                    "tools[{d}].bins[{d}].name: duplicate bin name also used by tools[{d}].bins[{d}]",
-                    ctx,
-                    .{ tool_index, bin_index, first.tool_index, first.bin_index },
-                );
-            }
-            try seen_bins.put(bin_entry.name, .{ .tool_index = tool_index, .bin_index = bin_index });
-        }
-    }
+pub fn writeDiagnostics(ctx: *Context, diagnostics: Diagnostics) !void {
+    try diagnostics.write(ctx.io);
 }
 
 pub fn selectArchivePlatform(cases: []const ArchivePlatform) !ArchivePlatform {
-    const current_host = platform.current();
-    for (cases) |case| {
-        if (current_host.matches(case.when)) return case;
-    }
-    return error.UnsupportedPlatform;
+    return planning.selectArchivePlatform(cases);
 }
 
 pub fn toArchiveSpec(ctx: *Context, tool_entry: Tool) !install_archive.ArchiveSpec {
-    const archive_spec = switch (tool_entry.action) {
-        .archive => |payload| payload,
-        else => return error.WrongActionType,
-    };
-    const selected = try selectArchivePlatform(archive_spec.platforms);
-    const spec_links = try ctx.allocator.alloc(install_archive.Link, selected.links.len);
-    errdefer ctx.allocator.free(spec_links);
-    for (selected.links, spec_links) |link_entry, *spec_link| {
-        spec_link.* = .{ .name = link_entry.name, .path = .literal(link_entry.path) };
-    }
-
-    const app_links = try ctx.allocator.alloc(install_archive.Link, selected.app_links.len);
-    errdefer ctx.allocator.free(app_links);
-    for (selected.app_links, app_links) |link_entry, *app_link| {
-        app_link.* = .{ .name = link_entry.name, .path = .literal(link_entry.path) };
-    }
-
-    const source = selected.source orelse archive_spec.source orelse return error.MissingArchiveSource;
-    return .{
-        .tool = tool_entry.name,
-        .source = try archiveSource(source),
-        .platform = selected.platform,
-        .kind = selected.kind,
-        .strip_components = selected.strip_components,
-        .links = spec_links,
-        .app_links = app_links,
-    };
-}
-
-const BinLocation = struct {
-    tool_index: usize,
-    bin_index: usize,
-};
-
-fn validateTool(ctx: *Context, tool_entry: Tool, tool_index: usize) !void {
-    if (tool_entry.name.len == 0) return fail("tools[{d}].name: must not be empty", ctx, .{tool_index});
-    if (tool_entry.bins.len == 0) return fail("tools[{d}].bins: must not be empty", ctx, .{tool_index});
-    for (tool_entry.bins, 0..) |bin_entry, bin_index| {
-        if (bin_entry.name.len == 0) {
-            return fail("tools[{d}].bins[{d}].name: must not be empty", ctx, .{ tool_index, bin_index });
-        }
-        if (bin_entry.version_argv.len == 0) {
-            return fail(
-                "tools[{d}].bins[{d}].version_argv: must not be empty",
-                ctx,
-                .{ tool_index, bin_index },
-            );
-        }
-        for (bin_entry.version_argv, 0..) |arg, arg_index| {
-            if (arg.len == 0) {
-                return fail(
-                    "tools[{d}].bins[{d}].version_argv[{d}]: must not be empty",
-                    ctx,
-                    .{ tool_index, bin_index, arg_index },
-                );
-            }
-        }
-    }
-
-    switch (tool_entry.action) {
-        .required => {},
-        .archive => |archive_action| try validateArchiveAction(ctx, archive_action, tool_index),
-        .package => |package_spec| {
-            if (package_spec.name.len == 0) {
-                return fail(actionPath("package.name") ++ ": must not be empty", ctx, .{tool_index});
-            }
-            try validateArgv(
-                actionPath("package.install_argv"),
-                ctx,
-                package_spec.install_argv,
-                .{tool_index},
-                &.{"package"},
-            );
-        },
-        .build => |build_spec| {
-            if (build_spec.path.len == 0) {
-                return fail(actionPath("build.path") ++ ": must not be empty", ctx, .{tool_index});
-            }
-            try validateArgv(
-                actionPath("build.argv"),
-                ctx,
-                build_spec.argv,
-                .{tool_index},
-                &.{ "repo_dir", "build_dir", "prefix", "tool", "zig" },
-            );
-            try validateLinks(actionPath("build.links"), false, ctx, build_spec.links, .{tool_index});
-        },
-        .script => |script_spec| try validateScriptAction(ctx, script_spec, tool_index),
-        .toolchain => |toolchain| try validateToolchainAction(ctx, toolchain, tool_index),
-    }
-}
-
-fn actionPath(comptime suffix: []const u8) []const u8 {
-    return "tools[{d}].action." ++ suffix;
-}
-
-fn validateToolchainAction(ctx: *Context, toolchain: Toolchain, tool_index: usize) !void {
-    if (toolchain.manager_bin.len == 0) {
-        return fail(actionPath("toolchain.manager_bin") ++ ": must not be empty", ctx, .{tool_index});
-    }
-    if (toolchain.name.len == 0) {
-        return fail(actionPath("toolchain.name") ++ ": must not be empty", ctx, .{tool_index});
-    }
-    if (toolchain.name_env) |name_env| {
-        if (name_env.len == 0) {
-            return fail(actionPath("toolchain.name_env") ++ ": must not be empty", ctx, .{tool_index});
-        }
-    }
-    if (toolchain.bin_dir.env_var) |env_var| {
-        if (env_var.len == 0) {
-            return fail(actionPath("toolchain.bin_dir.env_var") ++ ": must not be empty", ctx, .{tool_index});
-        }
-    }
-    if (toolchain.bin_dir.home_relative.len == 0) {
-        return fail(actionPath("toolchain.bin_dir.home_relative") ++ ": must not be empty", ctx, .{tool_index});
-    }
-    if (toolchain.components.len == 0) {
-        return fail(actionPath("toolchain.components") ++ ": must not be empty", ctx, .{tool_index});
-    }
-    for (toolchain.components, 0..) |component, component_index| {
-        if (component.len == 0) {
-            return fail(
-                actionPath("toolchain.components[{d}]") ++ ": must not be empty",
-                ctx,
-                .{ tool_index, component_index },
-            );
-        }
-    }
-    if (toolchain.install.unix == null and toolchain.install.windows == null) {
-        return fail(actionPath("toolchain.install") ++ ": must define unix or windows command", ctx, .{tool_index});
-    }
-    if (toolchain.install.unix) |command| {
-        try validateToolchainInstallCommand(actionPath("toolchain.install.unix"), ctx, command, .{tool_index});
-    }
-    if (toolchain.install.windows) |command| {
-        try validateToolchainInstallCommand(actionPath("toolchain.install.windows"), ctx, command, .{tool_index});
-    }
-    try validateArgv(
-        actionPath("toolchain.update_argv"),
-        ctx,
-        toolchain.update_argv,
-        .{tool_index},
-        &.{ "manager_bin", "toolchain", "components" },
-    );
-    try validateArgv(
-        actionPath("toolchain.active_argv"),
-        ctx,
-        toolchain.active_argv,
-        .{tool_index},
-        &.{ "manager_bin", "toolchain" },
-    );
-    try validateArgv(
-        actionPath("toolchain.default_argv"),
-        ctx,
-        toolchain.default_argv,
-        .{tool_index},
-        &.{ "manager_bin", "toolchain" },
-    );
-    try validateArgv(
-        actionPath("toolchain.component_argv"),
-        ctx,
-        toolchain.component_argv,
-        .{tool_index},
-        &.{"component"},
-    );
-}
-
-fn validateToolchainInstallCommand(
-    comptime path_fmt: []const u8,
-    ctx: *Context,
-    command: Toolchain.Install.Command,
-    args: anytype,
-) !void {
-    if (command.url.len == 0) return fail(path_fmt ++ ".url: must not be empty", ctx, args);
-    if (command.file.len == 0) return fail(path_fmt ++ ".file: must not be empty", ctx, args);
-    try validateArgv(
-        path_fmt ++ ".argv",
-        ctx,
-        command.argv,
-        args,
-        &.{ "file", "toolchain", "components" },
-    );
-}
-
-fn validateArgv(
-    comptime path_fmt: []const u8,
-    ctx: *Context,
-    argv: []const []const u8,
-    args: anytype,
-    allowed: []const []const u8,
-) !void {
-    if (argv.len == 0) return fail(path_fmt ++ ": must not be empty", ctx, args);
-    for (argv, 0..) |arg, arg_index| {
-        if (arg.len == 0) return fail(path_fmt ++ "[{d}]: must not be empty", ctx, args ++ .{arg_index});
-        try validateTemplate(path_fmt ++ "[{d}]", ctx, arg, args ++ .{arg_index}, allowed);
-    }
-}
-
-fn validateArchiveAction(ctx: *Context, archive_spec: Archive, tool_index: usize) !void {
-    if (archive_spec.source) |source| try validateSource(actionPath("source"), ctx, source, .{tool_index});
-    if (archive_spec.platforms.len == 0) {
-        return fail(actionPath("platforms") ++ ": must not be empty", ctx, .{tool_index});
-    }
-    for (archive_spec.platforms, 0..) |case, platform_index| {
-        if (case.platform.len == 0) {
-            return fail(
-                actionPath("platforms[{d}].platform") ++ ": must not be empty",
-                ctx,
-                .{ tool_index, platform_index },
-            );
-        }
-        try validateTemplate(
-            actionPath("platforms[{d}].platform"),
-            ctx,
-            case.platform,
-            .{ tool_index, platform_index },
-            &.{},
-        );
-        if (case.source) |source| {
-            try validateSource(
-                actionPath("platforms[{d}].source"),
-                ctx,
-                source,
-                .{ tool_index, platform_index },
-            );
-        } else if (archive_spec.source == null) {
-            return fail(
-                actionPath("platforms[{d}].source") ++ ": required when action." ++ "source is missing",
-                ctx,
-                .{ tool_index, platform_index },
-            );
-        }
-        try validateLinks(
-            actionPath("platforms[{d}].links"),
-            true,
-            ctx,
-            case.links,
-            .{ tool_index, platform_index },
-        );
-        try validateLinks(
-            actionPath("platforms[{d}].app_links"),
-            false,
-            ctx,
-            case.app_links,
-            .{ tool_index, platform_index },
-        );
-    }
-}
-
-fn validateLinks(
-    comptime path_fmt: []const u8,
-    comptime require_non_empty: bool,
-    ctx: *Context,
-    entries: []const Link,
-    args: anytype,
-) !void {
-    if (require_non_empty and entries.len == 0) {
-        return fail(path_fmt ++ ": must not be empty", ctx, args);
-    }
-    for (entries, 0..) |link_entry, link_index| {
-        if (link_entry.name.len == 0) {
-            return fail(path_fmt ++ "[{d}].name: must not be empty", ctx, args ++ .{link_index});
-        }
-        if (link_entry.path.len == 0) {
-            return fail(path_fmt ++ "[{d}].path: must not be empty", ctx, args ++ .{link_index});
-        }
-        try validateTemplate(
-            path_fmt ++ "[{d}].path",
-            ctx,
-            link_entry.path,
-            args ++ .{link_index},
-            &.{ "version", "platform" },
-        );
-    }
-}
-
-fn validateScriptAction(ctx: *Context, script_spec: Script, tool_index: usize) !void {
-    if (script_spec.unix == null and script_spec.windows == null) {
-        return fail(actionPath("script") ++ ": must define unix or windows command", ctx, .{tool_index});
-    }
-    if (script_spec.unix) |command| {
-        try validateScriptCommand(actionPath("script.unix"), ctx, command, .{tool_index});
-    }
-    if (script_spec.windows) |command| {
-        try validateScriptCommand(actionPath("script.windows"), ctx, command, .{tool_index});
-    }
-}
-
-fn validateScriptCommand(
-    comptime path_fmt: []const u8,
-    ctx: *Context,
-    command: Script.Command,
-    args: anytype,
-) !void {
-    if (command.url.len == 0) return fail(path_fmt ++ ".url: must not be empty", ctx, args);
-    if (command.file.len == 0) return fail(path_fmt ++ ".file: must not be empty", ctx, args);
-    if (command.argv.len == 0) return fail(path_fmt ++ ".argv: must not be empty", ctx, args);
-    for (command.argv, 0..) |arg, arg_index| {
-        if (arg.len == 0) return fail(path_fmt ++ ".argv[{d}]: must not be empty", ctx, args ++ .{arg_index});
-        try validateTemplate(
-            path_fmt ++ ".argv[{d}]",
-            ctx,
-            arg,
-            args ++ .{arg_index},
-            &.{ "file", "bin_dir", "opt_dir", "home" },
-        );
-    }
-}
-
-fn validateSource(comptime path_fmt: []const u8, ctx: *Context, source: Source, args: anytype) !void {
-    switch (source) {
-        .github_latest => |github| {
-            if (github.repo.len == 0) return fail(path_fmt ++ ".repo: must not be empty", ctx, args);
-            if (github.asset.len == 0) return fail(path_fmt ++ ".asset: must not be empty", ctx, args);
-            try validateTemplate(path_fmt ++ ".asset", ctx, github.asset, args, &.{ "version", "platform" });
-        },
-        .direct => |direct_source| {
-            if (direct_source.version.len == 0) return fail(path_fmt ++ ".version: must not be empty", ctx, args);
-            if (direct_source.url.len == 0) return fail(path_fmt ++ ".url: must not be empty", ctx, args);
-            try validateTemplate(path_fmt ++ ".url", ctx, direct_source.url, args, &.{ "version", "platform" });
-        },
-        .command => |command_source| {
-            if (command_source.argv.len == 0) return fail(path_fmt ++ ".argv: must not be empty", ctx, args);
-            if (command_source.url.len == 0) return fail(path_fmt ++ ".url: must not be empty", ctx, args);
-            for (command_source.argv, 0..) |arg, arg_index| {
-                if (arg.len == 0) {
-                    return fail(path_fmt ++ ".argv[{d}]: must not be empty", ctx, args ++ .{arg_index});
-                }
-            }
-            try validateTemplate(path_fmt ++ ".url", ctx, command_source.url, args, &.{ "version", "platform" });
-        },
-        .version_index => |version_index| {
-            if (version_index.index_url.len == 0) return fail(path_fmt ++ ".index_url: must not be empty", ctx, args);
-            if (version_index.url.len == 0) return fail(path_fmt ++ ".url: must not be empty", ctx, args);
-            try validateTemplate(path_fmt ++ ".url", ctx, version_index.url, args, &.{ "version", "platform" });
-        },
-    }
-}
-
-fn validateTemplate(
-    comptime path_fmt: []const u8,
-    ctx: *Context,
-    template: []const u8,
-    args: anytype,
-    allowed: []const []const u8,
-) !void {
-    common.template.Template.literal(template).validate(allowed) catch |err| switch (err) {
-        error.InvalidTemplate => return fail(path_fmt ++ ": invalid template placeholder", ctx, args),
-        error.UnknownTemplateVariable => return fail(path_fmt ++ ": unknown template placeholder", ctx, args),
-    };
-}
-
-fn archiveSource(input: Source) !install_archive.Source {
-    return switch (input) {
-        .github_latest => |github| .{ .github_latest = .{
-            .repo = github.repo,
-            .tag_prefix = github.tag_prefix,
-            .asset = .literal(github.asset),
-        } },
-        .direct => |direct_source| .{ .direct = .{
-            .version = direct_source.version,
-            .url = .literal(direct_source.url),
-        } },
-        .command => |command_source| .{ .command = .{
-            .argv = command_source.argv,
-            .url = .literal(command_source.url),
-        } },
-        .version_index => |version_index| .{ .version_index = .{
-            .index_url = version_index.index_url,
-            .url = .literal(version_index.url),
-        } },
-    };
-}
-
-fn fail(comptime fmt: []const u8, ctx: *Context, args: anytype) error{InvalidManifest} {
-    output.stderr(ctx.io, "error: manifest: " ++ fmt ++ "\n", args) catch return error.InvalidManifest;
-    return error.InvalidManifest;
+    return planning.planArchive(ctx, tool_entry);
 }
 
 fn testingContext(env: *std.process.Environ.Map) Context {
@@ -737,35 +329,38 @@ fn testCatalog(tools: []const Tool) Catalog {
 }
 
 test "catalog validation rejects duplicate tool names" {
-    var env = std.process.Environ.Map.init(std.testing.allocator);
-    defer env.deinit();
-    var ctx = testingContext(&env);
+    var diagnostics = Diagnostics.init(std.testing.allocator);
+    defer diagnostics.deinit();
 
-    try std.testing.expectError(error.InvalidManifest, validate(&ctx, testCatalog(&.{
+    try std.testing.expectError(error.InvalidManifest, validate(testCatalog(&.{
         tool("same", &.{bin("one", &.{"one"})}, required()),
         tool("same", &.{bin("two", &.{"two"})}, required()),
-    })));
+    }), &diagnostics));
+    try std.testing.expectEqual(@as(usize, 1), diagnostics.entries.items.len);
+    try std.testing.expect(std.mem.indexOf(u8, diagnostics.entries.items[0].message, "duplicate tool name") != null);
 }
 
 test "catalog validation rejects duplicate bin names" {
-    var env = std.process.Environ.Map.init(std.testing.allocator);
-    defer env.deinit();
-    var ctx = testingContext(&env);
+    var diagnostics = Diagnostics.init(std.testing.allocator);
+    defer diagnostics.deinit();
 
-    try std.testing.expectError(error.InvalidManifest, validate(&ctx, testCatalog(&.{
+    try std.testing.expectError(error.InvalidManifest, validate(testCatalog(&.{
         tool("one", &.{bin("same", &.{ "same", "--version" })}, required()),
         tool("two", &.{bin("same", &.{ "same", "--version" })}, required()),
-    })));
+    }), &diagnostics));
+    try std.testing.expectEqual(@as(usize, 1), diagnostics.entries.items.len);
+    try std.testing.expect(std.mem.indexOf(u8, diagnostics.entries.items[0].message, "duplicate bin name") != null);
 }
 
 test "catalog validation rejects empty argv" {
-    var env = std.process.Environ.Map.init(std.testing.allocator);
-    defer env.deinit();
-    var ctx = testingContext(&env);
+    var diagnostics = Diagnostics.init(std.testing.allocator);
+    defer diagnostics.deinit();
 
-    try std.testing.expectError(error.InvalidManifest, validate(&ctx, testCatalog(&.{
+    try std.testing.expectError(error.InvalidManifest, validate(testCatalog(&.{
         tool("demo", &.{bin("demo", &.{ "demo", "" })}, required()),
-    })));
+    }), &diagnostics));
+    try std.testing.expectEqual(@as(usize, 1), diagnostics.entries.items.len);
+    try std.testing.expect(std.mem.indexOf(u8, diagnostics.entries.items[0].message, "version_argv[1]") != null);
 }
 
 test "archive spec maps manifest links and direct source" {
@@ -798,11 +393,10 @@ test "archive spec maps manifest links and direct source" {
 }
 
 test "archive validation checks app link templates" {
-    var env = std.process.Environ.Map.init(std.testing.allocator);
-    defer env.deinit();
-    var ctx = testingContext(&env);
+    var diagnostics = Diagnostics.init(std.testing.allocator);
+    defer diagnostics.deinit();
 
-    try std.testing.expectError(error.InvalidManifest, validate(&ctx, testCatalog(&.{
+    try std.testing.expectError(error.InvalidManifest, validate(testCatalog(&.{
         tool("demo", &.{bin("demo", &.{ "demo", "--version" })}, archive(
             direct("1.0.0", "https://example.test/demo.tar.gz"),
             &.{.{
@@ -814,7 +408,11 @@ test "archive validation checks app link templates" {
                 .app_links = &.{link("Demo.app", "{unknown}.app")},
             }},
         )),
-    })));
+    }), &diagnostics));
+    try std.testing.expectEqual(@as(usize, 1), diagnostics.entries.items.len);
+    try std.testing.expect(
+        std.mem.indexOf(u8, diagnostics.entries.items[0].message, "unknown template placeholder") != null,
+    );
 }
 
 test "archive platform source overrides action source" {

@@ -58,7 +58,12 @@ fn one(ctx: *Context, policy: model.Policy, tool: model.Tool) !usize {
         }
     }
     try output.stdout(ctx.io, "{s}: {s}\n", .{ tool.name, installVerb(policy, tool) });
-    actions.install(ctx, tool) catch |err| {
+    var plan = bootstrap.plan.InstallPlan.fromTool(ctx, tool) catch |err| {
+        try output.stderr(ctx.io, "error: {s}: {s}\n", .{ tool.name, @errorName(err) });
+        return 1;
+    };
+    defer plan.deinit(ctx.allocator);
+    actions.install(ctx, plan) catch |err| {
         try output.stderr(ctx.io, "error: {s}: {s}\n", .{ tool.name, @errorName(err) });
         return 1;
     };

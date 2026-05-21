@@ -9,7 +9,15 @@ pub const Catalog = bootstrap.manifest.Catalog;
 
 pub fn load(ctx: *Context) !Catalog {
     const result: Catalog = .{ .tools = &catalog_data.tools };
-    try bootstrap.manifest.validate(ctx, result);
+    var diagnostics = bootstrap.manifest.Diagnostics.init(ctx.allocator);
+    defer diagnostics.deinit();
+    bootstrap.manifest.validate(result, &diagnostics) catch |err| switch (err) {
+        error.InvalidManifest => {
+            try bootstrap.manifest.writeDiagnostics(ctx, diagnostics);
+            return err;
+        },
+        else => return err,
+    };
     return result;
 }
 

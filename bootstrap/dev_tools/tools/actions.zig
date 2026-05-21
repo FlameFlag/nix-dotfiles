@@ -7,22 +7,18 @@ const Context = bootstrap.Context;
 const fs = common.fs;
 const model = bootstrap.manifest;
 const output = common.output;
+const plan_model = bootstrap.plan;
 const proc = common.process;
-const nix_os_release_path = "/etc/os-release";
 
-pub fn install(ctx: *Context, tool: model.Tool) !void {
-    switch (tool.action) {
+pub fn install(ctx: *Context, plan: plan_model.InstallPlan) !void {
+    const tool = plan.tool;
+    switch (plan.action) {
         .required => return error.BootstrapPrerequisite,
         .script => |script_spec| try installScript(ctx, tool.name, script_spec),
         .toolchain => |toolchain_spec| try bootstrap.toolchain.installOrUpdate(ctx, toolchain_spec),
         .package => |package_spec| try installPackage(ctx, package_spec),
         .build => |build_spec| try installBuildCommand(ctx, tool, build_spec),
-        .archive => {
-            const spec = try bootstrap.manifest.toArchiveSpec(ctx, tool);
-            defer ctx.allocator.free(spec.links);
-            defer ctx.allocator.free(spec.app_links);
-            try spec.install(ctx);
-        },
+        .archive => |archive_spec| try archive_spec.install(ctx),
     }
 }
 
@@ -60,20 +56,7 @@ fn installUvPackageViaNixPython(ctx: *Context, package_spec: model.Package) !boo
 fn shouldUseNixPython(ctx: *Context) !bool {
     if (builtin.os.tag != .linux) return false;
     if (!try proc.hasBin(ctx, "nix")) return false;
-    return isNixOs(ctx);
-}
-
-fn isNixOs(ctx: *Context) !bool {
-    var buffer: [4096]u8 = undefined;
-    const contents = std.Io.Dir.cwd().readFile(ctx.io, nix_os_release_path, &buffer) catch |err| switch (err) {
-        error.FileNotFound, error.AccessDenied => return false,
-        else => return err,
-    };
-    var lines = std.mem.splitScalar(u8, contents, '\n');
-    while (lines.next()) |line| {
-        if (std.mem.eql(u8, line, "ID=nixos")) return true;
-    }
-    return false;
+    return bootstrap.host.isNixOs(ctx);
 }
 
 fn installScript(ctx: *Context, name: []const u8, script: model.Script) !void {

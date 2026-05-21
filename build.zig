@@ -1,5 +1,6 @@
 const std = @import("std");
 const builtin = @import("builtin");
+const host_helpers = @import("lib/zig/bootstrap/host_helpers.zig");
 const zig_lib = @import("lib/zig/build.zig");
 
 const ModuleKey = zig_lib.ModuleKey;
@@ -84,7 +85,7 @@ const executables = [_]ExecutableSpec{
     .{
         .name = "lenovo-con-mode",
         .root = "pkgs/lenovo-con-mode/main.zig",
-        .imports = &.{.common},
+        .imports = &.{ .common, .bootstrap },
         .install = .lenovo_tool,
         .extra_tests = &.{
             .{ .name = "lenovo-con-mode-cli", .root = "pkgs/lenovo-con-mode/cli.zig" },
@@ -147,8 +148,11 @@ pub fn build(b: *std.Build) void {
 
     const check_step = b.step("check", "Compile all Zig executables without installing them");
     const test_step = b.step("test", "Run all Zig unit tests");
+    const lint_step = b.step("lint", "Run ziglint over Zig sources");
     const tools_step = b.step("tools", "Install command-line Zig tools for the selected target");
     const hooks_step = b.step("chezmoi-hooks", "Install compiled chezmoi hook scripts");
+
+    addLintStep(b, lint_step);
 
     const registry = zig_lib.addModules(b, .{
         .target = config.target,
@@ -158,6 +162,22 @@ pub fn build(b: *std.Build) void {
     inline for (executables) |spec| {
         addExecutable(spec, b, check_step, test_step, tools_step, hooks_step, config, registry);
     }
+}
+
+fn addLintStep(b: *std.Build, lint_step: *std.Build.Step) void {
+    const ziglint = b.findProgram(&.{"ziglint"}, &.{}) catch {
+        const fail = b.addFail("ziglint not found; install it with `dev_tools install` or put it on PATH");
+        lint_step.dependOn(&fail.step);
+        return;
+    };
+    const run = b.addSystemCommand(&.{
+        ziglint,
+        "build.zig",
+        "lib/zig",
+        "bootstrap/dev_tools",
+        "pkgs",
+    });
+    lint_step.dependOn(&run.step);
 }
 
 fn addExecutable(
@@ -272,17 +292,17 @@ fn isLinuxLenovoLaptopHost(b: *std.Build) bool {
 fn linuxDmiIdentifiesLenovo(b: *std.Build) bool {
     var vendor_buffer: [256]u8 = undefined;
     if (readTrimmedAbsolute(b, linux_dmi_vendor_path, &vendor_buffer)) |vendor| {
-        if (isLenovoVendor(vendor)) return true;
+        if (host_helpers.isLenovoVendor(vendor)) return true;
     }
 
     var board_vendor_buffer: [256]u8 = undefined;
     if (readTrimmedAbsolute(b, linux_dmi_board_vendor_path, &board_vendor_buffer)) |vendor| {
-        if (isLenovoVendor(vendor)) return true;
+        if (host_helpers.isLenovoVendor(vendor)) return true;
     }
 
     var product_buffer: [256]u8 = undefined;
     if (readTrimmedAbsolute(b, linux_dmi_product_name_path, &product_buffer)) |product| {
-        if (isLenovoVendor(product) or std.ascii.findIgnoreCase(product, "legion") != null) return true;
+        if (host_helpers.isLenovoVendor(product) or host_helpers.isLegionModel(product)) return true;
     }
 
     return false;
@@ -296,12 +316,10 @@ fn readTrimmedAbsolute(b: *std.Build, path: []const u8, buffer: []u8) ?[]const u
 fn isWindowsLenovoLaptopHost(b: *std.Build) bool {
     const result = std.process.run(b.allocator, b.graph.io, .{
         .argv = &.{
-            "pwsh",
-            "-NoProfile",
-            "-Command",
-            "$cs = Get-CimInstance Win32_ComputerSystem; " ++
-                "$en = Get-CimInstance Win32_SystemEnclosure; " ++
-                "\"$($cs.Manufacturer)`n$($cs.Model)`n$($en.ChassisTypes -join ',')\"",
+            host_helpers.windows_lenovo_probe_argv[0],
+            host_helpers.windows_lenovo_probe_argv[1],
+            host_helpers.windows_lenovo_probe_argv[2],
+            host_helpers.windows_lenovo_probe_argv[3],
         },
         .stdout_limit = .limited(4096),
         .stderr_limit = .limited(4096),
@@ -314,32 +332,9 @@ fn isWindowsLenovoLaptopHost(b: *std.Build) bool {
         else => return false,
     }
 
-    var lines = std.mem.splitScalar(u8, result.stdout, '\n');
-    const manufacturer = std.mem.trim(u8, lines.next() orelse "", " \t\r\n");
-    const model = std.mem.trim(u8, lines.next() orelse "", " \t\r\n");
-    const chassis_types = std.mem.trim(u8, lines.next() orelse "", " \t\r\n");
-    if (!isLenovoVendor(manufacturer) and
-        !isLenovoVendor(model) and
-        std.ascii.findIgnoreCase(model, "legion") == null)
-    {
-        return false;
-    }
-
-    var chassis_values = std.mem.splitScalar(u8, chassis_types, ',');
-    while (chassis_values.next()) |raw| {
-        if (isLaptopChassisType(std.mem.trim(u8, raw, " \t\r\n"))) return true;
-    }
-    return false;
-}
-
-fn isLenovoVendor(value: []const u8) bool {
-    return std.ascii.findIgnoreCase(value, "lenovo") != null;
+    return host_helpers.windowsProbeOutputIsLenovoLaptop(result.stdout);
 }
 
 fn isLaptopChassisType(value: []const u8) bool {
-    const parsed = std.fmt.parseInt(u8, value, 10) catch return false;
-    return switch (parsed) {
-        8, 9, 10, 14, 31, 32 => true,
-        else => false,
-    };
+    return host_helpers.isLaptopChassisType(value);
 }
