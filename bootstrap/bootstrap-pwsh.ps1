@@ -183,8 +183,13 @@ function Test-MsvcBuildToolset {
 }
 
 function Install-MsvcBuildToolset {
-    if ($SkipMsvcBuildTools -or (Test-MsvcBuildToolset)) {
-        return (Test-MsvcBuildToolset)
+    if ($SkipMsvcBuildTools) {
+        Write-Warning 'Skipping MSVC C++ build tools check because -SkipMsvcBuildTools was supplied.'
+        return
+    }
+
+    if (Test-MsvcBuildToolset) {
+        return
     }
 
     # Install only the native build pieces we need. The override keeps the
@@ -200,13 +205,18 @@ function Install-MsvcBuildToolset {
         '--override', '--wait --passive --norestart --add Microsoft.VisualStudio.Component.VC.Tools.x86.x64 --add Microsoft.VisualStudio.Component.Windows11SDK.22621 --addProductLang En-us'
     )
 
-    if (-not $installed -or -not (Test-MsvcBuildToolset)) {
-        $exitCode = if ($null -ne $script:LastWingetExitCode) { $script:LastWingetExitCode } else { 'unknown' }
-        Write-Warning "Native Windows builds may need MSVC C++ build tools and a Windows SDK, but WinGet did not finish installing them (exit: ${exitCode})."
-        return $false
+    if (-not $installed) {
+        $exitCode = if (Get-Variable -Scope Script -Name LastWingetExitCode -ErrorAction SilentlyContinue) {
+            $script:LastWingetExitCode
+        } else {
+            'unknown'
+        }
+        throw "Failed to install MSVC C++ build tools and Windows SDK with WinGet (exit: ${exitCode}). Re-run with -SkipMsvcBuildTools only if you already have a working C++ toolchain."
     }
 
-    return $true
+    if (-not (Test-MsvcBuildToolset)) {
+        throw 'MSVC C++ build tools and Windows SDK install completed, but vswhere could not detect the required C++ toolset.'
+    }
 }
 
 function Read-ZigArtifact {
@@ -521,7 +531,7 @@ New-Item -ItemType Directory -Force -Path $localBin, $localOpt | Out-Null
 Add-PathEntry -Path $localBin
 
 $zig = Install-Zig -RepoRoot $repoRoot -LocalBin $localBin -LocalOpt $localOpt
-[void] (Install-MsvcBuildToolset)
+Install-MsvcBuildToolset
 Invoke-ZigBootstrapInstaller -RepoRoot $repoRoot -ZigExe $zig
 try {
     Set-WindowsTerminalDefaultPowerShell
