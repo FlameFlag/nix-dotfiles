@@ -1,22 +1,28 @@
-Host *
-  AddKeysToAgent yes
-  ForwardAgent yes
-{{- if eq .chezmoi.os "darwin" }}
-Match host * exec "test -z $SSH_TTY"
-  IdentityAgent "{{ .chezmoi.homeDir }}/Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock"
-{{- else }}
-Match host * exec "test -z $SSH_TTY"
-  IdentityAgent "{{ .chezmoi.homeDir }}/.1password/agent.sock"
-{{- end }}
-
 Host github github.com
   Hostname ssh.github.com
   Port 443
   User git
   IdentityFile {{ .chezmoi.homeDir }}/.ssh/github_key
+  IdentitiesOnly yes
+  ForwardAgent no
 
 Host codeberg.org
   Hostname codeberg.org
   Port 22
   User git
   IdentityFile {{ .chezmoi.homeDir }}/.ssh/github_key
+  IdentitiesOnly yes
+  ForwardAgent no
+
+{{ if eq .chezmoi.os "darwin" -}}
+Match host * exec "test -z $SSH_TTY"
+  IdentityAgent "{{ .chezmoi.homeDir }}/Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock"
+{{ else -}}
+Match host * exec "test -z $SSH_TTY"
+  IdentityAgent "{{ .chezmoi.homeDir }}/.1password/agent.sock"
+{{ end }}
+Host *
+  AddKeysToAgent no
+  ForwardAgent no
+  HashKnownHosts yes
+  KexAlgorithms mlkem768x25519-sha256,sntrup761x25519-sha512,sntrup761x25519-sha512@openssh.com,curve25519-sha256,curve25519-sha256@libssh.org,ecdh-sha2-nistp256,ecdh-sha2-nistp384,ecdh-sha2-nistp521,diffie-hellman-group-exchange-sha256,diffie-hellman-group16-sha512,diffie-hellman-group18-sha512,diffie-hellman-group14-sha256
