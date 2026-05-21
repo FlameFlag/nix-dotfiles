@@ -6,19 +6,16 @@
   python313,
   maven,
   jdk21,
+  stripJavaArchivesHook,
   curl,
-  jq,
-  rsync,
   coreutils,
-  gnugrep,
-  gnused,
-  gawk,
   bash,
-  gnutar,
-  gzip,
 }:
 let
+  inherit (lib.strings) concatMapStringsSep;
+
   upstreamRev = "2a57c7cff12e2d6584f2d0e2ba8175bcfb20b43f";
+  mvnParameters = lib.escapeShellArgs [ "-Pheadless" ];
 
   src = fetchFromGitHub {
     owner = "bethington";
@@ -32,16 +29,127 @@ let
     ps.requests
   ]);
   jarVersion = "5.10.0";
-  sourceStamp = lib.strings.concatStringsSep ":" [
-    "ghidra-mcp"
-    upstreamRev
-    jarVersion
-    ghidra.version
-  ];
   stateDefault = "$HOME/.local/state/ghidra-mcp-headless";
+
+  requiredGhidraJars = [
+    {
+      artifactId = "Base";
+      path = "Features/Base/lib/Base.jar";
+    }
+    {
+      artifactId = "Decompiler";
+      path = "Features/Decompiler/lib/Decompiler.jar";
+    }
+    {
+      artifactId = "Docking";
+      path = "Framework/Docking/lib/Docking.jar";
+    }
+    {
+      artifactId = "Generic";
+      path = "Framework/Generic/lib/Generic.jar";
+    }
+    {
+      artifactId = "Project";
+      path = "Framework/Project/lib/Project.jar";
+    }
+    {
+      artifactId = "SoftwareModeling";
+      path = "Framework/SoftwareModeling/lib/SoftwareModeling.jar";
+    }
+    {
+      artifactId = "Utility";
+      path = "Framework/Utility/lib/Utility.jar";
+    }
+    {
+      artifactId = "Gui";
+      path = "Framework/Gui/lib/Gui.jar";
+    }
+    {
+      artifactId = "FileSystem";
+      path = "Framework/FileSystem/lib/FileSystem.jar";
+    }
+    {
+      artifactId = "Help";
+      path = "Framework/Help/lib/Help.jar";
+    }
+    {
+      artifactId = "Emulation";
+      path = "Framework/Emulation/lib/Emulation.jar";
+    }
+    {
+      artifactId = "Debugger-api";
+      path = "Debug/Debugger-api/lib/Debugger-api.jar";
+    }
+    {
+      artifactId = "Framework-TraceModeling";
+      path = "Debug/Framework-TraceModeling/lib/Framework-TraceModeling.jar";
+    }
+    {
+      artifactId = "Debugger-rmi-trace";
+      path = "Debug/Debugger-rmi-trace/lib/Debugger-rmi-trace.jar";
+    }
+    {
+      artifactId = "DB";
+      path = "Framework/DB/lib/DB.jar";
+    }
+  ];
+
+  installGhidraMavenDeps = repo: ''
+    mkdir -p ${repo}
+    ${concatMapStringsSep "\n" (jar: ''
+      mvn install:install-file \
+        -Dmaven.repo.local=${repo} \
+        -Dfile=${ghidra}/lib/ghidra/Ghidra/${jar.path} \
+        -DgroupId=ghidra \
+        -DartifactId=${jar.artifactId} \
+        -Dversion=${ghidra.version} \
+        -Dpackaging=jar \
+        -DgeneratePom=true
+    '') requiredGhidraJars}
+  '';
+
+  server = maven.buildMavenPackage {
+    pname = "ghidra-mcp-headless-server";
+    version = jarVersion;
+
+    inherit src;
+
+    mvnJdk = jdk21;
+    doCheck = false;
+    buildOffline = true;
+    strictDeps = true;
+    mvnHash = "sha256-9pEPYwPjyPrxn+w8FweKpqsWsTJpw/Op11dvB/glmKI=";
+    inherit mvnParameters;
+    mvnDepsParameters = mvnParameters;
+
+    nativeBuildInputs = [
+      stripJavaArchivesHook
+    ];
+
+    postPatch = ''
+      substituteInPlace pom.xml \
+        --replace-fail "<ghidra.version>12.0.4</ghidra.version>" \
+                       "<ghidra.version>${ghidra.version}</ghidra.version>"
+    '';
+
+    mvnFetchExtraArgs = {
+      preBuild = installGhidraMavenDeps "$out/.m2";
+    };
+
+    afterDepsSetup = installGhidraMavenDeps "$mvnDeps/.m2";
+
+    installPhase = ''
+      runHook preInstall
+
+      install -Dm644 target/GhidraMCP-${jarVersion}.jar \
+        $out/share/java/GhidraMCP-${jarVersion}.jar
+
+      runHook postInstall
+    '';
+  };
 in
 rec {
-  inherit ghidra src;
+  inherit ghidra src server;
 
   httpd = writeShellApplication {
     name = "ghidra-mcp-httpd";
@@ -49,15 +157,6 @@ rec {
       bash
       coreutils
       curl
-      jq
-      rsync
-      gnutar
-      gzip
-      gnugrep
-      gnused
-      gawk
-      python
-      maven
       jdk21
     ];
     text = ''
@@ -68,42 +167,20 @@ rec {
       export GHIDRA_MCP_PORT="''${GHIDRA_MCP_PORT:-8089}"
       export GHIDRA_MCP_ALLOW_SCRIPTS="''${GHIDRA_MCP_ALLOW_SCRIPTS:-1}"
       export GHIDRA_MCP_AUTH_TOKEN="''${GHIDRA_MCP_AUTH_TOKEN:-}"
-      export JAVA_HOME="''${JAVA_HOME:-${jdk21}}"
+      export JAVA_HOME="''${JAVA_HOME:-${jdk21.home}}"
       export GHIDRA_MCP_STATE="''${GHIDRA_MCP_STATE:-${stateDefault}}"
       export GHIDRA_USER="''${GHIDRA_USER:-}"
 
-      src_dir="$GHIDRA_MCP_STATE/src"
       home_dir="$GHIDRA_MCP_STATE/home"
-      m2="$GHIDRA_MCP_STATE/m2/repository"
-      pip_cache="$GHIDRA_MCP_STATE/pip-cache"
-      mkdir -p "$src_dir" "$home_dir" "$m2" "$pip_cache"
-
-      if [ ! -f "$src_dir/pom.xml" ] || [ ! -f "$src_dir/.source-stamp" ] || [ "$(cat "$src_dir/.source-stamp")" != "${sourceStamp}" ]; then
-        rm -rf "$src_dir"
-        mkdir -p "$src_dir"
-        rsync -a --chmod=u+rwX "${src}/" "$src_dir/"
-        printf '%s\n' "${sourceStamp}" > "$src_dir/.source-stamp"
-      fi
+      mkdir -p "$home_dir"
 
       export HOME="$home_dir"
-      export MAVEN_OPTS="-Dmaven.repo.local=$m2 ''${MAVEN_OPTS:-}"
-      export PIP_CACHE_DIR="$pip_cache"
 
-      if [ ! -f "$src_dir/target/GhidraMCP-${jarVersion}.jar" ]; then
-        cd "$src_dir"
-        # Do not run upstream ensure-prereqs here: it tries to pip-install into
-        # the immutable Nix Python. For the Java headless HTTP server we only
-        # need Ghidra jars installed into the service-local Maven repository.
-        python -m tools.setup install-ghidra-deps --ghidra-path "$GHIDRA_HOME"
-        python -m tools.setup build
-      fi
-
-      cp="$src_dir/target/GhidraMCP-${jarVersion}.jar"
+      cp="${server}/share/java/GhidraMCP-${jarVersion}.jar"
       for jar in "$GHIDRA_HOME"/Ghidra/Framework/*/lib/*.jar; do cp="$cp:$jar"; done
       for jar in "$GHIDRA_HOME"/Ghidra/Features/*/lib/*.jar; do cp="$cp:$jar"; done
       for jar in "$GHIDRA_HOME"/Ghidra/Debug/*/lib/*.jar; do cp="$cp:$jar"; done
       for jar in "$GHIDRA_HOME"/Ghidra/Processors/*/lib/*.jar; do cp="$cp:$jar"; done
-      for jar in "$src_dir"/target/lib/*.jar; do [ -f "$jar" ] && cp="$cp:$jar"; done
 
       java_opts=()
       if [ -n "''${JAVA_OPTS:-}" ]; then
