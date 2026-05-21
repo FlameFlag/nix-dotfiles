@@ -14,6 +14,16 @@ Host codeberg.org
   IdentitiesOnly yes
   ForwardAgent no
 
+Host lenovo-legion-windows
+  HostName lenovo-legion-windows
+  User admin
+  RequestTTY yes
+  RemoteCommand powershell.exe -NoLogo -NoProfile
+
+Host lenovo-legion-windows-raw
+  HostName lenovo-legion-windows
+  User admin
+
 {{ if eq .chezmoi.os "darwin" -}}
 Match host * exec "test -z $SSH_TTY"
   IdentityAgent "{{ .chezmoi.homeDir }}/Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock"
