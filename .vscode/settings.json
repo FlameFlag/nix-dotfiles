@@ -44,6 +44,7 @@
     "**/dot_zshrc.tmpl": true
   },
   "bashIde.shellcheckPath": "",
+  "nushellLanguageServer.nushellExecutablePath": ".vscode/lsp-diagnostic-filter/dist/nushell-lsp-filter.mjs",
   "zig.path": "zig",
   "zig.zls.path": "zls",
   "zig.zls.enabled": "on",
@@ -61,5 +62,5 @@
     "editor.defaultFormatter": "ziglang.vscode-zig",
     "editor.formatOnSave": true,
     "editor.suggest.insertMode": "replace"
-  },
+  }
 }
