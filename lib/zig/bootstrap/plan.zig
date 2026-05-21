@@ -14,6 +14,7 @@ pub const InstallPlan = struct {
         package: manifest.Package,
         build: manifest.Build,
         script: manifest.Script,
+        source_build: manifest.SourceBuild,
         toolchain: manifest.Toolchain,
     };
 
@@ -26,6 +27,7 @@ pub const InstallPlan = struct {
                 .package => |spec| .{ .package = spec },
                 .build => |spec| .{ .build = spec },
                 .script => |spec| .{ .script = spec },
+                .source_build => |spec| .{ .source_build = spec },
                 .toolchain => |spec| .{ .toolchain = spec },
             },
         };

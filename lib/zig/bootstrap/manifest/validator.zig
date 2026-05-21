@@ -134,12 +134,44 @@ fn validateTool(tool_entry: model.Tool, tool_index: usize, diagnostics: *Diagnos
             try validateLinks(actionPath("build.links"), false, build_spec.links, .{tool_index}, diagnostics);
         },
         .script => |script_spec| try validateScriptAction(script_spec, tool_index, diagnostics),
+        .source_build => |source_build| try validateSourceBuildAction(source_build, tool_index, diagnostics),
         .toolchain => |toolchain| try validateToolchainAction(toolchain, tool_index, diagnostics),
     }
 }
 
 fn actionPath(comptime suffix: []const u8) []const u8 {
     return "tools[{d}].action." ++ suffix;
+}
+
+fn validateSourceBuildAction(source_build: model.SourceBuild, tool_index: usize, diagnostics: *Diagnostics) !void {
+    if (source_build.version.len == 0) {
+        return fail(diagnostics, actionPath("source_build.version") ++ ": must not be empty", .{tool_index});
+    }
+    if (source_build.url.len == 0) {
+        return fail(diagnostics, actionPath("source_build.url") ++ ": must not be empty", .{tool_index});
+    }
+    try validateTemplate(actionPath("source_build.url"), source_build.url, .{tool_index}, &.{
+        "version",
+        "tool",
+    }, diagnostics);
+    if (source_build.archive_file.len == 0) {
+        return fail(diagnostics, actionPath("source_build.archive_file") ++ ": must not be empty", .{tool_index});
+    }
+    try validateArgv(
+        actionPath("source_build.argv"),
+        source_build.argv,
+        .{tool_index},
+        &.{ "source_dir", "prefix", "tool", "zig" },
+        diagnostics,
+    );
+    try validateLinksWithPlaceholders(
+        actionPath("source_build.links"),
+        true,
+        source_build.links,
+        .{tool_index},
+        &.{ "version", "tool" },
+        diagnostics,
+    );
 }
 
 fn validateToolchainAction(toolchain: model.Toolchain, tool_index: usize, diagnostics: *Diagnostics) !void {
@@ -302,6 +334,17 @@ fn validateLinks(
     args: anytype,
     diagnostics: *Diagnostics,
 ) !void {
+    try validateLinksWithPlaceholders(path_fmt, require_non_empty, entries, args, &.{ "version", "platform" }, diagnostics);
+}
+
+fn validateLinksWithPlaceholders(
+    comptime path_fmt: []const u8,
+    comptime require_non_empty: bool,
+    entries: []const model.Link,
+    args: anytype,
+    allowed: []const []const u8,
+    diagnostics: *Diagnostics,
+) !void {
     if (require_non_empty and entries.len == 0) {
         return fail(diagnostics, path_fmt ++ ": must not be empty", args);
     }
@@ -316,7 +359,7 @@ fn validateLinks(
             path_fmt ++ "[{d}].path",
             link_entry.path,
             args ++ .{link_index},
-            &.{ "version", "platform" },
+            allowed,
             diagnostics,
         );
     }
@@ -357,6 +400,17 @@ fn validateSource(comptime path_fmt: []const u8, source: model.Source, args: any
             if (github.repo.len == 0) return fail(diagnostics, path_fmt ++ ".repo: must not be empty", args);
             if (github.asset.len == 0) return fail(diagnostics, path_fmt ++ ".asset: must not be empty", args);
             try validateTemplate(path_fmt ++ ".asset", github.asset, args, &.{ "version", "platform" }, diagnostics);
+        },
+        .github_latest_matching => |github| {
+            if (github.repo.len == 0) return fail(diagnostics, path_fmt ++ ".repo: must not be empty", args);
+            if (github.asset_prefix.len == 0) {
+                return fail(diagnostics, path_fmt ++ ".asset_prefix: must not be empty", args);
+            }
+            if (github.asset_suffix.len == 0) {
+                return fail(diagnostics, path_fmt ++ ".asset_suffix: must not be empty", args);
+            }
+            try validateTemplate(path_fmt ++ ".asset_prefix", github.asset_prefix, args, &.{ "version", "platform" }, diagnostics);
+            try validateTemplate(path_fmt ++ ".asset_suffix", github.asset_suffix, args, &.{ "version", "platform" }, diagnostics);
         },
         .direct => |direct_source| {
             if (direct_source.version.len == 0) {

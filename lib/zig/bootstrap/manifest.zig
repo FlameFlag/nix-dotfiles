@@ -11,7 +11,7 @@ pub const Policy = enum { install_missing, update_all };
 pub const Phase = enum { prerequisites, archives, packages, builds };
 pub const HostOs = platform.Os;
 pub const HostArch = platform.Arch;
-pub const HostRequirement = enum { lenovo_laptop, not_nixos };
+pub const HostRequirement = enum { lenovo_laptop };
 pub const ArchiveKind = archive_lib.Kind;
 pub const Diagnostics = validator.Diagnostics;
 pub const Diagnostic = validator.Diagnostic;
@@ -39,6 +39,7 @@ pub const Tool = struct {
         package: Package,
         build: Build,
         script: Script,
+        source_build: SourceBuild,
         toolchain: Toolchain,
     };
 
@@ -55,14 +56,14 @@ pub const Tool = struct {
             .required, .script, .toolchain => .prerequisites,
             .archive => .archives,
             .package => .packages,
-            .build => .builds,
+            .build, .source_build => .builds,
         };
     }
 
     pub fn sourceLabel(self: Tool, managed: bool) []const u8 {
         return switch (self.action) {
             .required => if (managed) "bootstrap-managed" else "bootstrap-required",
-            .archive, .package, .build, .script, .toolchain => if (managed) "bootstrap-managed" else "external",
+            .archive, .package, .build, .script, .source_build, .toolchain => if (managed) "bootstrap-managed" else "external",
         };
     }
 
@@ -82,7 +83,7 @@ pub const Tool = struct {
 
     pub fn managedRoot(self: Tool, ctx: *Context) !?[]u8 {
         return switch (self.action) {
-            .required, .archive, .build => try std.fs.path.join(ctx.allocator, &.{ ctx.opt_dir, self.name }),
+            .required, .archive, .build, .source_build => try std.fs.path.join(ctx.allocator, &.{ ctx.opt_dir, self.name }),
             .package, .script, .toolchain => null,
         };
     }
@@ -100,6 +101,7 @@ pub const Archive = struct {
 
 pub const Source = union(enum) {
     github_latest: GithubLatestSource,
+    github_latest_matching: GithubLatestMatchingSource,
     direct: DirectSource,
     command: CommandSource,
     version_index: VersionIndexSource,
@@ -109,6 +111,13 @@ pub const GithubLatestSource = struct {
     repo: []const u8,
     tag_prefix: []const u8 = "",
     asset: []const u8,
+};
+
+pub const GithubLatestMatchingSource = struct {
+    repo: []const u8,
+    tag_prefix: []const u8 = "",
+    asset_prefix: []const u8,
+    asset_suffix: []const u8,
 };
 
 pub const DirectSource = struct {
@@ -136,6 +145,16 @@ pub const Package = struct {
 
 pub const Build = struct {
     path: []const u8,
+    argv: []const []const u8,
+    links: []const Link,
+};
+
+pub const SourceBuild = struct {
+    version: []const u8,
+    url: []const u8,
+    archive_file: []const u8,
+    kind: ArchiveKind,
+    strip_components: u32,
     argv: []const []const u8,
     links: []const Link,
 };
@@ -227,6 +246,10 @@ pub fn zigBuild(path: []const u8) Tool.Action {
     } };
 }
 
+pub fn sourceBuild(spec: SourceBuild) Tool.Action {
+    return .{ .source_build = spec };
+}
+
 pub fn script(unix: ?Script.Command, windows: ?Script.Command) Tool.Action {
     return .{ .script = .{ .unix = unix, .windows = windows } };
 }
@@ -241,6 +264,20 @@ pub fn toolchainAction(spec: Toolchain) Tool.Action {
 
 pub fn githubLatest(repo: []const u8, tag_prefix: []const u8, asset: []const u8) Source {
     return .{ .github_latest = .{ .repo = repo, .tag_prefix = tag_prefix, .asset = asset } };
+}
+
+pub fn githubLatestMatching(
+    repo: []const u8,
+    tag_prefix: []const u8,
+    asset_prefix: []const u8,
+    asset_suffix: []const u8,
+) Source {
+    return .{ .github_latest_matching = .{
+        .repo = repo,
+        .tag_prefix = tag_prefix,
+        .asset_prefix = asset_prefix,
+        .asset_suffix = asset_suffix,
+    } };
 }
 
 pub fn direct(version: []const u8, url: []const u8) Source {

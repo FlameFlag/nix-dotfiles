@@ -4,7 +4,6 @@ const m = bootstrap.manifest;
 
 pub const tool: m.Tool = .{
     .name = "vscode",
-    .requires = &.{.not_nixos},
     .bins = &.{
         m.bin("code", &.{ "code", "--version" }),
     },

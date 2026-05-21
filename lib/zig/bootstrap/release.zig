@@ -30,6 +30,17 @@ pub const GithubRelease = struct {
         }
         return error.AssetNotFound;
     }
+
+    pub fn matchingAssetUrl(self: GithubRelease, prefix: []const u8, suffix: []const u8) ![]const u8 {
+        for (self.json.value.assets) |asset| {
+            if (std.mem.startsWith(u8, asset.name, prefix) and
+                std.mem.endsWith(u8, asset.name, suffix))
+            {
+                return asset.browser_download_url;
+            }
+        }
+        return error.AssetNotFound;
+    }
 };
 
 pub fn latestGithub(ctx: *Context, repo: []const u8) !GithubRelease {
@@ -75,7 +86,12 @@ test "github release lookup validates tag and assets" {
         "https://example.test/tool.tar.xz",
         try github_release.assetUrl("tool-aarch64-macos.tar.xz"),
     );
+    try std.testing.expectEqualStrings(
+        "https://example.test/tool.tar.xz",
+        try github_release.matchingAssetUrl("tool-", "-macos.tar.xz"),
+    );
     try std.testing.expectError(error.AssetNotFound, github_release.assetUrl("missing.tar.xz"));
+    try std.testing.expectError(error.AssetNotFound, github_release.matchingAssetUrl("missing-", ".tar.xz"));
 }
 
 test "github release parser requires typed fields" {

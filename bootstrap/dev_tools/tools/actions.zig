@@ -18,45 +18,15 @@ pub fn install(ctx: *Context, plan: plan_model.InstallPlan) !void {
         .toolchain => |toolchain_spec| try bootstrap.toolchain.installOrUpdate(ctx, toolchain_spec),
         .package => |package_spec| try installPackage(ctx, package_spec),
         .build => |build_spec| try installBuildCommand(ctx, tool, build_spec),
+        .source_build => |source_build| try installSourceBuild(ctx, tool, source_build),
         .archive => |archive_spec| try archive_spec.install(ctx),
     }
 }
 
 fn installPackage(ctx: *Context, package_spec: model.Package) !void {
-    if (try installUvPackageViaNixPython(ctx, package_spec)) return;
-
     try installCommand(ctx, package_spec.install_argv, .{
         .package = package_spec.name,
     });
-}
-
-fn installUvPackageViaNixPython(ctx: *Context, package_spec: model.Package) !bool {
-    if (package_spec.inventory != .uv) return false;
-    if (!try shouldUseNixPython(ctx)) return false;
-
-    const uv_path = try proc.pathOf(ctx, "uv") orelse return false;
-    defer ctx.allocator.free(uv_path);
-
-    try proc.run(ctx, &.{
-        "nix",
-        "shell",
-        "nixpkgs#python3",
-        "--command",
-        uv_path,
-        "tool",
-        "install",
-        "--upgrade",
-        "--python",
-        "python3",
-        package_spec.name,
-    });
-    return true;
-}
-
-fn shouldUseNixPython(ctx: *Context) !bool {
-    if (builtin.os.tag != .linux) return false;
-    if (!try proc.hasBin(ctx, "nix")) return false;
-    return bootstrap.host.isNixOs(ctx);
 }
 
 fn installScript(ctx: *Context, name: []const u8, script: model.Script) !void {
@@ -103,6 +73,59 @@ fn installBuildCommand(ctx: *Context, tool: model.Tool, build: model.Build) !voi
         const target = try std.fs.path.join(ctx.allocator, &.{ prefix, "bin", bin_name });
         defer ctx.allocator.free(target);
         try bootstrap.links.managed(ctx, tool.name, target, bin_name);
+    }
+}
+
+fn installSourceBuild(ctx: *Context, tool: model.Tool, source_build: model.SourceBuild) !void {
+    const install_dir = try bootstrap.links.installDirPath(ctx, tool.name, source_build.version);
+    defer ctx.allocator.free(install_dir);
+    const temp_install_dir = try std.fmt.allocPrint(ctx.allocator, "{s}.tmp", .{install_dir});
+    defer ctx.allocator.free(temp_install_dir);
+
+    const work_dir = try fs.tempDir(ctx, "bootstrap-source-build");
+    defer {
+        deleteTreeWarning(ctx, work_dir);
+        ctx.allocator.free(work_dir);
+    }
+
+    const archive_path = try std.fs.path.join(ctx.allocator, &.{ work_dir, source_build.archive_file });
+    defer ctx.allocator.free(archive_path);
+    const source_dir = try std.fs.path.join(ctx.allocator, &.{ work_dir, "source" });
+    defer ctx.allocator.free(source_dir);
+
+    const url = try common.template.Template.literal(source_build.url).render(ctx.allocator, .{
+        .version = source_build.version,
+        .tool = tool.name,
+    });
+    defer ctx.allocator.free(url);
+
+    try bootstrap.http.downloadFile(ctx, url, archive_path);
+    try bootstrap.archive.extractFile(ctx, archive_path, source_dir, source_build.kind, source_build.strip_components);
+
+    deleteTreeIfPresent(ctx, temp_install_dir) catch |err| return err;
+    errdefer deleteTreeWarning(ctx, temp_install_dir);
+
+    const argv = try common.template.Template.renderSlice(ctx.allocator, source_build.argv, .{
+        .source_dir = source_dir,
+        .prefix = temp_install_dir,
+        .tool = tool.name,
+        .zig = ctx.env.get("BOOTSTRAP_ZIG_EXE") orelse "zig",
+    });
+    defer common.template.freeSlice(ctx.allocator, argv);
+    try proc.runInCwd(ctx, .{ .path = source_dir }, argv);
+
+    try deleteTreeIfPresent(ctx, install_dir);
+    try std.Io.Dir.renameAbsolute(temp_install_dir, install_dir, ctx.io);
+
+    for (source_build.links) |link| {
+        const rendered_path = try common.template.Template.literal(link.path).render(ctx.allocator, .{
+            .version = source_build.version,
+            .tool = tool.name,
+        });
+        defer ctx.allocator.free(rendered_path);
+        const target = try std.fs.path.join(ctx.allocator, &.{ install_dir, rendered_path });
+        defer ctx.allocator.free(target);
+        try bootstrap.links.managed(ctx, tool.name, target, link.name);
     }
 }
 
@@ -170,6 +193,14 @@ fn deleteTreeWarning(ctx: *Context, dir: []const u8) void {
             @errorName(err),
         }) catch return;
     };
+}
+
+fn deleteTreeIfPresent(ctx: *Context, dir: []const u8) !void {
+    std.Io.Dir.cwd().access(ctx.io, dir, .{}) catch |err| switch (err) {
+        error.FileNotFound => return,
+        else => return err,
+    };
+    try std.Io.Dir.cwd().deleteTree(ctx.io, dir);
 }
 
 fn exeName(ctx: *Context, name: []const u8) ![]u8 {

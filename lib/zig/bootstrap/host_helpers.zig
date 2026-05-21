@@ -9,14 +9,6 @@ pub const windows_lenovo_probe_argv = &.{
         "\"$($cs.Manufacturer)`n$($cs.Model)`n$($en.ChassisTypes -join ',')\"",
 };
 
-pub fn osReleaseIsNixOs(contents: []const u8) bool {
-    var lines = std.mem.splitScalar(u8, contents, '\n');
-    while (lines.next()) |line| {
-        if (std.mem.eql(u8, std.mem.trim(u8, line, " \t\r\n"), "ID=nixos")) return true;
-    }
-    return false;
-}
-
 pub fn windowsProbeOutputIsLenovoLaptop(stdout: []const u8) bool {
     var lines = std.mem.splitScalar(u8, stdout, '\n');
     const manufacturer = std.mem.trim(u8, lines.next() orelse "", " \t\r\n");
@@ -66,11 +58,6 @@ test "detect portable DMI chassis types" {
     try std.testing.expect(!isLaptopChassisType("3"));
     try std.testing.expect(!isLaptopChassisType(""));
     try std.testing.expect(!isLaptopChassisType("not-a-number"));
-}
-
-test "detect NixOS os-release contents" {
-    try std.testing.expect(osReleaseIsNixOs("NAME=NixOS\nID=nixos\n"));
-    try std.testing.expect(!osReleaseIsNixOs("NAME=Ubuntu\nID=ubuntu\n"));
 }
 
 test "parse Windows Lenovo probe output" {

@@ -9,7 +9,6 @@ const linux_dmi_vendor_path = "/sys/class/dmi/id/sys_vendor";
 const linux_dmi_board_vendor_path = "/sys/class/dmi/id/board_vendor";
 const linux_dmi_product_name_path = "/sys/class/dmi/id/product_name";
 const linux_dmi_chassis_type_path = "/sys/class/dmi/id/chassis_type";
-const linux_os_release_path = "/etc/os-release";
 
 pub const windows_lenovo_probe_argv = helpers.windows_lenovo_probe_argv;
 
@@ -71,23 +70,7 @@ pub fn currentHostArch() ?manifest.HostArch {
 pub fn meetsRequirement(ctx: *Context, requirement: manifest.HostRequirement) !bool {
     return switch (requirement) {
         .lenovo_laptop => isLenovoLaptop(ctx),
-        .not_nixos => !try isNixOs(ctx),
     };
-}
-
-pub fn isNixOs(ctx: *Context) !bool {
-    if (builtin.os.tag != .linux) return false;
-
-    var buffer: [4096]u8 = undefined;
-    const contents = std.Io.Dir.cwd().readFile(ctx.io, linux_os_release_path, &buffer) catch |err| switch (err) {
-        error.FileNotFound, error.AccessDenied => return false,
-        else => return err,
-    };
-    return osReleaseIsNixOs(contents);
-}
-
-pub fn osReleaseIsNixOs(contents: []const u8) bool {
-    return helpers.osReleaseIsNixOs(contents);
 }
 
 pub fn isLenovoLaptop(ctx: *Context) !bool {
@@ -194,11 +177,6 @@ test "detect portable DMI chassis types" {
     try std.testing.expect(!isLaptopChassisType("3"));
     try std.testing.expect(!isLaptopChassisType(""));
     try std.testing.expect(!isLaptopChassisType("not-a-number"));
-}
-
-test "detect NixOS os-release contents" {
-    try std.testing.expect(osReleaseIsNixOs("NAME=NixOS\nID=nixos\n"));
-    try std.testing.expect(!osReleaseIsNixOs("NAME=Ubuntu\nID=ubuntu\n"));
 }
 
 test "parse Windows Lenovo probe output" {

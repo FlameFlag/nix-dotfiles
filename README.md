@@ -144,7 +144,7 @@ The Unix path is staged like this:
    `~/.local/opt`, installs the pinned Zig from
    [`bootstrap/zig-artifacts.tsv`](bootstrap/zig-artifacts.tsv), links it as
    `~/.local/bin/zig`, and gets out of the way
-2. the Zig installer reads the manifest and installs `chezmoi`, `uv`, Rust via
+2. the Zig installer reads the manifest and installs `chezmoi`, `git`, `uv`, Rust via
    `rustup`, archive tools like `node`, `bun`, `zls`, `ziglint`, and VS Code,
    `uv tool` packages like `ruff`, `ty`, and `yt-dlp`, plus the repo-local Zig
    tools
@@ -232,7 +232,7 @@ sudo darwin-rebuild switch --flake $(readlink -f "/etc/nixos/")
 ## Smoke Tests
 
 The Dockerfile is here to keep me honest. It boots an Alpine or Fedora base,
-runs bootstrap, checks that `node`, `npm`, and `npx` came from bootstrap instead
+runs bootstrap, checks that `git`, `node`, `npm`, and `npx` came from bootstrap instead
 of the distro package manager, applies a focused slice of the dotfiles, and runs
 the doctor script
 

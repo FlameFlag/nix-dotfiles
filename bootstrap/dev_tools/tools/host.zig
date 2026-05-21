@@ -9,9 +9,7 @@ pub const currentHostOs = bootstrap.host.currentHostOs;
 pub const currentHostArch = bootstrap.host.currentHostArch;
 pub const isLaptopChassisType = bootstrap.host.isLaptopChassisType;
 pub const isLenovoVendor = bootstrap.host.isLenovoVendor;
-pub const isNixOs = bootstrap.host.isNixOs;
 pub const meetsRequirement = bootstrap.host.meetsRequirement;
-pub const osReleaseIsNixOs = bootstrap.host.osReleaseIsNixOs;
 pub const windowsProbeOutputIsLenovoLaptop = bootstrap.host.windowsProbeOutputIsLenovoLaptop;
 
 pub fn supportsTool(tool: manifest.Tool, ctx: *Context) !bool {

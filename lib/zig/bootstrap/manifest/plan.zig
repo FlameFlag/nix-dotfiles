@@ -50,6 +50,12 @@ fn archiveSource(input: model.Source) !install_archive.Source {
             .tag_prefix = github.tag_prefix,
             .asset = .literal(github.asset),
         } },
+        .github_latest_matching => |github| .{ .github_latest_matching = .{
+            .repo = github.repo,
+            .tag_prefix = github.tag_prefix,
+            .asset_prefix = .literal(github.asset_prefix),
+            .asset_suffix = .literal(github.asset_suffix),
+        } },
         .direct => |direct_source| .{ .direct = .{
             .version = direct_source.version,
             .url = .literal(direct_source.url),

@@ -7,7 +7,7 @@ pub const tool: m.Tool = m.tool("rustup", &.{
     m.bin("cargo", &.{ "cargo", "--version" }),
     m.bin("rustc", &.{ "rustc", "--version" }),
     m.bin("rustfmt", &.{ "rustfmt", "--version" }),
-    m.bin("cargo-clippy", &.{ "cargo", "clippy", "--version" }),
+    m.bin("cargo-clippy", &.{ "cargo-clippy", "--version" }),
     m.bin("rust-analyzer", &.{ "rust-analyzer", "--version" }),
 }, m.toolchainAction(.{
     .manager_bin = "rustup",

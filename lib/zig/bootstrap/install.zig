@@ -21,6 +21,7 @@ pub const RenderArgs = template.Bindings;
 
 pub const Source = union(enum) {
     github_latest: GithubLatest,
+    github_latest_matching: GithubLatestMatching,
     direct: Direct,
     command: Command,
     version_index: VersionIndex,
@@ -29,6 +30,13 @@ pub const Source = union(enum) {
         repo: []const u8,
         tag_prefix: []const u8 = "",
         asset: Template,
+    };
+
+    pub const GithubLatestMatching = struct {
+        repo: []const u8,
+        tag_prefix: []const u8 = "",
+        asset_prefix: Template,
+        asset_suffix: Template,
     };
 
     pub const Direct = struct {
@@ -224,6 +232,25 @@ fn resolveSource(ctx: *Context, source: Source, target_name: []const u8) !Resolv
             defer ctx.allocator.free(asset);
 
             const url = try ctx.allocator.dupe(u8, try latest.assetUrl(asset));
+            errdefer ctx.allocator.free(url);
+            return .{
+                .version = version,
+                .url = url,
+                .release = latest,
+            };
+        },
+        .github_latest_matching => |github| {
+            var latest = try release.latestGithub(ctx, github.repo);
+            errdefer latest.deinit();
+
+            const version = release.versionFromTag(latest.tag(), github.tag_prefix);
+            const template_args: RenderArgs = .{ .version = version, .platform = target_name };
+            const prefix = try github.asset_prefix.render(ctx.allocator, template_args);
+            defer ctx.allocator.free(prefix);
+            const suffix = try github.asset_suffix.render(ctx.allocator, template_args);
+            defer ctx.allocator.free(suffix);
+
+            const url = try ctx.allocator.dupe(u8, try latest.matchingAssetUrl(prefix, suffix));
             errdefer ctx.allocator.free(url);
             return .{
                 .version = version,

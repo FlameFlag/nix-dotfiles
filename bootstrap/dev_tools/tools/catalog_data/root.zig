@@ -2,6 +2,7 @@ const bootstrap = @import("bootstrap");
 const bun = @import("bun.zig");
 const chezmoi = @import("chezmoi.zig");
 const gh_hide_comment = @import("gh-hide-comment.zig");
+const git = @import("git.zig");
 const lenovo_con_mode = @import("lenovo-con-mode.zig");
 const node = @import("node.zig");
 const ruff = @import("ruff.zig");
@@ -20,6 +21,7 @@ const m = bootstrap.manifest;
 
 pub const tools = [_]m.Tool{
     chezmoi.tool,
+    git.tool,
     uv.tool,
     zig.tool,
     rustup.tool,

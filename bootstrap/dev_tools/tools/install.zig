@@ -67,6 +67,10 @@ fn one(ctx: *Context, policy: model.Policy, tool: model.Tool) !usize {
         try output.stderr(ctx.io, "error: {s}: {s}\n", .{ tool.name, @errorName(err) });
         return 1;
     };
+    if (!try installedToolHealthy(ctx, tool)) {
+        try output.stderr(ctx.io, "error: {s}: installed tool failed verification\n", .{tool.name});
+        return 1;
+    }
     return 0;
 }
 
@@ -82,6 +86,7 @@ fn shouldInstall(ctx: *Context, tool: model.Tool) !bool {
     return switch (tool.action) {
         .toolchain => true,
         .build => true,
+        .source_build => !try managedBinsPresent(ctx, tool),
         .script => !try localBinsPresent(ctx, tool),
         .required => (try firstMissingBin(ctx, tool)) != null,
         .archive, .package => !try managedBinsPresent(ctx, tool),
@@ -100,8 +105,45 @@ fn firstMissingBin(ctx: *Context, tool: model.Tool) !?[]const u8 {
 }
 
 fn localBinsPresent(ctx: *Context, tool: model.Tool) !bool {
+    const cwd = try std.process.currentPathAlloc(ctx.io, ctx.allocator);
+    defer ctx.allocator.free(cwd);
+
     for (tool.bins) |bin| {
-        if (!try ownership.localExecutableInBinDir(ctx, bin.name)) return false;
+        const path = try proc.pathOf(ctx, bin.name) orelse return false;
+        defer ctx.allocator.free(path);
+        if (!try ownership.pathIsUnder(ctx, cwd, path, ctx.bin_dir)) return false;
+    }
+    return true;
+}
+
+fn installedToolHealthy(ctx: *Context, tool: model.Tool) !bool {
+    return switch (tool.action) {
+        .required => true,
+        .script, .build => localBinsPresent(ctx, tool),
+        .toolchain => toolchainBinsHealthy(ctx, tool),
+        .archive, .package, .source_build => managedBinsPresent(ctx, tool),
+    };
+}
+
+fn toolchainBinsHealthy(ctx: *Context, tool: model.Tool) !bool {
+    const toolchain = switch (tool.action) {
+        .toolchain => |spec| spec,
+        else => unreachable,
+    };
+    const bin_dir = try bootstrap.toolchain.toolchainBinDir(ctx, toolchain);
+    defer ctx.allocator.free(bin_dir);
+
+    const cwd = try std.process.currentPathAlloc(ctx.io, ctx.allocator);
+    defer ctx.allocator.free(cwd);
+
+    const packages = package_managers.Inventory.empty();
+    for (tool.bins) |bin| {
+        const path = try executablePathInDir(ctx, bin_dir, bin.name) orelse return false;
+        defer ctx.allocator.free(path);
+
+        const classification = try ownership.classifyBin(ctx, cwd, tool, bin.name, path, packages);
+        if (classification != .managed) return false;
+        if (!try binRunsAtPath(ctx, bin, path)) return false;
     }
     return true;
 }
@@ -141,9 +183,57 @@ fn managedBinsPresent(ctx: *Context, tool: model.Tool) !bool {
 }
 
 fn binRuns(ctx: *Context, bin: model.Bin) !bool {
-    var result = try proc.capture(ctx, bin.version_argv);
+    const path = try proc.pathOf(ctx, bin.version_argv[0]) orelse return false;
+    defer ctx.allocator.free(path);
+    return binRunsAtPath(ctx, bin, path);
+}
+
+fn binRunsAtPath(ctx: *Context, bin: model.Bin, path: []const u8) !bool {
+    const argv = try resolvedVersionArgv(ctx, bin, path);
+    defer ctx.allocator.free(argv);
+
+    var result = proc.capture(ctx, argv) catch |err| switch (err) {
+        error.FileNotFound, error.AccessDenied => return false,
+        else => return err,
+    };
     defer result.deinit(ctx.allocator);
     return result.succeeded();
+}
+
+fn resolvedVersionArgv(ctx: *Context, bin: model.Bin, path: []const u8) ![]const []const u8 {
+    const argv = try ctx.allocator.alloc([]const u8, bin.version_argv.len);
+    errdefer ctx.allocator.free(argv);
+    argv[0] = if (versionArgvNamesPath(bin.version_argv[0], path)) path else bin.version_argv[0];
+    @memcpy(argv[1..], bin.version_argv[1..]);
+    return argv;
+}
+
+fn versionArgvNamesPath(arg: []const u8, path: []const u8) bool {
+    const basename = std.fs.path.basename(path);
+    return std.mem.eql(u8, arg, basename) or std.mem.eql(u8, arg, std.fs.path.stem(basename));
+}
+
+fn executablePathInDir(ctx: *Context, dir: []const u8, bin: []const u8) !?[]u8 {
+    const name = try executableName(ctx, bin);
+    defer ctx.allocator.free(name);
+    const path = try std.fs.path.join(ctx.allocator, &.{ dir, name });
+    errdefer ctx.allocator.free(path);
+
+    std.Io.Dir.cwd().access(ctx.io, path, .{ .execute = true }) catch |err| switch (err) {
+        error.FileNotFound, error.AccessDenied => {
+            ctx.allocator.free(path);
+            return null;
+        },
+        else => return err,
+    };
+    return path;
+}
+
+fn executableName(ctx: *Context, name: []const u8) ![]u8 {
+    if (builtin.os.tag == .windows and std.fs.path.extension(name).len == 0) {
+        return std.fmt.allocPrint(ctx.allocator, "{s}.exe", .{name});
+    }
+    return ctx.allocator.dupe(u8, name);
 }
 
 fn managedAppLinksPresent(ctx: *Context, tool: model.Tool, archive_spec: model.Archive) !bool {
@@ -248,6 +338,8 @@ test "install_missing reinstalls archive bins that are external on PATH" {
 }
 
 test "install_missing skips local non-managed archive bins" {
+    if (builtin.os.tag == .windows) return error.SkipZigTest;
+
     var env = std.process.Environ.Map.init(std.testing.allocator);
     defer env.deinit();
     var tmp = std.testing.tmpDir(.{});
@@ -338,6 +430,42 @@ test "install_missing reinstalls managed archive symlinks that do not run" {
     const tool: model.Tool = .{
         .name = "demo",
         .bins = &.{.{ .name = "demo", .version_argv = &.{link} }},
+        .action = .{ .archive = .{ .platforms = &.{} } },
+    };
+
+    try std.testing.expect(try shouldInstall(&ctx, tool));
+}
+
+test "install_missing reinstalls managed archive bins whose version command is missing" {
+    if (builtin.os.tag == .windows) return;
+
+    var env = std.process.Environ.Map.init(std.testing.allocator);
+    defer env.deinit();
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+
+    const bin_dir = try tmpPath(std.testing.allocator, tmp, &.{"bin"});
+    defer std.testing.allocator.free(bin_dir);
+    const opt_dir = try tmpPath(std.testing.allocator, tmp, &.{"opt"});
+    defer std.testing.allocator.free(opt_dir);
+    const target = try tmpPath(std.testing.allocator, tmp, &.{ "opt", "demo", "1.0.0", "demo" });
+    defer std.testing.allocator.free(target);
+    const link = try tmpPath(std.testing.allocator, tmp, &.{ "bin", "demo" });
+    defer std.testing.allocator.free(link);
+
+    try common.fs.writeExecutableFile(std.testing.io, target,
+        \\#!/bin/sh
+        \\exit 0
+        \\
+    );
+    try std.Io.Dir.cwd().createDirPath(std.testing.io, bin_dir);
+    try std.Io.Dir.symLinkAbsolute(std.testing.io, target, link, .{});
+    try env.put("PATH", bin_dir);
+
+    var ctx = testingContext(&env, bin_dir, opt_dir);
+    const tool: model.Tool = .{
+        .name = "demo",
+        .bins = &.{.{ .name = "demo", .version_argv = &.{"definitely-missing-bootstrap-test"} }},
         .action = .{ .archive = .{ .platforms = &.{} } },
     };
 

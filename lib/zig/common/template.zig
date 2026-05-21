@@ -75,6 +75,7 @@ pub const Bindings = struct {
     package: []const u8 = "",
     repo_dir: []const u8 = "",
     build_dir: []const u8 = "",
+    source_dir: []const u8 = "",
     prefix: []const u8 = "",
     tool: []const u8 = "",
     zig: []const u8 = "",
