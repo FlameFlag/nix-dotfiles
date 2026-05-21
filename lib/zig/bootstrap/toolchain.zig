@@ -240,12 +240,16 @@ test "toolchainBinDir honors env override and defaults under home" {
 
     const default_bin = try toolchainBinDir(&ctx, testingToolchain());
     defer ctx.allocator.free(default_bin);
-    try std.testing.expectEqualStrings("/home/me/.toolchain/bin", default_bin);
+    const expected_default = try std.fs.path.join(ctx.allocator, &.{ "/home/me", ".toolchain/bin" });
+    defer ctx.allocator.free(expected_default);
+    try std.testing.expectEqualStrings(expected_default, default_bin);
 
     try env.put("TOOLCHAIN_HOME", "/toolchain");
     const custom_bin = try toolchainBinDir(&ctx, testingToolchain());
     defer ctx.allocator.free(custom_bin);
-    try std.testing.expectEqualStrings("/toolchain/bin", custom_bin);
+    const expected_custom = try std.fs.path.join(ctx.allocator, &.{ "/toolchain", "bin" });
+    defer ctx.allocator.free(expected_custom);
+    try std.testing.expectEqualStrings(expected_custom, custom_bin);
 }
 
 test "toolchain manager executable name follows host executable suffix" {

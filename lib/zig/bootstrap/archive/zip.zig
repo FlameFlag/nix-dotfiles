@@ -336,7 +336,7 @@ fn extractZipFile(
 
     errdefer dest.deleteFile(ctx.io, filename) catch {};
     try verifyZipFileCrc(ctx, dest, filename, entry.std_entry.crc32);
-    try dest.setFilePermissions(ctx.io, filename, permissions, .{});
+    try setZipFilePermissions(ctx, dest, filename, permissions);
     try setZipModifiedTimestamp(ctx, dest, filename, entry);
 }
 
@@ -373,7 +373,12 @@ fn createZipDir(ctx: *Context, dest: Io.Dir, dirname: []const u8) !void {
 fn setZipDirPermissions(ctx: *Context, dest: Io.Dir, dirname: []const u8, mode: u32) !void {
     if (dirname.len == 0) return;
     const permissions = zipPermissions(mode, .default_dir);
-    try dest.setFilePermissions(ctx.io, dirname, permissions, .{});
+    try setZipFilePermissions(ctx, dest, dirname, permissions);
+}
+
+fn setZipFilePermissions(ctx: *Context, dest: Io.Dir, path: []const u8, permissions: Io.File.Permissions) !void {
+    if (builtin.os.tag == .windows) return;
+    try dest.setFilePermissions(ctx.io, path, permissions, .{});
 }
 
 fn zipPermissions(mode: u32, default: Io.File.Permissions) Io.File.Permissions {
@@ -386,6 +391,7 @@ fn zipPermissions(mode: u32, default: Io.File.Permissions) Io.File.Permissions {
 }
 
 fn setZipModifiedTimestamp(ctx: *Context, dest: Io.Dir, path: []const u8, entry: ZipEntry) !void {
+    if (builtin.os.tag == .windows) return;
     const timestamp = zipModifiedTimestamp(entry) orelse return;
     try dest.setTimestamps(ctx.io, path, .{ .modify_timestamp = .{ .new = timestamp } });
 }
@@ -792,6 +798,8 @@ test "zip extraction restores executable file modes" {
 }
 
 test "zip extraction restores file and directory mtimes" {
+    if (builtin.os.tag == .windows) return error.SkipZigTest;
+
     var env = std.process.Environ.Map.init(std.testing.allocator);
     defer env.deinit();
     var ctx = testingContext(&env);
@@ -840,6 +848,8 @@ test "zip extraction restores file and directory mtimes" {
 }
 
 test "zip extraction prefers Info-ZIP Unix mtimes over DOS mtimes" {
+    if (builtin.os.tag == .windows) return error.SkipZigTest;
+
     var env = std.process.Environ.Map.init(std.testing.allocator);
     defer env.deinit();
     var ctx = testingContext(&env);

@@ -21,12 +21,21 @@ pub fn linkMany(ctx: *Context, tool: []const u8, install_dir: []const u8, entrie
 }
 
 pub fn managed(ctx: *Context, tool: []const u8, target: []const u8, bin: []const u8) !void {
-    const link_path = try std.fs.path.join(ctx.allocator, &.{ ctx.bin_dir, bin });
+    const link_name = try managedLinkName(ctx, target, bin);
+    defer ctx.allocator.free(link_name);
+    const link_path = try std.fs.path.join(ctx.allocator, &.{ ctx.bin_dir, link_name });
     defer ctx.allocator.free(link_path);
 
     if (builtin.os.tag == .windows) {
         try ensureExecutable(ctx, target);
-        try std.Io.Dir.copyFileAbsolute(target, link_path, ctx.io, .{ .replace = true });
+        if (isWindowsBatchExtension(std.fs.path.extension(link_path)) or
+            isWindowsBatchExtension(std.fs.path.extension(target)))
+        {
+            try writeWindowsBatchWrapper(ctx, link_path, target);
+        } else {
+            try std.Io.Dir.copyFileAbsolute(target, link_path, ctx.io, .{ .replace = true });
+        }
+        try deleteStaleWindowsExtensionlessCopy(ctx, link_name, bin);
         return;
     }
 
@@ -45,6 +54,51 @@ pub fn managed(ctx: *Context, tool: []const u8, target: []const u8, bin: []const
     try ensureExecutable(ctx, target);
     if (replace_existing) try std.Io.Dir.cwd().deleteFile(ctx.io, link_path);
     try std.Io.Dir.symLinkAbsolute(ctx.io, target, link_path, .{});
+}
+
+fn managedLinkName(ctx: *Context, target: []const u8, bin: []const u8) ![]u8 {
+    if (builtin.os.tag == .windows) return windowsExecutableLinkName(ctx.allocator, target, bin);
+    return ctx.allocator.dupe(u8, bin);
+}
+
+fn windowsExecutableLinkName(allocator: std.mem.Allocator, target: []const u8, bin: []const u8) ![]u8 {
+    if (std.fs.path.extension(bin).len != 0) return allocator.dupe(u8, bin);
+
+    const extension = std.fs.path.extension(target);
+    if (!isWindowsExecutableExtension(extension)) return allocator.dupe(u8, bin);
+    return std.fmt.allocPrint(allocator, "{s}{s}", .{ bin, extension });
+}
+
+fn isWindowsExecutableExtension(extension: []const u8) bool {
+    return std.ascii.eqlIgnoreCase(extension, ".exe") or
+        isWindowsBatchExtension(extension) or
+        std.ascii.eqlIgnoreCase(extension, ".com");
+}
+
+fn isWindowsBatchExtension(extension: []const u8) bool {
+    return std.ascii.eqlIgnoreCase(extension, ".cmd") or
+        std.ascii.eqlIgnoreCase(extension, ".bat");
+}
+
+fn writeWindowsBatchWrapper(ctx: *Context, link_path: []const u8, target: []const u8) !void {
+    const contents = try std.fmt.allocPrint(ctx.allocator,
+        \\@echo off
+        \\call "{s}" %*
+        \\
+    , .{target});
+    defer ctx.allocator.free(contents);
+    try common.fs.writeExecutableFile(ctx.io, link_path, contents);
+}
+
+fn deleteStaleWindowsExtensionlessCopy(ctx: *Context, link_name: []const u8, bin: []const u8) !void {
+    if (std.mem.eql(u8, link_name, bin)) return;
+
+    const stale_path = try std.fs.path.join(ctx.allocator, &.{ ctx.bin_dir, bin });
+    defer ctx.allocator.free(stale_path);
+    std.Io.Dir.cwd().deleteFile(ctx.io, stale_path) catch |err| switch (err) {
+        error.FileNotFound => {},
+        else => return err,
+    };
 }
 
 fn ensureExecutable(ctx: *Context, path: []const u8) !void {
@@ -97,6 +151,8 @@ fn expectLinkTarget(ctx: *Context, link_path: []const u8, expected: []const u8) 
 }
 
 test "managed links reject sibling tool prefixes" {
+    if (builtin.os.tag == .windows) return error.SkipZigTest;
+
     var env = std.process.Environ.Map.init(std.testing.allocator);
     defer env.deinit();
     var tmp = std.testing.tmpDir(.{});
@@ -129,6 +185,8 @@ test "managed links reject sibling tool prefixes" {
 }
 
 test "managed links validate new target before replacing old link" {
+    if (builtin.os.tag == .windows) return error.SkipZigTest;
+
     var env = std.process.Environ.Map.init(std.testing.allocator);
     defer env.deinit();
     var tmp = std.testing.tmpDir(.{});
@@ -160,6 +218,8 @@ test "managed links validate new target before replacing old link" {
 }
 
 test "managed links reject escaped managed prefixes" {
+    if (builtin.os.tag == .windows) return error.SkipZigTest;
+
     var env = std.process.Environ.Map.init(std.testing.allocator);
     defer env.deinit();
     var tmp = std.testing.tmpDir(.{});
@@ -195,6 +255,8 @@ test "managed links reject escaped managed prefixes" {
 }
 
 test "managed links replace links inside the managed tool root" {
+    if (builtin.os.tag == .windows) return error.SkipZigTest;
+
     var env = std.process.Environ.Map.init(std.testing.allocator);
     defer env.deinit();
     var tmp = std.testing.tmpDir(.{});
@@ -227,6 +289,8 @@ test "managed links replace links inside the managed tool root" {
 }
 
 test "managed links make zip-extracted targets executable" {
+    if (builtin.os.tag == .windows) return error.SkipZigTest;
+
     var env = std.process.Environ.Map.init(std.testing.allocator);
     defer env.deinit();
     var tmp = std.testing.tmpDir(.{});
@@ -255,4 +319,56 @@ test "managed links make zip-extracted targets executable" {
     try managed(&ctx, "tool", target, "tool");
     try expectLinkTarget(&ctx, link_path, target);
     try std.Io.Dir.cwd().access(ctx.io, target, .{ .execute = true });
+}
+
+test "windows executable copy names keep runnable extensions" {
+    const zls = try windowsExecutableLinkName(std.testing.allocator, "C:\\tools\\zls.exe", "zls");
+    defer std.testing.allocator.free(zls);
+    try std.testing.expectEqualStrings("zls.exe", zls);
+
+    const npm = try windowsExecutableLinkName(std.testing.allocator, "C:\\tools\\npm.cmd", "npm");
+    defer std.testing.allocator.free(npm);
+    try std.testing.expectEqualStrings("npm.cmd", npm);
+
+    const explicit = try windowsExecutableLinkName(std.testing.allocator, "C:\\tools\\tool.exe", "tool.cmd");
+    defer std.testing.allocator.free(explicit);
+    try std.testing.expectEqualStrings("tool.cmd", explicit);
+
+    const script = try windowsExecutableLinkName(std.testing.allocator, "C:\\tools\\script.ps1", "script");
+    defer std.testing.allocator.free(script);
+    try std.testing.expectEqualStrings("script", script);
+}
+
+test "windows explicit batch links wrap executable targets" {
+    if (builtin.os.tag != .windows) return;
+
+    var env = std.process.Environ.Map.init(std.testing.allocator);
+    defer env.deinit();
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+
+    const home = try tmpPath(std.testing.allocator, tmp, &.{});
+    defer std.testing.allocator.free(home);
+    const bin_dir = try tmpPath(std.testing.allocator, tmp, &.{"bin"});
+    defer std.testing.allocator.free(bin_dir);
+    const opt_dir = try tmpPath(std.testing.allocator, tmp, &.{"opt"});
+    defer std.testing.allocator.free(opt_dir);
+    var ctx = testingContext(&env, home, bin_dir, opt_dir);
+
+    try std.Io.Dir.cwd().createDirPath(ctx.io, bin_dir);
+    try std.Io.Dir.cwd().createDirPath(ctx.io, opt_dir);
+
+    const target = try tmpPath(ctx.allocator, tmp, &.{ "opt", "tool", "1", "cmd", "tool.exe" });
+    defer ctx.allocator.free(target);
+    try createExecutable(&ctx, target);
+
+    try managed(&ctx, "tool", target, "tool.cmd");
+
+    const link_path = try tmpPath(ctx.allocator, tmp, &.{ "bin", "tool.cmd" });
+    defer ctx.allocator.free(link_path);
+    const contents = try std.Io.Dir.cwd().readFileAlloc(ctx.io, link_path, ctx.allocator, .unlimited);
+    defer ctx.allocator.free(contents);
+
+    try std.testing.expect(std.mem.indexOf(u8, contents, "call \"") != null);
+    try std.testing.expect(std.mem.indexOf(u8, contents, target) != null);
 }
