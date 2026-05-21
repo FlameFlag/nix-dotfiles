@@ -24,8 +24,7 @@ fn isLenovoMachine(allocator: std.mem.Allocator, io: std.Io) !bool {
     }
     if (try common.fs.readTrimmedAllocOptional(allocator, io, constants.dmi_product_name_path)) |product| {
         defer allocator.free(product);
-        if (bootstrap.host.isLenovoVendor(product) or bootstrap.host.isLegionModel(product))
-        {
+        if (bootstrap.host.isLenovoVendor(product) or bootstrap.host.isLegionModel(product)) {
             return true;
         }
     }
