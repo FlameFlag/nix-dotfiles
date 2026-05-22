@@ -1,0 +1,98 @@
+[[extensions]]
+id = "astral-sh.ty"
+
+[[extensions]]
+id = "bradlc.vscode-tailwindcss"
+
+[[extensions]]
+id = "catppuccin.catppuccin-vsc"
+
+[[extensions]]
+id = "catppuccin.catppuccin-vsc-icons"
+
+[[extensions]]
+id = "charliermarsh.ruff"
+
+[[extensions]]
+id = "christian-kohler.path-intellisense"
+
+[[extensions]]
+id = "csstools.postcss"
+
+[[extensions]]
+id = "davidanson.vscode-markdownlint"
+
+[[extensions]]
+id = "dbaeumer.vscode-eslint"
+
+[[extensions]]
+id = "editorconfig.editorconfig"
+
+[[extensions]]
+id = "esbenp.prettier-vscode"
+
+[[extensions]]
+id = "jjk.jjk"
+
+[[extensions]]
+id = "jnoortheen.nix-ide"
+
+[[extensions]]
+id = "mads-hartmann.bash-ide-vscode"
+
+[[extensions]]
+id = "mikestead.dotenv"
+
+[[extensions]]
+id = "ms-azuretools.vscode-containers"
+
+[[extensions]]
+id = "ms-azuretools.vscode-docker"
+
+[[extensions]]
+id = "ms-python.debugpy"
+
+[[extensions]]
+id = "ms-python.python"
+
+[[extensions]]
+id = "ms-vscode.vscode-typescript-next"
+
+[[extensions]]
+id = "myriad-dreamin.tinymist"
+
+[[extensions]]
+id = "oderwat.indent-rainbow"
+
+[[extensions]]
+id = "oven.bun-vscode"
+
+[[extensions]]
+id = "redhat.vscode-xml"
+
+[[extensions]]
+id = "redhat.vscode-yaml"
+
+[[extensions]]
+id = "sumneko.lua"
+
+[[extensions]]
+id = "svelte.svelte-vscode"
+
+[[extensions]]
+id = "tamasfe.even-better-toml"
+
+[[extensions]]
+id = "thenuprojectcontributors.vscode-nushell-lang"
+
+[[extensions]]
+id = "timonwong.shellcheck"
+
+[[extensions]]
+id = "tomoki1207.pdf"
+
+[[extensions]]
+id = "usernamehw.errorlens"
+
+[[extensions]]
+id = "YoavBls.pretty-ts-errors"
