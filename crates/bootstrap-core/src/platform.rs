@@ -1,0 +1,170 @@
+use schemars::JsonSchema;
+use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum HostOs {
+    Macos,
+    Linux,
+    Windows,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum HostArch {
+    Aarch64,
+    X86_64,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema, Default)]
+pub struct Predicate {
+    pub os: Option<HostOs>,
+    pub arch: Option<HostArch>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Host {
+    pub os: HostOs,
+    pub arch: HostArch,
+}
+
+impl Host {
+    #[inline]
+    #[must_use]
+    pub const fn current() -> Self {
+        Self {
+            os: match (cfg!(target_os = "macos"), cfg!(target_os = "windows")) {
+                (true, _) => HostOs::Macos,
+                (_, true) => HostOs::Windows,
+                _ => HostOs::Linux,
+            },
+            arch: if cfg!(target_arch = "aarch64") {
+                HostArch::Aarch64
+            } else {
+                HostArch::X86_64
+            },
+        }
+    }
+
+    #[inline]
+    #[must_use]
+    pub fn matches(self, predicate: Predicate) -> bool {
+        predicate.os.is_none_or(|os| os == self.os)
+            && predicate.arch.is_none_or(|arch| arch == self.arch)
+    }
+
+    #[inline]
+    #[must_use]
+    pub const fn rustup_triple(self) -> Option<&'static str> {
+        match (self.os, self.arch) {
+            (HostOs::Macos, HostArch::Aarch64) => Some("aarch64-apple-darwin"),
+            (HostOs::Macos, HostArch::X86_64) => None,
+            (HostOs::Linux, HostArch::Aarch64) => Some("aarch64-unknown-linux-gnu"),
+            (HostOs::Linux, HostArch::X86_64) => Some("x86_64-unknown-linux-gnu"),
+            (HostOs::Windows, HostArch::Aarch64) => Some("aarch64-pc-windows-msvc"),
+            (HostOs::Windows, HostArch::X86_64) => Some("x86_64-pc-windows-msvc"),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum HostRequirement {
+    LenovoLaptop,
+}
+
+#[inline]
+#[must_use]
+#[cfg_attr(
+    not(any(target_os = "linux", target_os = "windows")),
+    allow(clippy::missing_const_for_fn)
+)]
+pub fn meets_requirement(requirement: HostRequirement) -> bool {
+    match requirement {
+        HostRequirement::LenovoLaptop => is_lenovo_laptop(),
+    }
+}
+
+#[cfg_attr(
+    not(any(target_os = "linux", target_os = "windows")),
+    allow(clippy::missing_const_for_fn)
+)]
+fn is_lenovo_laptop() -> bool {
+    #[cfg(target_os = "linux")]
+    {
+        let vendor = std::fs::read_to_string("/sys/class/dmi/id/sys_vendor").unwrap_or_default();
+        let chassis = std::fs::read_to_string("/sys/class/dmi/id/chassis_type").unwrap_or_default();
+        let is_lenovo = vendor.to_ascii_lowercase().contains("lenovo");
+        let chassis = chassis.trim();
+        is_lenovo && matches!(chassis, "8" | "9" | "10" | "14")
+    }
+    #[cfg(target_os = "windows")]
+    {
+        let Ok(output) = duct::cmd("wmic", ["computersystem", "get", "manufacturer,model"])
+            .stdout_capture()
+            .stderr_null()
+            .unchecked()
+            .run()
+        else {
+            return false;
+        };
+        if !output.status.success() {
+            return false;
+        }
+        let text = String::from_utf8_lossy(&output.stdout).to_ascii_lowercase();
+        text.contains("lenovo") || text.contains("legion")
+    }
+    #[cfg(not(any(target_os = "linux", target_os = "windows")))]
+    {
+        false
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn predicates_require_all_supplied_facts() {
+        let host = Host {
+            os: HostOs::Linux,
+            arch: HostArch::X86_64,
+        };
+        assert!(host.matches(Predicate {
+            os: Some(HostOs::Linux),
+            arch: None
+        }));
+        assert!(host.matches(Predicate {
+            os: Some(HostOs::Linux),
+            arch: Some(HostArch::X86_64)
+        }));
+        assert!(!host.matches(Predicate {
+            os: Some(HostOs::Macos),
+            arch: None
+        }));
+        assert!(!host.matches(Predicate {
+            os: Some(HostOs::Linux),
+            arch: Some(HostArch::Aarch64)
+        }));
+    }
+
+    #[test]
+    fn rustup_triples_use_gnu_linux_targets() {
+        assert_eq!(
+            Host {
+                os: HostOs::Linux,
+                arch: HostArch::X86_64
+            }
+            .rustup_triple(),
+            Some("x86_64-unknown-linux-gnu")
+        );
+        assert_eq!(
+            Host {
+                os: HostOs::Linux,
+                arch: HostArch::Aarch64
+            }
+            .rustup_triple(),
+            Some("aarch64-unknown-linux-gnu")
+        );
+    }
+}

@@ -13,7 +13,9 @@ set -eu
 
 apk_packages="
   bash
+  build-base
   ca-certificates
+  cargo
   curl
   file
   gcompat
@@ -30,15 +32,18 @@ apk_packages="
 dnf_packages="
   bash
   ca-certificates
+  cargo
   curl
   file
   findutils
+  gcc
   git
   glibc
   gzip
   libatomic
   libstdc++
-  musl-libc
+  make
+  rust
   tar
   unzip
   xz
@@ -49,35 +54,6 @@ if command -v apk >/dev/null 2>&1; then
   apk add --update-cache ${apk_packages}
 elif command -v dnf >/dev/null 2>&1; then
   dnf install -y --setopt=install_weak_deps=False ${dnf_packages}
-
-  tmpdir="$(mktemp -d)"
-  trap 'rm -rf "$tmpdir"' EXIT
-  alpine_repo="https://dl-cdn.alpinelinux.org/alpine/v3.23/main/$(uname -m)"
-  curl -fsSL "${alpine_repo}/APKINDEX.tar.gz" | tar -xzO APKINDEX > "$tmpdir/APKINDEX"
-  for package in libgcc 'libstdc++'; do
-    version="$(
-      awk -v package="$package" '
-        BEGIN { RS = ""; FS = "\n" }
-        {
-          name = ""
-          version = ""
-          for (i = 1; i <= NF; i++) {
-            if ($i ~ /^P:/) name = substr($i, 3)
-            if ($i ~ /^V:/) version = substr($i, 3)
-          }
-          if (name == package) {
-            print version
-            exit
-          }
-        }
-      ' "$tmpdir/APKINDEX"
-    )"
-    archive="${package}-${version}.apk"
-    curl -fsSL "${alpine_repo}/${archive}" -o "$tmpdir/$archive"
-    tar --warning=no-unknown-keyword -xzf "$tmpdir/$archive" -C "$tmpdir"
-  done
-  musl_libdir="$(cat /etc/ld-musl-*.path)"
-  cp -a "$tmpdir/usr/lib"/libgcc_s.so.1 "$tmpdir/usr/lib"/libstdc++.so.6* "$musl_libdir"
 else
   printf 'unsupported package manager in base image\n' >&2
   exit 1
@@ -104,7 +80,7 @@ ENV PATH=${TEST_HOME}/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/b
 WORKDIR /workspace/nix-dotfiles
 COPY --chown=${TEST_USER}:${TEST_USER} . .
 
-RUN ./bootstrap/bootstrap.sh
+RUN cargo run --locked --bin bootstrap -- bootstrap
 
 RUN <<EOF
 set -eu
@@ -113,6 +89,9 @@ node_target="$(readlink "${HOME}/.local/bin/node")"
 case "$node_target" in
   "${HOME}/.local/opt/node/"*/bin/node) ;;
   *) printf 'node is not bootstrap-managed: %s\n' "$node_target" >&2; exit 1 ;;
+esac
+case "$node_target" in
+  *musl*) printf 'node still points at a musl build: %s\n' "$node_target" >&2; exit 1 ;;
 esac
 
 node --version
@@ -155,7 +134,7 @@ EOF
 RUN <<EOF
 set -eu
 
-doctor_output="$(./bootstrap/doctor.sh doctor)"
+doctor_output="$(BOOTSTRAP_REPO_DIR=/workspace/nix-dotfiles bootstrap doctor)"
 printf '%s\n' "$doctor_output"
 case "$doctor_output" in
   *error:CommandFailed*) exit 1 ;;

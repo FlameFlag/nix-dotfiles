@@ -1,8 +1,2 @@
 #!/usr/bin/env sh
-exec zig run -lc \
-  --dep chezmoi \
-  -Mroot="$CHEZMOI_SOURCE_DIR/.chezmoi-lib/scripts/run_once_zed_install_catppuccin_theme.zig" \
-  --dep common \
-  -Mchezmoi="$CHEZMOI_SOURCE_DIR/../lib/zig/chezmoi/script.zig" \
-  -Mcommon="$CHEZMOI_SOURCE_DIR/../lib/zig/common/root.zig" \
-  -- "$@"
+exec chezmoi-support zed-install-catppuccin-theme "$@"

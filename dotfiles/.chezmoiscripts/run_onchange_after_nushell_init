@@ -1,8 +1,2 @@
 #!/usr/bin/env sh
-exec zig run -lc \
-  --dep chezmoi \
-  -Mroot="$CHEZMOI_SOURCE_DIR/.chezmoi-lib/scripts/run_onchange_after_nushell_init.zig" \
-  --dep common \
-  -Mchezmoi="$CHEZMOI_SOURCE_DIR/../lib/zig/chezmoi/script.zig" \
-  -Mcommon="$CHEZMOI_SOURCE_DIR/../lib/zig/common/root.zig" \
-  -- "$@"
+exec chezmoi-support nushell-init "$@"

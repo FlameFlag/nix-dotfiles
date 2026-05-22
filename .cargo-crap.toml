@@ -1,0 +1,31 @@
+threshold = 30.0
+fail-above = true
+
+# The remaining waived functions are command dispatchers, installer flows,
+# completion generators, or OS/application integration paths. The
+# library helpers they delegate to stay visible to cargo-crap and have targeted
+# unit coverage.
+allow = [
+  "apply_beta",
+  "install_action",
+  "install_archive",
+  "install_catppuccin_theme",
+  "install_current_exe",
+  "install_file",
+  "install_manager",
+  "install_one",
+  "install_plugins",
+  "install_or_update",
+  "install_source_build",
+  "install_vs_extensions",
+  "link_applications",
+  "nushell_init",
+  "proxy_lsp",
+  "run_bootstrap_cli",
+  "run_chezmoi_support",
+  "run_gh_hide_comment",
+  "run_lenovo_con_mode",
+  "shell_init",
+  "window_management",
+  "write_completion_files",
+]

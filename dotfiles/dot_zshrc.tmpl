@@ -33,6 +33,9 @@ plugins=(
   zsh-syntax-highlighting
 )
 
+# Add cached completion definitions before Oh My Zsh runs compinit.
+fpath=("$HOME/.cache/zsh/completions" $fpath)
+
 source $ZSH/oh-my-zsh.sh
 
 # Source pre-generated startup hooks to keep shell startup fast.
@@ -42,9 +45,6 @@ if [[ -r "$HOME/.cache/atuin/init.zsh" ]]; then
   source "$HOME/.cache/atuin/init.zsh"
   bindkey '^R' atuin-search
 fi
-
-# Add cached completion definitions before Zsh builds its completion path.
-fpath=("$HOME/.cache/zsh/completions" $fpath)
 
 # Use 1Password locally, but preserve sshd's forwarded agent in SSH sessions.
 {{- if eq .chezmoi.os "darwin" }}

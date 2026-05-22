@@ -29,8 +29,8 @@
   <a href="https://www.chezmoi.io/">
     <img alt="chezmoi" src="https://img.shields.io/badge/chezmoi-a6d189?style=for-the-badge&logo=homeassistant&logoColor=232634&labelColor=414559">
   </a>
-  <a href="https://ziglang.org/">
-    <img alt="Zig bootstrap" src="https://img.shields.io/badge/Zig_bootstrap-ef9f76?style=for-the-badge&logo=zig&logoColor=232634&labelColor=414559">
+  <a href="https://www.rust-lang.org/">
+    <img alt="Rust bootstrap" src="https://img.shields.io/badge/Rust_bootstrap-ef9f76?style=for-the-badge&logo=rust&logoColor=232634&labelColor=414559">
   </a>
   <a href="https://catppuccin.com/">
     <img alt="Catppuccin" src="https://img.shields.io/badge/Catppuccin-Frappe-ca9ee6?style=for-the-badge&logoColor=232634&labelColor=414559">
@@ -69,9 +69,9 @@
 | [`hosts/darwin`](hosts/darwin)  | nix-darwin host configuration, Tailscale, SOPS, Ghidra MCP, and macOS user setup.                                   |
 | [`modules`](modules)            | Shared, Linux, and Darwin modules for packages, fonts, Nix settings, Nixcord, Kanata, launchd, and services.        |
 | [`dotfiles`](dotfiles)          | chezmoi templates for shells, editors, terminals, agents, Git, SSH, Yazi, Zellij, Codex, and app configs.           |
-| [`bootstrap`](bootstrap)        | POSIX and PowerShell bootstrap scripts, the tool manifest, and the doctor/update helpers.                           |
-| [`lib/zig`](lib/zig)            | Reusable Zig code for bootstrap and chezmoi helper scripts.                                                         |
-| [`pkgs`](pkgs)                  | Custom Nix packages, local Zig tools, patched packages, and private font builder glue.                              |
+| [`bootstrap`](bootstrap)        | The tool manifest used by the Rust `bootstrap` bootstrapper.                                                        |
+| [`crates`](crates)              | Rust workspace crates for bootstrap, shared helpers, and chezmoi support scripts.                                   |
+| [`pkgs`](pkgs)                  | Custom Nix packages, local Rust tools, patched packages, and private font builder glue.                             |
 | [`compose.yaml`](compose.yaml)  | Alpine and Fedora smoke tests for making sure bootstrap still works.                                                |
 
 ## System Flow
@@ -81,42 +81,22 @@ to wait on nixpkgs for
 
 Nix is still where the host shape lives: services, patched packages, system
 settings, and all the parts that are nicer when they are declarative. Bootstrap
-handles the fast-moving userland stuff like Node, bun, uv, Zig, ZLS, ruff, ty,
+handles the fast-moving userland stuff like Node, bun, uv, ruff, ty,
 and yt-dlp. Those tools usually have good upstream binaries, and I would rather
 use those than kick off a rebuild because I wanted a newer CLI
 
 ```mermaid
-flowchart TD
-  repo["nix-dotfiles"]
+flowchart LR
+  nix["Nix\nflake, hosts, modules, pkgs\nsystem shape"]
+  gate["NixOS first-run gate\nnix-ld + runtime links"]
+  boot["Bootstrap\nRust CLI + tools manifest\nchezmoi, uv, node, bun, rustup"]
+  home["Dotfiles\nchezmoi apply\nshells, editors, terminals, agents"]
+  smoke["Smoke tests\nAlpine + Fedora\nbootstrap doctor"]
 
-  repo --> flake["flake.nix"]
-  repo --> dotfiles["dotfiles"]
-  repo --> bootstrap["bootstrap"]
-  repo --> smoke["container smoke tests"]
-
-  flake --> nixos["NixOS host"]
-  flake --> darwin["nix-darwin host"]
-  flake --> modules["shared modules"]
-  flake --> packages["custom packages"]
-
-  bootstrap --> shell["bootstrap.sh / bootstrap.ps1"]
-  shell --> zig["pinned Zig"]
-  zig --> installer["Zig installer"]
-  installer --> usertools["chezmoi, uv, node, bun, rustup, zls, VS Code"]
-  installer --> localtools["gh-hide-comment, lenovo-con-mode"]
-
-  dotfiles --> chezmoi["chezmoi apply"]
-  chezmoi --> apps["shells, editors, terminals, agents"]
-
-  nixos --> order1["enable nix-ld first"]
-  order1 --> bootstrap
-  darwin --> order2["bootstrap first"]
-  order2 --> chezmoi
-
-  smoke --> alpine["Alpine"]
-  smoke --> fedora["Fedora 44"]
-  alpine --> doctor["doctor script"]
-  fedora --> doctor
+  nix --> gate --> boot --> home
+  nix -. "macOS / FHS Linux can start here" .-> boot
+  smoke -. "checks" .-> boot
+  smoke -. "checks" .-> home
 ```
 
 ## Bootstrap
@@ -124,58 +104,68 @@ flowchart TD
 Run this when the machine needs the fast-moving tools:
 
 ```bash
-./bootstrap/bootstrap.sh
+bootstrap bootstrap
 ```
 
-On Windows, start from the built-in Windows PowerShell 5.1. The wrapper gets you
-to PowerShell 7, installs the pinned x86_64 Zig, and then runs the same Zig
-installer as the Unix path
+On a brand-new machine, download the latest `bootstrap` binary from the rolling
+bootstrap release once, then run it from wherever it landed:
 
-```powershell
-.\bootstrap\bootstrap.ps1
+```bash
+./bootstrap-linux-x86_64 bootstrap
 ```
+
+If Rust is already available and this repo is cloned, build and run the
+one-time bootstrapper directly from the workspace:
+
+```bash
+cargo run --locked --bin bootstrap -- bootstrap
+```
+
+From outside the repo, point it at the checkout:
+
+```bash
+cargo run --locked --bin bootstrap -- --repo-dir /path/to/nix-dotfiles bootstrap
+```
+
+The rolling release is rebuilt whenever [`bootstrap`](bootstrap), [`crates`](crates),
+`Cargo.toml`, or `Cargo.lock` changes. It publishes binaries for Linux, macOS,
+and Windows under the `bootstrap-rolling` release tag.
 
 <details>
 <summary>How the bootstrap is staged</summary>
 
-The Unix path is staged like this:
+The first run is staged like this:
 
-1. `bootstrap.sh` checks the bare minimum, creates `~/.local/bin` and
-   `~/.local/opt`, installs the pinned Zig from
-   [`bootstrap/zig-artifacts.tsv`](bootstrap/zig-artifacts.tsv), links it as
-   `~/.local/bin/zig`, and gets out of the way
-2. the Zig installer reads the manifest and installs `chezmoi`, `git`, `uv`, Rust via
-   `rustup`, archive tools like `node`, `bun`, `zls`, `ziglint`, and VS Code,
-   `uv tool` packages like `ruff`, `ty`, and `yt-dlp`, plus the repo-local Zig
-   tools
+1. `bootstrap bootstrap` creates `~/.local/bin` and `~/.local/opt`, installs the
+   running `bootstrap` binary into the bootstrap prefix, adds the user-local bin
+   directory to the shell environment, and writes the minimal chezmoi config
+2. the Rust installer reads [`bootstrap/tools.toml`](bootstrap/tools.toml) and
+   installs `chezmoi`, `git`, `uv`, Rust via `rustup`, archive tools like
+   `node`, `bun`, and VS Code, `uv tool` packages like `ruff`, `ty`, and
+   `yt-dlp`, plus the repo-local Rust tools
 3. after that, the machine gets the boring-but-important bits: `chezmoi apply`
    and, where needed, a NixOS or nix-darwin rebuild
 
 NixOS is the one platform where the order flips on first setup. Rebuild NixOS
-first so this config can enable `nix-ld` and add the musl loader links. Then
-bootstrap can run upstream Linux binaries without every tool becoming a Nix
-packaging side quest. On macOS and normal FHS Linux distros, bootstrap can go
-first
+first so this config can enable the runtime compatibility that upstream Linux
+binaries expect without every tool becoming a Nix packaging side quest. On macOS
+and normal FHS Linux distros, bootstrap can go first
 
-`chezmoi` comes from the official `get.chezmoi.io` installer. The Zig scripts
-are built with the bootstrap-managed Zig. That is intentional: Nix does not need
-to babysit these binaries
+`chezmoi` comes from its official release archive. Chezmoi hooks call the Rust
+`chezmoi-support` helper installed by bootstrap, so the dotfile runtime no
+longer depends on a local compiler.
 
-The Windows path is a little more fussy because Windows is Windows. The 5.1
-wrapper installs or updates PowerShell 7, then `bootstrap-pwsh.ps1` installs the
-pinned Windows Zig, checks that the MSVC C++ build tools and Windows SDK exist,
-runs the same manifest installer, points Windows Terminal at PowerShell 7, and
-runs `zig build check` unless you pass `-SkipZigCheck`. `-SkipMsvcBuildTools`
-only makes sense if you already installed the MSVC bits yourself; the bootstrap
-still stops if they are missing
+After bootstrap, `bootstrap update` runs the installer in update mode.
+`bootstrap doctor` tells you what it can see and where the tools are coming
+from. `bootstrap bootstrap` installs `bootstrap` into `~/.local/bin`, so those
+commands are the normal entry points once the first run has completed.
 
-After bootstrap, `./bootstrap/update.sh` runs the installer in update mode.
-`./bootstrap/doctor.sh` tells you what it can see and where the tools are coming
-from
+On macOS and Linux, Git is still built from source, but `make` is invoked
+directly inside an isolated fake-home environment and is never installed as a
+bootstrap-managed user tool. On Windows, Git comes from the MinGit archive.
 
-On Linux, Node comes from the unofficial musl builds. That means non-musl
-distros need `/lib/ld-musl-*.so.1`; the NixOS config and Fedora smoke test both
-set that up
+On Linux, Node comes from the official Node.js glibc builds rather than the
+unofficial musl builds.
 
 </details>
 
@@ -204,8 +194,8 @@ fi
 
 nixos-rebuild switch --use-remote-sudo --flake $(readlink -f "/etc/nixos")
 
-# Now nix-ld and the musl loader links exist, so upstream binaries can run.
-./bootstrap/bootstrap.sh
+# Now nix-ld and runtime compatibility links exist, so upstream binaries can run.
+bootstrap bootstrap
 
 # Apply the dotfiles.
 chezmoi apply --refresh-externals=always --force
@@ -216,7 +206,7 @@ chezmoi apply --refresh-externals=always --force
 ### macOS
 
 ```bash
-./bootstrap/bootstrap.sh
+bootstrap bootstrap
 chezmoi apply --refresh-externals=always --force
 
 # I use /etc/nixos as the shared flake path on both NixOS and Darwin.
@@ -231,10 +221,9 @@ sudo darwin-rebuild switch --flake $(readlink -f "/etc/nixos/")
 
 ## Smoke Tests
 
-The Dockerfile is here to keep me honest. It boots an Alpine or Fedora base,
-runs bootstrap, checks that `git`, `node`, `npm`, and `npx` came from bootstrap instead
-of the distro package manager, applies a focused slice of the dotfiles, and runs
-the doctor script
+A Dockerfile that boots an Alpine or Fedora base, runs bootstrap, checks that
+`git`, `node`, `npm`, and `npx` came from bootstrap instead of the distro
+package manager, applies a focused slice of the dotfiles, and runs `bootstrap doctor`
 
 ```bash
 # Build and test Alpine.
@@ -254,11 +243,11 @@ docker compose build --no-cache fedora-44
 After a build, poke at either image:
 
 ```bash
-docker compose run --rm alpine sh -c './bootstrap/doctor.sh doctor'
-docker compose run --rm fedora-44 bash -c './bootstrap/doctor.sh doctor'
+docker compose run --rm alpine bootstrap doctor
+docker compose run --rm fedora-44 bootstrap doctor
 
-docker compose run --rm alpine sh -c 'node --version && npm --version && npx --version'
-docker compose run --rm fedora-44 bash -c 'node --version && npm --version && npx --version'
+docker compose run --rm alpine node --version
+docker compose run --rm fedora-44 node --version
 ```
 
 `compose.yaml` uses `fedora:44`. That is just the Fedora container base, not the

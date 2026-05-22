@@ -1,0 +1,261 @@
+use tempfile::TempDir;
+use toml_edit::{DocumentMut, Item, Table, value};
+use zellij_theme_tools::{
+    Error, Result, codex_bin, detect_system_theme, detect_terminal_theme, home_dir,
+    reset_pane_color, run_inherit, send_focus_gained, write_pane_color_override,
+};
+
+fn main() {
+    match run() {
+        Ok(code) => std::process::exit(code),
+        Err(err) => {
+            eprintln!("error: {err}");
+            std::process::exit(1);
+        }
+    }
+}
+
+fn run() -> Result<i32> {
+    let _startup_pane_color = StartupPaneColor::start();
+
+    let overlay = create_trust_overlay()?;
+    let codex = codex_bin()?;
+    let command = duct::cmd(codex, std::env::args_os().skip(1))
+        .env("CODEX_HOME", overlay.path())
+        .unchecked();
+    run_inherit(&command)
+}
+
+struct StartupPaneColor {
+    enabled: bool,
+}
+
+impl StartupPaneColor {
+    fn start() -> Self {
+        let enabled = std::env::var_os("ZELLIJ").is_some() && which::which("zellij").is_ok();
+        if enabled {
+            let theme = detect_terminal_theme().unwrap_or_else(detect_system_theme);
+            write_pane_color_override(theme.colors);
+            let pane_id = std::env::var("ZELLIJ_PANE_ID").ok();
+            let _ = std::thread::Builder::new()
+                .name("zellij-pane-color-reset".to_owned())
+                .spawn(move || {
+                    if let Some(pane_id) = pane_id {
+                        for _ in 0..3 {
+                            std::thread::sleep(std::time::Duration::from_millis(500));
+                            send_focus_gained(&pane_id);
+                        }
+                        std::thread::sleep(std::time::Duration::from_millis(1500));
+                    } else {
+                        std::thread::sleep(std::time::Duration::from_secs(3));
+                    }
+                    reset_pane_color();
+                });
+        }
+        Self { enabled }
+    }
+}
+
+impl Drop for StartupPaneColor {
+    fn drop(&mut self) {
+        if self.enabled {
+            reset_pane_color();
+        }
+    }
+}
+
+fn create_trust_overlay() -> Result<TempDir> {
+    let codex_home = codex_home()?;
+    let trust_target = trust_target()?;
+    create_trust_overlay_for(&codex_home, &trust_target)
+}
+
+fn create_trust_overlay_for(
+    codex_home: &std::path::Path,
+    trust_target: &std::path::Path,
+) -> Result<TempDir> {
+    fs_err::create_dir_all(codex_home)?;
+    let overlay = tempfile::Builder::new().prefix("codex-trust").tempdir()?;
+    // Keep the real Codex state visible but write a temporary config that marks
+    // only the current repository trusted for this invocation.
+    symlink_home_entries(codex_home, overlay.path())?;
+    write_trusted_config(codex_home, overlay.path(), trust_target)?;
+    Ok(overlay)
+}
+
+fn codex_home() -> Result<std::path::PathBuf> {
+    if let Some(value) = std::env::var_os("CODEX_HOME") {
+        let path = std::path::PathBuf::from(value);
+        if !path.as_os_str().is_empty() {
+            return Ok(expand_user(path));
+        }
+    }
+    Ok(home_dir()?.join(".codex"))
+}
+
+fn expand_user(path: std::path::PathBuf) -> std::path::PathBuf {
+    let text = path.to_string_lossy();
+    match (text == "~", text.strip_prefix("~/")) {
+        (true, _) => home_dir().unwrap_or(path),
+        (false, Some(rest)) => home_dir().map_or_else(|_| path.clone(), |home| home.join(rest)),
+        (false, None) => path,
+    }
+}
+
+fn trust_target() -> Result<std::path::PathBuf> {
+    let output = duct::cmd("git", ["rev-parse", "--show-toplevel"])
+        .stdout_capture()
+        .stderr_null()
+        .unchecked()
+        .run();
+    if let Ok(output) = output
+        && output.status.success()
+    {
+        let trimmed = String::from_utf8_lossy(&output.stdout).trim().to_owned();
+        if !trimmed.is_empty() {
+            return Ok(std::path::PathBuf::from(trimmed));
+        }
+    }
+    Ok(std::env::current_dir()?)
+}
+
+fn symlink_home_entries(codex_home: &std::path::Path, overlay: &std::path::Path) -> Result<()> {
+    for entry in fs_err::read_dir(codex_home)? {
+        let entry = entry?;
+        if entry.file_name() == "config.toml" {
+            continue;
+        }
+        let target = overlay.join(entry.file_name());
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::symlink;
+            if symlink(entry.path(), &target).is_err() && !target.exists() {
+                fs_err::copy(entry.path(), target)?;
+            }
+        }
+        #[cfg(windows)]
+        {
+            if entry.path().is_dir() {
+                std::os::windows::fs::symlink_dir(entry.path(), &target)?;
+            } else {
+                std::os::windows::fs::symlink_file(entry.path(), &target)?;
+            }
+        }
+    }
+    Ok(())
+}
+
+fn write_trusted_config(
+    codex_home: &std::path::Path,
+    overlay: &std::path::Path,
+    trust_target: &std::path::Path,
+) -> Result<()> {
+    let source = codex_home.join("config.toml");
+    let existing = match fs_err::read_to_string(&source) {
+        Ok(text) => text,
+        Err(err) if err.kind() == std::io::ErrorKind::NotFound => String::new(),
+        Err(err) => return Err(err.into()),
+    };
+    let updated = trusted_config(&existing, &trust_target.to_string_lossy())?;
+    fs_err::write(overlay.join("config.toml"), updated)?;
+    Ok(())
+}
+
+fn trusted_config(existing: &str, trust_target: &str) -> Result<String> {
+    let mut doc = if existing.trim().is_empty() {
+        DocumentMut::new()
+    } else {
+        existing.parse::<DocumentMut>()?
+    };
+    if !doc.as_table().contains_key("projects") {
+        doc["projects"] = Item::Table(Table::new());
+    }
+    if doc["projects"].as_table().is_none() {
+        doc["projects"] = Item::Table(Table::new());
+    }
+    // Existing configs can contain malformed or non-table project entries; keep
+    // the rest of the file intact while normalizing the shape Codex expects.
+    let projects = doc["projects"]
+        .as_table_mut()
+        .ok_or(Error::InvalidCodexConfig)?;
+    if !projects.contains_key(trust_target) {
+        projects.insert(trust_target, Item::Table(Table::new()));
+    }
+    if projects[trust_target].as_table().is_none() {
+        projects.insert(trust_target, Item::Table(Table::new()));
+    }
+    let project = projects[trust_target]
+        .as_table_mut()
+        .ok_or(Error::InvalidCodexConfig)?;
+    project["trust_level"] = value("trusted");
+    Ok(doc.to_string())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn trusted_config_appends_project_table() -> Result<()> {
+        let updated = trusted_config("model = \"gpt-5.5\"\n", "/repo")?;
+        assert!(updated.contains("[projects.\"/repo\"]"));
+        assert!(updated.contains("trust_level = \"trusted\""));
+        Ok(())
+    }
+
+    #[test]
+    fn write_trusted_config_writes_overlay_config() -> Result<()> {
+        let temp = tempfile::tempdir()?;
+        let codex_home = temp.path().join("home");
+        let overlay = temp.path().join("overlay");
+        fs_err::create_dir_all(&codex_home)?;
+        fs_err::create_dir_all(&overlay)?;
+        fs_err::write(codex_home.join("config.toml"), "model = \"gpt-5.5\"\n")?;
+
+        write_trusted_config(&codex_home, &overlay, std::path::Path::new("/repo"))?;
+
+        let updated = fs_err::read_to_string(overlay.join("config.toml"))?;
+        assert!(updated.contains("[projects.\"/repo\"]"));
+        assert!(updated.contains("trust_level = \"trusted\""));
+        Ok(())
+    }
+
+    #[test]
+    fn symlink_home_entries_skips_config_and_links_other_entries() -> Result<()> {
+        let temp = tempfile::tempdir()?;
+        let codex_home = temp.path().join("home");
+        let overlay = temp.path().join("overlay");
+        fs_err::create_dir_all(&codex_home)?;
+        fs_err::create_dir_all(&overlay)?;
+        fs_err::write(codex_home.join("config.toml"), "model = \"gpt-5.5\"\n")?;
+        fs_err::write(codex_home.join("history.jsonl"), "[]\n")?;
+
+        symlink_home_entries(&codex_home, &overlay)?;
+
+        assert!(!overlay.join("config.toml").exists());
+        let linked = overlay.join("history.jsonl");
+        assert!(linked.exists());
+        #[cfg(unix)]
+        assert_eq!(
+            fs_err::read_link(&linked)?,
+            codex_home.join("history.jsonl")
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn create_trust_overlay_for_links_state_and_trusts_target() -> Result<()> {
+        let temp = tempfile::tempdir()?;
+        let codex_home = temp.path().join("home");
+        fs_err::create_dir_all(&codex_home)?;
+        fs_err::write(codex_home.join("history.jsonl"), "[]\n")?;
+
+        let overlay = create_trust_overlay_for(&codex_home, std::path::Path::new("/repo"))?;
+
+        assert!(overlay.path().join("history.jsonl").exists());
+        let updated = fs_err::read_to_string(overlay.path().join("config.toml"))?;
+        assert!(updated.contains("[projects.\"/repo\"]"));
+        assert!(updated.contains("trust_level = \"trusted\""));
+        Ok(())
+    }
+}

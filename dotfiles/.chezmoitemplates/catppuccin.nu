@@ -1,3 +1,4 @@
+export def --env apply-system-theme [] {
 let dark_mode = (
 {{- if eq .chezmoi.os "darwin" }}
   ((^defaults read -g AppleInterfaceStyle | complete).exit_code == 0)
@@ -213,3 +214,6 @@ $env.config.explore = {
     },
     selected_cell: { bg: $theme.blue fg: $theme.base },
 }
+}
+
+apply-system-theme

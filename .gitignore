@@ -25,6 +25,7 @@ node_modules/
 *.py[cod]
 
 **/target/
+lcov.info
 
 # Zig
 **/.zig-cache/

@@ -21,6 +21,7 @@ let
   );
 
   basePackages = [
+    pkgs.lsp-diagnostic-filter
     (hiPrio pkgs.unstable.uutils-coreutils-noprefix)
     (hiPrio pkgs.unstable.uutils-diffutils)
     (hiPrio pkgs.unstable.uutils-findutils)

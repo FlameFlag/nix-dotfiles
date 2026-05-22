@@ -1,0 +1,50 @@
+name: Rust
+
+on:
+  pull_request: null
+  push: null
+  workflow_dispatch: null
+
+concurrency:
+  group: "${{ github.workflow }}-${{ github.ref }}"
+  cancel-in-progress: true
+
+permissions:
+  contents: read # needed to checkout repository contents
+
+jobs:
+  rust:
+    name: Rust Checks
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read # needed to checkout repository contents
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Install Rust
+        run: |
+          rustup toolchain install stable --profile minimal --component clippy --component rustfmt
+          rustup default stable
+
+      - name: Check Formatting
+        run: cargo fmt --all --check
+
+      - name: Lint
+        run: cargo clippy --workspace --all-targets -- -D warnings
+
+      - name: Test
+        run: cargo test --workspace
+
+      - name: Check Generated Completions
+        run: |
+          cargo run --quiet --bin bootstrap -- completions nushell > dotfiles/dot_config/nushell/completions/bootstrap.nu
+          cargo run --quiet --bin chezmoi-support -- completions nushell > dotfiles/dot_config/nushell/completions/chezmoi-support.nu
+          cargo run --quiet --bin gh-hide-comment -- --completions nushell > dotfiles/dot_config/nushell/completions/gh-hide-comment.nu
+          cargo run --quiet --bin lenovo-con-mode -- --completions nushell > dotfiles/dot_config/nushell/completions/lenovo-con-mode.nu
+          cp dotfiles/dot_config/nushell/completions/*.nu "dotfiles/Library/Application Support/nushell/completions/"
+          git diff --exit-code -- \
+            dotfiles/dot_config/nushell/completions \
+            "dotfiles/Library/Application Support/nushell/completions"

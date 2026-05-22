@@ -53,6 +53,8 @@
             python313
             ;
         };
+        bootstrap = final.callPackage ../../pkgs/bootstrap.nix { };
+        lsp-diagnostic-filter = final.callPackage ../../pkgs/lsp-diagnostic-filter.nix { };
         dis = inputs.dis.packages.${prev.stdenvNoCC.hostPlatform.system}.dis.overrideAttrs (old: {
           postInstall = ''
             wrapProgram "$out/bin/dis" \

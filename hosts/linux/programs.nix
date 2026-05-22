@@ -20,6 +20,28 @@ in
         openssl
         curl
         expat
+        glib
+        nss
+        nspr
+        dbus
+        atk
+        at-spi2-atk
+        at-spi2-core
+        cairo
+        gtk3
+        pango
+        xorg.libX11
+        xorg.libXcomposite
+        xorg.libXdamage
+        xorg.libXext
+        xorg.libXfixes
+        xorg.libXrandr
+        xorg.libxcb
+        libxkbcommon
+        systemd
+        alsa-lib
+        mesa
+        libgbm
         libxcrypt
         bzip2
         xz

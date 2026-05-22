@@ -54,11 +54,6 @@
         "editor.formatOnSave": true,
         "editor.formatOnType": true
     },
-    "[zig]": {
-        "editor.formatOnSave": true,
-        "editor.formatOnPaste": true
-    },
-
     "nix.enableLanguageServer": true,
     "nix.serverPath": "nil",
     "nix.formatterPath": "nixfmt",
@@ -76,8 +71,6 @@
     },
 
     "bashIde.explainshellEndpoint": "http://localhost:5134",
-    "zig.path": "zig",
-    "zig.zls.path": "zls",
     "redhat.telemetry.enabled": false,
     "json.schemaDownload.trustedDomains": {
         "https://schemastore.azurewebsites.net/": true,
