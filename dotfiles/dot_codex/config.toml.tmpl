@@ -1,12 +1,18 @@
 model = "gpt-5.5"
-model_reasoning_effort = "medium"
+model_reasoning_effort = "high"
 suppress_unstable_features_warning = true
+
+[features]
+in_app_browser = true
+browser_use = true
+browser_use_external = true
+computer_use = true
 
 [tui]
 notification_condition = "always"
-
-[features]
-goals = true
+show_tooltips = false
+status_line = ["model-with-reasoning", "project-name", "context-remaining", "five-hour-limit", "weekly-limit"]
+status_line_use_colors = true
 
 [mcp_servers.ghidra]
 url = "http://127.0.0.1:8090/mcp"
