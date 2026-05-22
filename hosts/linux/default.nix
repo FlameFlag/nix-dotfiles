@@ -27,10 +27,6 @@
             uid = 0;
             gid = 0;
           };
-          secrets.migadu = {
-            owner = "nyx";
-            mode = "0400";
-          };
         };
       }
     ];
