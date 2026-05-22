@@ -103,6 +103,7 @@ let
     sqlcipher
     smartmontools
     tree
+    zizmor
     zon2nix
   ]);
 

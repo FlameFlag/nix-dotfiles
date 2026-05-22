@@ -1,0 +1,59 @@
+name: Update GitHub Actions
+
+on:
+  schedule:
+    - cron: "17 5 * * 1"
+  workflow_dispatch: null
+
+concurrency:
+  group: update-github-actions
+  cancel-in-progress: false
+
+permissions:
+  contents: read # needed to checkout repository contents
+
+jobs:
+  update:
+    name: Update Action Pins
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # needed to push workflow pin updates
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@8aa03977d8d733052d78f4e008a241fd1dbf36b3 # v31.10.6
+        with:
+          github_access_token: "${{ secrets.GITHUB_TOKEN }}"
+
+      - name: Update Pins
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          nix shell \
+            github:NixOS/nixpkgs/nixos-unstable#pinact \
+            github:NixOS/nixpkgs/nixos-unstable#zizmor \
+            -c bash -euo pipefail -c '
+              pinact run --update
+              pinact run --verify
+              zizmor --persona=pedantic .
+            '
+
+      - name: Commit Updates
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_REF_NAME: ${{ github.ref_name }}
+        run: |
+          if git diff --quiet -- .github/workflows; then
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .github/workflows
+          git commit -m "chore: update GitHub Actions pins"
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: bearer ${GITHUB_TOKEN}" \
+            push origin "HEAD:${GITHUB_REF_NAME}"

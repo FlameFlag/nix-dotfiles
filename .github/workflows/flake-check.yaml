@@ -9,23 +9,28 @@ concurrency:
   group: "${{ github.workflow }}-${{ github.ref }}"
   cancel-in-progress: true
 
+permissions:
+  contents: read # needed to checkout repository contents
+
 jobs:
   linux-check:
+    name: Linux Flake Check
     runs-on: ubuntu-latest
     permissions:
-      id-token: write
-      contents: read
+      contents: read # needed to checkout repository contents
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v5.0.0
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
 
       - name: Install Nix
-        uses: cachix/install-nix-action@v31.7.0
+        uses: cachix/install-nix-action@8aa03977d8d733052d78f4e008a241fd1dbf36b3 # v31.10.6
         with:
           github_access_token: "${{ secrets.GITHUB_TOKEN }}"
 
       - name: Run Flake Checker
-        uses: DeterminateSystems/flake-checker-action@main
+        uses: DeterminateSystems/flake-checker-action@3164002371bc90729c68af0e24d5aacf20d7c9f6 # v12
         with:
           check-outdated: true
           check-owner: true
@@ -37,16 +42,18 @@ jobs:
         run: nix flake check --show-trace
 
   darwin-check:
+    name: Darwin Flake Check
     runs-on: macos-latest
     permissions:
-      id-token: write
-      contents: read
+      contents: read # needed to checkout repository contents
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v5.0.0
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
 
       - name: Install Nix
-        uses: cachix/install-nix-action@v31.7.0
+        uses: cachix/install-nix-action@8aa03977d8d733052d78f4e008a241fd1dbf36b3 # v31.10.6
         with:
           github_access_token: "${{ secrets.GITHUB_TOKEN }}"
 
