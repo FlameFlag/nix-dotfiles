@@ -1,9 +1,12 @@
 use tempfile::TempDir;
 use toml_edit::{DocumentMut, Item, Table, value};
+use url::Url;
 use zellij_theme_tools::{
     Error, Result, codex_bin, detect_system_theme, detect_terminal_theme, home_dir,
     reset_pane_color, run_inherit, send_focus_gained, write_pane_color_override,
 };
+
+const MCP_CONNECT_TIMEOUT: std::time::Duration = std::time::Duration::from_millis(150);
 
 fn main() {
     match run() {
@@ -67,20 +70,29 @@ impl Drop for StartupPaneColor {
 fn create_trust_overlay() -> Result<TempDir> {
     let codex_home = codex_home()?;
     let trust_target = trust_target()?;
-    create_trust_overlay_for(&codex_home, &trust_target)
+    let overlay_root = codex_overlay_root()?;
+    create_trust_overlay_in(&codex_home, &trust_target, &overlay_root)
 }
 
-fn create_trust_overlay_for(
+fn create_trust_overlay_in(
     codex_home: &std::path::Path,
     trust_target: &std::path::Path,
+    overlay_root: &std::path::Path,
 ) -> Result<TempDir> {
     fs_err::create_dir_all(codex_home)?;
-    let overlay = tempfile::Builder::new().prefix("codex-trust").tempdir()?;
+    fs_err::create_dir_all(overlay_root)?;
+    let overlay = tempfile::Builder::new()
+        .prefix("codex-trust")
+        .tempdir_in(overlay_root)?;
     // Keep the real Codex state visible but write a temporary config that marks
     // only the current repository trusted for this invocation.
     symlink_home_entries(codex_home, overlay.path())?;
     write_trusted_config(codex_home, overlay.path(), trust_target)?;
     Ok(overlay)
+}
+
+fn codex_overlay_root() -> Result<std::path::PathBuf> {
+    Ok(home_dir()?.join(".cache/codex-zellij-theme"))
 }
 
 fn codex_home() -> Result<std::path::PathBuf> {
@@ -167,6 +179,7 @@ fn trusted_config(existing: &str, trust_target: &str) -> Result<String> {
     } else {
         existing.parse::<DocumentMut>()?
     };
+    prune_unreachable_local_mcp_servers(&mut doc);
     if !doc.as_table().contains_key("projects") {
         doc["projects"] = Item::Table(Table::new());
     }
@@ -189,6 +202,77 @@ fn trusted_config(existing: &str, trust_target: &str) -> Result<String> {
         .ok_or(Error::InvalidCodexConfig)?;
     project["trust_level"] = value("trusted");
     Ok(doc.to_string())
+}
+
+fn prune_unreachable_local_mcp_servers(doc: &mut DocumentMut) {
+    if !mcp_pruning_enabled() {
+        return;
+    }
+
+    let Some(servers) = doc["mcp_servers"].as_table_mut() else {
+        return;
+    };
+    let unreachable_servers = servers
+        .iter()
+        .filter_map(|(name, item)| {
+            let url = item.get("url")?.as_str()?;
+            if local_mcp_url_is_unreachable(url) {
+                Some(name.to_owned())
+            } else {
+                None
+            }
+        })
+        .collect::<Vec<_>>();
+
+    for name in unreachable_servers {
+        servers.remove(&name);
+    }
+}
+
+fn mcp_pruning_enabled() -> bool {
+    std::env::var("CODEX_ZELLIJ_THEME_PRUNE_UNREACHABLE_MCP")
+        .map(|value| {
+            let value = value.trim();
+            !value.eq_ignore_ascii_case("0") && !value.eq_ignore_ascii_case("false")
+        })
+        .unwrap_or(true)
+}
+
+fn local_mcp_url_is_unreachable(raw: &str) -> bool {
+    let Some((host, port)) = local_http_endpoint(raw) else {
+        return false;
+    };
+    !tcp_endpoint_is_reachable(&host, port)
+}
+
+fn local_http_endpoint(raw: &str) -> Option<(String, u16)> {
+    let url = Url::parse(raw).ok()?;
+    if !matches!(url.scheme(), "http" | "https") {
+        return None;
+    }
+    let host = url.host_str()?;
+    if !host_is_loopback(host) {
+        return None;
+    }
+    Some((host.to_owned(), url.port_or_known_default()?))
+}
+
+fn host_is_loopback(host: &str) -> bool {
+    host.eq_ignore_ascii_case("localhost")
+        || host
+            .parse::<std::net::IpAddr>()
+            .is_ok_and(|addr| addr.is_loopback())
+}
+
+fn tcp_endpoint_is_reachable(host: &str, port: u16) -> bool {
+    use std::net::{TcpStream, ToSocketAddrs};
+
+    let Ok(addrs) = (host, port).to_socket_addrs() else {
+        return false;
+    };
+    addrs
+        .into_iter()
+        .any(|addr| TcpStream::connect_timeout(&addr, MCP_CONNECT_TIMEOUT).is_ok())
 }
 
 #[cfg(test)]
@@ -250,12 +334,48 @@ mod tests {
         fs_err::create_dir_all(&codex_home)?;
         fs_err::write(codex_home.join("history.jsonl"), "[]\n")?;
 
-        let overlay = create_trust_overlay_for(&codex_home, std::path::Path::new("/repo"))?;
+        let overlay_root = temp.path().join("overlay-root");
+        let overlay =
+            create_trust_overlay_in(&codex_home, std::path::Path::new("/repo"), &overlay_root)?;
 
         assert!(overlay.path().join("history.jsonl").exists());
+        assert!(overlay.path().starts_with(overlay_root));
         let updated = fs_err::read_to_string(overlay.path().join("config.toml"))?;
         assert!(updated.contains("[projects.\"/repo\"]"));
         assert!(updated.contains("trust_level = \"trusted\""));
         Ok(())
+    }
+
+    #[test]
+    fn trusted_config_prunes_unreachable_local_mcp_server() -> Result<()> {
+        let updated = trusted_config(
+            r#"
+[mcp_servers.ghidra]
+url = "http://127.0.0.1:1/mcp"
+startup_timeout_sec = 60
+
+[mcp_servers.remote]
+url = "https://example.com/mcp"
+"#,
+            "/repo",
+        )?;
+
+        assert!(!updated.contains("[mcp_servers.ghidra]"));
+        assert!(updated.contains("[mcp_servers.remote]"));
+        assert!(updated.contains("[projects.\"/repo\"]"));
+        Ok(())
+    }
+
+    #[test]
+    fn local_http_endpoint_accepts_loopback_hosts_only() {
+        assert_eq!(
+            local_http_endpoint("http://127.0.0.1:8090/mcp"),
+            Some(("127.0.0.1".to_owned(), 8090))
+        );
+        assert_eq!(
+            local_http_endpoint("http://localhost:8090/mcp"),
+            Some(("localhost".to_owned(), 8090))
+        );
+        assert_eq!(local_http_endpoint("https://example.com/mcp"), None);
     }
 }
