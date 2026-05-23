@@ -146,9 +146,13 @@ fn ensure_shell_path(ctx: &Context) -> Result<(), SetupError> {
 }
 
 fn ensure_chezmoi_config(ctx: &Context) -> Result<(), SetupError> {
-    let config_home = std::env::var_os("XDG_CONFIG_HOME")
-        .map(std::path::PathBuf::from)
-        .unwrap_or_else(|| ctx.home.join(".config"));
+    let config_home = if ctx.isolated_home {
+        ctx.home.join(".config")
+    } else {
+        std::env::var_os("XDG_CONFIG_HOME")
+            .map(std::path::PathBuf::from)
+            .unwrap_or_else(|| ctx.home.join(".config"))
+    };
     let config_dir = config_home.join("chezmoi");
     let config_file = config_dir.join("chezmoi.toml");
     let source_dir = ctx.repo_dir.join("dotfiles");
