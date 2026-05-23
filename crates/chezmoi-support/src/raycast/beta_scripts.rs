@@ -537,6 +537,29 @@ mod tests {
     }
 
     #[test]
+    fn open_settings_patch_handles_minifier_variants() {
+        let source = "openSettings:async t=>{Na({to:t.to,params:t.routeParams})}";
+
+        assert_eq!(
+            patch_open_settings_search(source),
+            "openSettings:async t=>{Na({to:t.to,params:t.routeParams,search:t.search})}"
+        );
+    }
+
+    #[test]
+    fn open_settings_patch_ignores_unknown_shapes() {
+        for source in [
+            "const unrelated=true;",
+            "openSettings:async (t,u)=>{Na({to:t.to,params:t.routeParams})}",
+            "openSettings:async t=>{Na({to:t.to})}",
+            "openSettings:async t=>{Na({to:t.to,params:t.routeParams,search:t.search})}",
+            "openSettings:async t=>{Na({to:t.to,params:t.routeParams,extra:`long enough to avoid patching because the route call is not the expected compact shape`})}",
+        ] {
+            assert_eq!(patch_open_settings_search(source), source);
+        }
+    }
+
+    #[test]
     fn frontend_patch_removes_obsolete_feature_gate_bypass() {
         let source = "async function z(a){let b=c.authStore.peek().user,d=b!==null,f=g(a.feature);if([`theme-studio`,`window-management-create`,`notes`,`scheduled-export`].includes(a.feature))return{cancelled:!1};)if([`theme-studio`,`window-management-create`,`notes`,`scheduled-export`].includes(a.feature))return{cancelled:!1};if(f===`none`)return{cancelled:!1}}";
         let (patched, _) = patch_frontend_javascript(source);

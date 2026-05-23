@@ -103,7 +103,8 @@ mod tests {
         let server = std::thread::spawn(move || {
             let (mut stream, _) = listener.accept().expect("accept request");
             let mut request = [0; 1024];
-            stream.read(&mut request).expect("read request");
+            let bytes_read = stream.read(&mut request).expect("read request");
+            assert_ne!(bytes_read, 0);
             stream
                 .write_all(b"HTTP/1.1 200 OK\r\nContent-Length: 11\r\n\r\nhello world")
                 .expect("write response");

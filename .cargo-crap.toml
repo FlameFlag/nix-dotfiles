@@ -1,12 +1,14 @@
 threshold = 30.0
 fail-above = true
 
-# The remaining waived functions are command dispatchers, installer flows,
-# completion generators, or OS/application integration paths. The
-# library helpers they delegate to stay visible to cargo-crap and have targeted
-# unit coverage.
+# Waived functions are command dispatchers, installer/process orchestration,
+# macOS app mutation paths, or live TTY integration. Pure parsing/selection
+# helpers should stay covered instead of being added here.
 allow = [
-  "apply_beta",
+  "Tty::*",
+  "apply_config",
+  "clear_quarantine",
+  "codesign_beta_app",
   "install_action",
   "install_archive",
   "install_catppuccin_theme",
@@ -14,13 +16,15 @@ allow = [
   "install_file",
   "install_manager",
   "install_one",
-  "install_plugins",
   "install_or_update",
+  "install_plugins",
   "install_source_build",
   "install_vs_extensions",
   "link_applications",
   "nushell_init",
+  "patch",
   "proxy_lsp",
+  "query_terminal_theme",
   "run_bootstrap_cli",
   "run_chezmoi_support",
   "run_gh_hide_comment",

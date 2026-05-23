@@ -1,3 +1,5 @@
+#![cfg_attr(test, allow(clippy::expect_used, clippy::panic, clippy::unwrap_used))]
+
 mod platform;
 
 use clap::{CommandFactory, Parser, ValueEnum};

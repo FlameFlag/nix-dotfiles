@@ -1,3 +1,5 @@
+#![cfg_attr(test, allow(clippy::expect_used, clippy::panic, clippy::unwrap_used))]
+
 use std::io::{self, Write};
 
 const HEADER_SEPARATOR: &[u8] = b"\r\n\r\n";

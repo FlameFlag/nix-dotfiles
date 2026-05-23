@@ -1,4 +1,7 @@
-use std::path::PathBuf;
+#![cfg_attr(test, allow(clippy::expect_used, clippy::panic, clippy::unwrap_used))]
+
+use std::ffi::OsString;
+use std::path::{Path, PathBuf};
 use std::process::ExitStatus;
 use std::time::{Duration, Instant};
 use std::{
@@ -394,20 +397,32 @@ pub fn send_focus_gained(pane_id: &str) {
 ///
 /// Returns an error if Codex cannot be found or the home directory is unavailable.
 pub fn codex_bin() -> Result<PathBuf> {
-    if let Some(path) = std::env::var_os("CODEX_ZELLIJ_THEME_CODEX_BIN")
+    let home = home_dir()?;
+    codex_bin_from(
+        &home,
+        std::env::var_os("CODEX_ZELLIJ_THEME_CODEX_BIN"),
+        || which::which("codex").ok(),
+    )
+}
+
+fn codex_bin_from(
+    home: &Path,
+    configured_path: Option<OsString>,
+    find_on_path: impl FnOnce() -> Option<PathBuf>,
+) -> Result<PathBuf> {
+    if let Some(path) = configured_path
         .map(PathBuf::from)
         .filter(|path| path.is_file())
     {
         return Ok(path);
     }
 
-    let home = home_dir()?;
     let patched = home.join(".local/opt/codex-patched/bin/codex");
     if patched.is_file() {
         return Ok(patched);
     }
 
-    if let Ok(path) = which::which("codex") {
+    if let Some(path) = find_on_path() {
         return Ok(path);
     }
     for candidate in [".bun/bin/codex", ".npm/bin/codex", ".local/bin/codex"] {
@@ -503,5 +518,42 @@ mod tests {
         assert_eq!(parse_rgb_color("rgb:f/f/f"), Some((255, 255, 255)));
         assert_eq!(parse_rgb_color("rgb:00/80/ff"), Some((0, 128, 255)));
         assert_eq!(parse_rgb_color("rgb:3030/3434/4646"), Some((48, 52, 70)));
+    }
+
+    #[test]
+    fn codex_bin_prefers_configured_existing_file() -> Result<()> {
+        let temp = tempfile::tempdir()?;
+        let configured = temp.path().join("configured-codex");
+        let path_codex = temp.path().join("path-codex");
+        fs_err::write(&configured, "")?;
+        fs_err::write(&path_codex, "")?;
+
+        assert_eq!(
+            codex_bin_from(
+                temp.path(),
+                Some(configured.clone().into_os_string()),
+                || { Some(path_codex) }
+            )?,
+            configured
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn codex_bin_uses_home_candidates_and_path_fallback() -> Result<()> {
+        let temp = tempfile::tempdir()?;
+        let path_codex = temp.path().join("path-codex");
+        fs_err::write(&path_codex, "")?;
+
+        assert_eq!(
+            codex_bin_from(temp.path(), None, || Some(path_codex.clone()))?,
+            path_codex
+        );
+
+        let bun_codex = temp.path().join(".bun/bin/codex");
+        fs_err::create_dir_all(bun_codex.parent().expect("parent"))?;
+        fs_err::write(&bun_codex, "")?;
+        assert_eq!(codex_bin_from(temp.path(), None, || None)?, bun_codex);
+        Ok(())
     }
 }

@@ -35,9 +35,11 @@ fn prepare_bootstrap(ctx: &Context) -> Result<(), SetupError> {
 }
 
 fn install_current_exe_if_needed(ctx: &Context) -> Result<(), SetupError> {
-    (!runtime::skip_self_install())
-        .then(|| install_current_exe(ctx))
-        .unwrap_or(Ok(()))
+    if runtime::skip_self_install() {
+        Ok(())
+    } else {
+        install_current_exe(ctx)
+    }
 }
 
 fn install_catalog(ctx: &Context) -> Result<(), SetupError> {

@@ -77,7 +77,7 @@ fn parse_node_id_response(status: reqwest::StatusCode, body: &str) -> Result<Str
             body: body.to_owned(),
         });
     }
-    Ok(serde_json::from_str::<CommentResponse>(&body)
+    Ok(serde_json::from_str::<CommentResponse>(body)
         .map_err(|err| Error::GithubApi {
             status: 200,
             body: err.to_string(),
@@ -110,7 +110,7 @@ fn parse_minimize_response(status: reqwest::StatusCode, body: &str) -> Result<St
         });
     }
     let response =
-        serde_json::from_str::<GraphqlResponse>(&body).map_err(|err| Error::GithubApi {
+        serde_json::from_str::<GraphqlResponse>(body).map_err(|err| Error::GithubApi {
             status: 200,
             body: err.to_string(),
         })?;
