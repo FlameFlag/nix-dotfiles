@@ -107,8 +107,9 @@ Run this when the machine needs the fast-moving tools:
 bootstrap bootstrap
 ```
 
-On a brand-new machine, download the latest `bootstrap` binary from the rolling
-bootstrap release once, then run it from wherever it landed:
+On a brand-new machine, download the latest `bootstrap` binary from the
+[latest bootstrap release](https://github.com/FlameFlag/nix-dotfiles/releases/latest)
+once, then run it from wherever it landed:
 
 ```bash
 ./bootstrap-linux-x86_64 bootstrap
@@ -129,7 +130,8 @@ cargo run --locked --bin bootstrap -- --repo-dir /path/to/nix-dotfiles bootstrap
 
 The rolling release is rebuilt whenever [`bootstrap`](bootstrap), [`crates`](crates),
 `Cargo.toml`, or `Cargo.lock` changes. It publishes binaries for Linux, macOS,
-and Windows under the `bootstrap-rolling` release tag.
+and Windows to a new immutable `bootstrap-rolling-*` release tag, then marks that
+release as the latest release.
 
 <details>
 <summary>How the bootstrap is staged</summary>
