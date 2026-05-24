@@ -6,6 +6,12 @@
       "url": "http://127.0.0.1:8090/mcp",
       "oauth": false,
       "enabled": true
+    },
+    "lldb": {
+      "type": "local",
+      "command": ["codex-lldb-mcp"],
+      "enabled": true,
+      "timeout": 30000
     }
   },
   "permission": {

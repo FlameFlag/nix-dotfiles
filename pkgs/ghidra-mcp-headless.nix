@@ -1,6 +1,7 @@
 {
   lib,
   ghidra,
+  stdenv,
   fetchFromGitHub,
   runCommand,
   python313,
@@ -108,7 +109,11 @@ let
     doCheck = false;
     buildOffline = true;
     strictDeps = true;
-    mvnHash = "sha256-AXdWwQmxqNzw4Eice/WmdytMj3Q0yVu5nInakBAQLm0=";
+    mvnHash =
+      if stdenv.hostPlatform.isDarwin then
+        "sha256-25lJJrbKzPexKQklKBwzq6w8uSOK9Sv4tw8/eL6NDSc="
+      else
+        "sha256-AXdWwQmxqNzw4Eice/WmdytMj3Q0yVu5nInakBAQLm0=";
     inherit mvnParameters;
     mvnDepsParameters = mvnParameters;
 

@@ -98,15 +98,8 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          if gh release view bootstrap-rolling >/dev/null 2>&1; then
-            gh release edit bootstrap-rolling \
-              --title "Bootstrap Rolling Release" \
-              --notes "Rolling bootstrap binaries for bootstrapping nix-dotfiles." \
-              --latest
-            gh release upload bootstrap-rolling dist/bootstrap-* --clobber
-          else
-            gh release create bootstrap-rolling dist/bootstrap-* \
-              --title "Bootstrap Rolling Release" \
-              --notes "Rolling bootstrap binaries for bootstrapping nix-dotfiles." \
-              --latest
-          fi
+          gh release delete bootstrap-rolling --yes 2>/dev/null || true
+          gh release create bootstrap-rolling dist/bootstrap-* \
+            --title "Bootstrap Rolling Release" \
+            --notes "Rolling bootstrap binaries for bootstrapping nix-dotfiles." \
+            --latest

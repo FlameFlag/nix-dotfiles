@@ -52,10 +52,6 @@
         uid = 0;
         gid = 0;
       };
-      migadu = {
-        owner = config.system.primaryUser;
-        mode = "0400";
-      };
     };
   };
 

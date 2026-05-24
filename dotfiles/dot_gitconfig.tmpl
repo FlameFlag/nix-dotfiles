@@ -29,19 +29,8 @@ op-ssh-sign
     process = git-lfs filter-process
     required = true
 
-[sendemail]
-    from = git@ps1.sh
-    suppresscc = author
-    smtpServer = smtp.migadu.com
-    smtpServerPort = 465
-    smtpEncryption = ssl
-    smtpUser = git@ps1.sh
-
 [credential "https://github.com"]
     helper = !/usr/bin/env gh auth git-credential
 
 [credential "https://gist.github.com"]
     helper = !/usr/bin/env gh auth git-credential
-
-[credential "smtp://github%40flameflag.dev@smtp.migadu.com:465"]
-    helper = "!f() { echo password=$(cat /run/secrets/migadu); }; f"
