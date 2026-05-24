@@ -148,8 +148,11 @@ The first run is staged like this:
 
 NixOS is the one platform where the order flips on first setup. Rebuild NixOS
 first so this config can enable the runtime compatibility that upstream Linux
-binaries expect without every tool becoming a Nix packaging side quest. On macOS
-and normal FHS Linux distros, bootstrap can go first
+binaries expect without every tool becoming a Nix packaging side quest. After
+that first switch, run the bootstrapper through a Nix 3 `nix run` target from
+the same flake; the bootstrap binary is provided by the NixOS package set, not
+by a pre-existing user `PATH`. On macOS and normal FHS Linux distros, bootstrap
+can go first
 
 `chezmoi` comes from its official release archive. Chezmoi hooks call the Rust
 `chezmoi-support` helper installed by bootstrap, so the dotfile runtime no
@@ -195,7 +198,8 @@ fi
 nixos-rebuild switch --use-remote-sudo --flake $(readlink -f "/etc/nixos")
 
 # Now nix-ld and runtime compatibility links exist, so upstream binaries can run.
-bootstrap bootstrap
+# Use Nix 3 to run the bootstrap package from this NixOS configuration.
+nix run "$(readlink -f /etc/nixos)#nixosConfigurations.lenovo-legion.pkgs.bootstrap" -- bootstrap
 
 # Apply the dotfiles.
 chezmoi apply --refresh-externals=always --force

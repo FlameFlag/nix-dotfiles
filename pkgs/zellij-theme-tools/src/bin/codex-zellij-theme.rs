@@ -107,13 +107,31 @@ fn codex_overlay_root() -> Result<std::path::PathBuf> {
 }
 
 fn codex_home() -> Result<std::path::PathBuf> {
-    if let Some(value) = std::env::var_os("CODEX_HOME") {
+    codex_home_from(std::env::var_os("CODEX_HOME"), home_dir()?)
+}
+
+fn codex_home_from(
+    value: Option<std::ffi::OsString>,
+    home: std::path::PathBuf,
+) -> Result<std::path::PathBuf> {
+    if let Some(value) = value {
         let path = std::path::PathBuf::from(value);
         if !path.as_os_str().is_empty() {
+            // Nested Codex sessions inherit the wrapper's temporary overlay.
+            // Use the real user config as the next overlay source instead.
+            if is_trust_overlay(&path) {
+                return Ok(home.join(".codex"));
+            }
             return Ok(expand_user(path));
         }
     }
-    Ok(home_dir()?.join(".codex"))
+    Ok(home.join(".codex"))
+}
+
+fn is_trust_overlay(path: &std::path::Path) -> bool {
+    path.file_name()
+        .and_then(|name| name.to_str())
+        .is_some_and(|name| name.starts_with("codex-trust"))
 }
 
 fn expand_user(path: std::path::PathBuf) -> std::path::PathBuf {
@@ -354,6 +372,26 @@ mod tests {
         let updated = fs_err::read_to_string(overlay.path().join("config.toml"))?;
         assert!(updated.contains("[projects.\"/repo\"]"));
         assert!(updated.contains("trust_level = \"trusted\""));
+        Ok(())
+    }
+
+    #[test]
+    fn codex_home_ignores_inherited_trust_overlay() -> Result<()> {
+        let home = std::path::PathBuf::from("/home/user");
+
+        let resolved = codex_home_from(Some("/tmp/codex-trustabc".into()), home)?;
+
+        assert_eq!(resolved, std::path::PathBuf::from("/home/user/.codex"));
+        Ok(())
+    }
+
+    #[test]
+    fn codex_home_keeps_custom_temp_home() -> Result<()> {
+        let home = std::path::PathBuf::from("/home/user");
+
+        let resolved = codex_home_from(Some("/tmp/custom-codex".into()), home)?;
+
+        assert_eq!(resolved, std::path::PathBuf::from("/tmp/custom-codex"));
         Ok(())
     }
 
