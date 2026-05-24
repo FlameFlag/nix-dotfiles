@@ -6,6 +6,9 @@ fi
 # Prefer user-local tools installed by bootstrap and language toolchains.
 typeset -U path PATH
 path=("$HOME/.pi/agent/bin" "$HOME/.bun/bin" "$HOME/.bun/install/global/node_modules/.bin" "$HOME/.npm/bin" "$HOME/.local/bin" "$HOME/.cargo/bin" "$HOME/.go/bin" "$HOME/.yarn/bin" $path)
+if [[ -d /run/wrappers/bin ]]; then
+  path=(/run/wrappers/bin $path)
+fi
 export PATH
 
 # Load Oh My Zsh without its prompt or self-update behavior.

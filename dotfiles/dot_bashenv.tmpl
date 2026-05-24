@@ -5,6 +5,12 @@ for dir in "$HOME/.yarn/bin" "$HOME/.go/bin" "$HOME/.cargo/bin" "$HOME/.local/bi
     *) PATH="$dir:$PATH" ;;
   esac
 done
+if [ -d /run/wrappers/bin ]; then
+  case ":$PATH:" in
+    *":/run/wrappers/bin:"*) ;;
+    *) PATH="/run/wrappers/bin:$PATH" ;;
+  esac
+fi
 export PATH
 
 export UV_PYTHON_PREFERENCE="${UV_PYTHON_PREFERENCE:-only-managed}"

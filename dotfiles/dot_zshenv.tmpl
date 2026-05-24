@@ -8,6 +8,9 @@ typeset -U path PATH 2>/dev/null || true
 for dir in "$HOME/.yarn/bin" "$HOME/.go/bin" "$HOME/.cargo/bin" "$HOME/.local/bin" "$HOME/.npm/bin" "$HOME/.bun/install/global/node_modules/.bin" "$HOME/.bun/bin" "$HOME/.pi/agent/bin"; do
   case ":${PATH}:" in *":${dir}:"*) ;; *) PATH="${dir}:${PATH}" ;; esac
 done
+if [ -d /run/wrappers/bin ]; then
+  path=(/run/wrappers/bin $path)
+fi
 export PATH
 
 export BASH_ENV="${BASH_ENV:-$HOME/.bashenv}"

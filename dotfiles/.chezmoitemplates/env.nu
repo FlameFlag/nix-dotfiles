@@ -5,6 +5,12 @@ $env.EDITOR = "hx"
 $env.VISUAL = "hx"
 
 path add ([ .bun .npm .local .cargo .go .yarn ] | each {|dir| [$nu.home-dir $dir bin] | path join })
+if ("/run/wrappers/bin" | path exists) {
+    $env.PATH = (
+        ["/run/wrappers/bin"]
+        | append ($env.PATH | where {|dir| $dir != "/run/wrappers/bin" })
+    )
+}
 
 if ($env.TERM? == "xterm-ghostty") {
     let ghostty_terminfo = (infocmp xterm-ghostty | complete)

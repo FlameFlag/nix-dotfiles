@@ -10,6 +10,12 @@ for dir in "$HOME/.pi/agent/bin" "$HOME/.bun/bin" "$HOME/.bun/install/global/nod
     *) PATH="$dir:$PATH" ;;
   esac
 done
+if [ -d /run/wrappers/bin ]; then
+  case ":$PATH:" in
+    *":/run/wrappers/bin:"*) ;;
+    *) PATH="/run/wrappers/bin:$PATH" ;;
+  esac
+fi
 export PATH
 
 # Bail out for non-interactive shells (e.g. `ssh host cmd`, scp).
