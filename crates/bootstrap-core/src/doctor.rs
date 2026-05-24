@@ -340,12 +340,17 @@ mod tests {
                 links: vec![],
             }),
         );
-        let script = temp.path().join("version-script");
-        dotfiles_common::fs::write_executable(
-            &script,
-            b"#!/bin/sh\nprintf 'demo version 1.2.3, extra metadata\\n'\n",
-        )
-        .expect("write script");
+        let script = temp.path().join(if cfg!(windows) {
+            "version-script.cmd"
+        } else {
+            "version-script"
+        });
+        let script_bytes: &[u8] = if cfg!(windows) {
+            b"@echo off\r\necho demo version 1.2.3, extra metadata\r\n"
+        } else {
+            b"#!/bin/sh\nprintf 'demo version 1.2.3, extra metadata\\n'\n"
+        };
+        dotfiles_common::fs::write_executable(&script, script_bytes).expect("write script");
 
         assert_eq!(
             version_status(&ctx, &build_tool, &["demo".into()], Some(&script)),

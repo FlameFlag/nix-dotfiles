@@ -470,21 +470,24 @@ mod tests {
     fn install_all_skips_unsupported_tools() {
         let temp = tempfile::tempdir().expect("tempdir");
         let repo = temp.path().join("repo");
+        let unsupported_os = if cfg!(windows) { "macos" } else { "windows" };
         fs_err::create_dir_all(repo.join("bootstrap")).expect("create catalog dir");
         fs_err::write(
             repo.join("bootstrap/tools.toml"),
-            r#"
+            format!(
+                r#"
 [[tools]]
-name = "windows-only-demo"
-platforms = ["windows"]
+name = "unsupported-demo"
+platforms = ["{unsupported_os}"]
 
 [[tools.bins]]
-name = "windows-only-demo"
-version_argv = ["windows-only-demo", "--version"]
+name = "unsupported-demo"
+version_argv = ["unsupported-demo", "--version"]
 
 [tools.action]
 type = "required"
-"#,
+"#
+            ),
         )
         .expect("write catalog");
         let ctx = Context::new_with_home(&repo, Some(temp.path().join("home"))).expect("context");

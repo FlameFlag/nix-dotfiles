@@ -106,10 +106,17 @@ fn remove_legacy_dev_tools_link(ctx: &Context) -> Result<(), SetupError> {
 }
 
 fn ensure_shell_path(ctx: &Context) -> Result<(), SetupError> {
-    if cfg!(windows) {
-        return Ok(());
+    #[cfg(windows)]
+    {
+        return ensure_windows_user_path(ctx);
     }
 
+    #[cfg(not(windows))]
+    ensure_unix_shell_path(ctx)
+}
+
+#[cfg(not(windows))]
+fn ensure_unix_shell_path(ctx: &Context) -> Result<(), SetupError> {
     let path = ctx.home.join(".zshenv");
     let marker = "nix-dotfiles bootstrap PATH";
     let existing = fs_err::read_to_string(&path).unwrap_or_default();
@@ -143,6 +150,89 @@ fn ensure_shell_path(ctx: &Context) -> Result<(), SetupError> {
         .open(path)?;
     file.write_all(addition.as_bytes())?;
     Ok(())
+}
+
+#[cfg(windows)]
+fn ensure_windows_user_path(ctx: &Context) -> Result<(), SetupError> {
+    use winreg::enums::{HKEY_CURRENT_USER, REG_EXPAND_SZ, REG_SZ};
+    use winreg::types::FromRegValue;
+    use winreg::{RegKey, RegValue};
+
+    let hkcu = RegKey::predef(HKEY_CURRENT_USER);
+    let (environment, _) = hkcu.create_subkey("Environment")?;
+    let current = environment.get_raw_value("Path").ok();
+    let current_text = current
+        .as_ref()
+        .and_then(|value| String::from_reg_value(value).ok())
+        .unwrap_or_default();
+    let bin_dir = ctx.bin_dir.to_string_lossy();
+    let Some(updated) = append_path_entry(&current_text, &bin_dir, ';', true) else {
+        return Ok(());
+    };
+
+    let value_type = current
+        .as_ref()
+        .map(|value| value.vtype.clone())
+        .filter(|value_type| matches!(value_type, REG_SZ | REG_EXPAND_SZ))
+        .unwrap_or(REG_EXPAND_SZ);
+    environment.set_raw_value(
+        "Path",
+        &RegValue {
+            bytes: encode_windows_registry_string(&updated),
+            vtype: value_type,
+        },
+    )?;
+    Ok(())
+}
+
+#[cfg(windows)]
+fn encode_windows_registry_string(value: &str) -> Vec<u8> {
+    value
+        .encode_utf16()
+        .chain(std::iter::once(0))
+        .flat_map(u16::to_le_bytes)
+        .collect()
+}
+
+#[cfg(any(windows, test))]
+fn append_path_entry(
+    current: &str,
+    entry: &str,
+    separator: char,
+    case_insensitive: bool,
+) -> Option<String> {
+    let entry = entry.trim();
+    if entry.is_empty()
+        || current
+            .split(separator)
+            .any(|existing| path_entries_match(existing, entry, case_insensitive))
+    {
+        return None;
+    }
+
+    let current = current.trim_end_matches(separator);
+    if current.is_empty() {
+        Some(entry.to_owned())
+    } else {
+        Some(format!("{current}{separator}{entry}"))
+    }
+}
+
+#[cfg(any(windows, test))]
+fn path_entries_match(left: &str, right: &str, case_insensitive: bool) -> bool {
+    let left = normalized_path_entry(left);
+    let right = normalized_path_entry(right);
+    if case_insensitive {
+        left.eq_ignore_ascii_case(&right)
+    } else {
+        left == right
+    }
+}
+
+#[cfg(any(windows, test))]
+fn normalized_path_entry(entry: &str) -> String {
+    let entry = entry.trim().trim_matches('"').replace('/', "\\");
+    entry.trim_end_matches(['\\', '/']).to_owned()
 }
 
 fn ensure_chezmoi_config(ctx: &Context) -> Result<(), SetupError> {
@@ -245,5 +335,31 @@ mod tests {
 
         assert!(same_file(&file, &file));
         assert!(!same_file(&file, &temp.path().join("missing")));
+    }
+
+    #[test]
+    fn append_path_entry_adds_missing_entry() {
+        assert_eq!(
+            append_path_entry(
+                r"C:\Windows;C:\Tools",
+                r"C:\Users\flame\.local\bin",
+                ';',
+                true
+            ),
+            Some(r"C:\Windows;C:\Tools;C:\Users\flame\.local\bin".to_owned())
+        );
+    }
+
+    #[test]
+    fn append_path_entry_is_case_insensitive_and_trims_separators() {
+        assert_eq!(
+            append_path_entry(
+                r"C:\Windows;C:\Users\flame\.local\bin\;",
+                r"c:/users/flame/.local/bin",
+                ';',
+                true
+            ),
+            None
+        );
     }
 }
