@@ -63,6 +63,10 @@
       (final: prev: {
         gh = final.unstable.gh;
         yt-dlp = final.eupkgs.yt-dlp;
+        codex-lldb-mcp = final.callPackage ../../pkgs/codex-lldb-mcp.nix {
+          lldb = final.unstable.llvmPackages_22.lldb;
+          python3 = final.unstable.python3;
+        };
         kanata =
           let
             version = "1.12.0-prerelease-2";

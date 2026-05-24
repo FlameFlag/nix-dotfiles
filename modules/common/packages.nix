@@ -82,6 +82,7 @@ let
   ]);
 
   devPackages = [
+    pkgs.codex-lldb-mcp
     pkgs.eupkgs.agent-statusline
     pkgs.eupkgs.agent-statusline-pi
     pkgs.eupkgs.pi-ssh-tools

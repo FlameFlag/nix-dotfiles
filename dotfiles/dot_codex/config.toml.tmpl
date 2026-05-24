@@ -108,3 +108,12 @@ enabled_tools = [
   "analyze_call_graph",
   "emulate_function",
 ]
+
+[mcp_servers.lldb]
+command = "codex-lldb-mcp"
+startup_timeout_sec = 30
+tool_timeout_sec = 1800
+enabled_tools = [
+  "command",
+  "debugger_list",
+]
