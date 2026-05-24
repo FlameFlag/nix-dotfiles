@@ -19,6 +19,11 @@ fn main() {
 }
 
 fn run() -> Result<i32> {
+    if wants_version() {
+        println!("codex-zellij-theme {}", env!("CARGO_PKG_VERSION"));
+        return Ok(0);
+    }
+
     let _startup_pane_color = StartupPaneColor::start();
 
     let overlay = create_trust_overlay()?;
@@ -27,6 +32,12 @@ fn run() -> Result<i32> {
         .env("CODEX_HOME", overlay.path())
         .unchecked();
     run_inherit(&command)
+}
+
+fn wants_version() -> bool {
+    std::env::args_os()
+        .skip(1)
+        .any(|arg| arg == "--version" || arg == "-V")
 }
 
 struct StartupPaneColor {

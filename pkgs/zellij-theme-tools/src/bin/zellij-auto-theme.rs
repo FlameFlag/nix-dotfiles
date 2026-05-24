@@ -11,6 +11,11 @@ fn main() {
 }
 
 fn run() -> Result<i32> {
+    if wants_version() {
+        println!("zellij-auto-theme {}", env!("CARGO_PKG_VERSION"));
+        return Ok(0);
+    }
+
     let selected = detect_theme();
     let uid = std::env::var("UID")
         .ok()
@@ -54,6 +59,12 @@ fn run() -> Result<i32> {
     .env("ZELLIJ_DEFAULT_BG", selected.colors.bg)
     .env("ZELLIJ_SOCKET_DIR", socket_dir);
     run_inherit(&command)
+}
+
+fn wants_version() -> bool {
+    std::env::args_os()
+        .skip(1)
+        .any(|arg| arg == "--version" || arg == "-V")
 }
 
 fn default_session_name() -> Result<String> {
