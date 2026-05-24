@@ -14,21 +14,21 @@
 let
   inherit (lib.strings) concatMapStringsSep concatStringsSep removeSuffix;
 
-  upstreamRev = "2a57c7cff12e2d6584f2d0e2ba8175bcfb20b43f";
+  upstreamRev = "5b3bfab00799a64c80b81aac673e964981b94a4f";
   mvnParameters = lib.escapeShellArgs [ "-Pheadless" ];
 
   src = fetchFromGitHub {
     owner = "bethington";
     repo = "ghidra-mcp";
     rev = upstreamRev;
-    hash = "sha256-OQKsB0vRQjTfdlCUrAWWLQZvgV0TX0mEwjsgjFcWJaA=";
+    hash = "sha256-WitLLnKZ3qTLpZjkIUaPOtJ7+Aki/ycXTWFqiGH/Wyo=";
   };
 
   python = python313.withPackages (ps: [
     ps.mcp
     ps.requests
   ]);
-  jarVersion = "5.10.0";
+  jarVersion = "5.12.0";
   stateDefault = "$HOME/.local/state/ghidra-mcp-headless";
 
   requiredGhidraJarPaths =
@@ -108,7 +108,7 @@ let
     doCheck = false;
     buildOffline = true;
     strictDeps = true;
-    mvnHash = "sha256-9pEPYwPjyPrxn+w8FweKpqsWsTJpw/Op11dvB/glmKI=";
+    mvnHash = "sha256-AXdWwQmxqNzw4Eice/WmdytMj3Q0yVu5nInakBAQLm0=";
     inherit mvnParameters;
     mvnDepsParameters = mvnParameters;
 
@@ -118,7 +118,7 @@ let
 
     postPatch = ''
       substituteInPlace pom.xml \
-        --replace-fail "<ghidra.version>12.0.4</ghidra.version>" \
+        --replace-fail "<ghidra.version>12.1</ghidra.version>" \
                        "<ghidra.version>${ghidra.version}</ghidra.version>"
     '';
 

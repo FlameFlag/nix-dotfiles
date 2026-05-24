@@ -6,7 +6,6 @@
 }:
 let
   inherit (lib.options) mkOption;
-  inherit (lib.meta) getExe;
   inherit (lib.strings)
     concatMapStringsSep
     escapeShellArg
@@ -21,8 +20,8 @@ let
   stateDir = cfg.stateDir;
   logDir = cfg.logDir;
   envExe = lib.meta.getExe' pkgs.coreutils "env";
-  httpdExe = getExe packageSet.httpd;
-  bridgeExe = getExe packageSet.bridge;
+  httpdExe = lib.meta.getExe' packageSet.httpd "ghidra-mcp-httpd";
+  bridgeExe = lib.meta.getExe' packageSet.bridge "ghidra-mcp-bridge";
   keepAlive = {
     Crashed = true;
     SuccessfulExit = false;

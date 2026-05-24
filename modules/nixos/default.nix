@@ -3,6 +3,7 @@ _: {
     ../common
     ../common/nixcord
     ./gnome.nix
+    ./ghidra-mcp.nix
     ./hardware.nix
     ./kanata.nix
     ./networking.nix
