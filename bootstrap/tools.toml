@@ -400,7 +400,7 @@ version_argv = ["yt-dlp", "--version"]
 [tools.action]
 type = "package"
 name = "yt-dlp"
-install_argv = ["uv", "tool", "install", "--upgrade", "{package}"]
+install_argv = ["uv", "tool", "install", "--upgrade", "--force", "{package}"]
 inventory = "uv"
 
 [[tools]]
@@ -427,7 +427,7 @@ version_argv = ["ruff", "--version"]
 [tools.action]
 type = "package"
 name = "ruff"
-install_argv = ["uv", "tool", "install", "--upgrade", "{package}"]
+install_argv = ["uv", "tool", "install", "--upgrade", "--force", "{package}"]
 inventory = "uv"
 
 [[tools]]
@@ -440,7 +440,7 @@ version_argv = ["ty", "--version"]
 [tools.action]
 type = "package"
 name = "ty"
-install_argv = ["uv", "tool", "install", "--upgrade", "{package}"]
+install_argv = ["uv", "tool", "install", "--upgrade", "--force", "{package}"]
 inventory = "uv"
 
 [[tools]]
