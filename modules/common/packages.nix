@@ -100,7 +100,7 @@ let
     nuget-to-json
     pciutils
     pfetch-rs
-    prettier
+    biome
     sqlcipher
     smartmontools
     tree

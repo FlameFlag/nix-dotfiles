@@ -117,7 +117,6 @@ in
         tokei
         which
         ;
-      inherit (pkgs.unstable) prettier;
 
       inherit (pkgs.unstable)
         atuin
