@@ -3,9 +3,21 @@
     {
       "host": "nyx@lenovo-legion",
       "projects": [
-        { "paths": ["~/nix-dotfiles"] },
-        { "paths": ["~/euvlok"] },
-        { "paths": ["~/nixpkgs"] }
+        {
+          "paths": [
+            "~/nix-dotfiles"
+          ]
+        },
+        {
+          "paths": [
+            "~/euvlok"
+          ]
+        },
+        {
+          "paths": [
+            "~/nixpkgs"
+          ]
+        }
       ],
       "upload_binary_over_ssh": false,
       "nickname": "nyx"
@@ -29,7 +41,10 @@
   },
   "ui_font_family": ".SystemUIFont",
   "buffer_font_family": "TX02 Nerd Font",
-  "buffer_font_fallbacks": ["TX02 Nerd Font", "TX-02"],
+  "buffer_font_fallbacks": [
+    "TX02 Nerd Font",
+    "TX-02"
+  ],
   "terminal": {
     "font_family": "TX02 Nerd Font",
     "font_size": 15,
@@ -37,7 +52,9 @@
     "shell": {
       "with_arguments": {
         "program": "/run/current-system/sw/bin/nu",
-        "args": ["--login"]
+        "args": [
+          "--login"
+        ]
       }
     },
     "env": {
@@ -51,11 +68,17 @@
     "diagnostics": false,
     "metrics": false
   },
-  "wrap_guides": [72, 80, 120],
+  "wrap_guides": [
+    72,
+    80,
+    120
+  ],
   "helix_mode": true,
   "languages": {
     "Nix": {
-      "language_servers": ["nil"],
+      "language_servers": [
+        "nil"
+      ],
       "formatter": {
         "external": {
           "command": "nixfmt"
@@ -63,67 +86,36 @@
       }
     },
     "YAML": {
-      "language_servers": ["yaml-language-server"],
+      "language_servers": [
+        "yaml-language-server"
+      ],
       "formatter": "language_server"
     },
-    "JSON": {
-      "language_servers": ["json-language-server"],
-      "formatter": {
-        "external": {
-          "command": "prettier",
-          "arguments": [
-            "--parser",
-
-            "json",
-
-            "--stdin-filepath",
-
-            "{buffer_path}"
-          ]
-        }
-      }
-    },
     "HTML": {
-      "language_servers": ["vscode-html-language-server"],
-      "formatter": {
-        "external": {
-          "command": "prettier",
-          "arguments": [
-            "--parser",
-
-            "html",
-
-            "--stdin-filepath",
-
-            "{buffer_path}"
-          ]
-        }
-      }
-    },
-    "CSS": {
-      "formatter": {
-        "external": {
-          "command": "prettier",
-          "arguments": [
-            "--parser",
-            "css",
-            "--stdin-filepath",
-            "{buffer_path}"
-          ]
-        }
-      }
+      "language_servers": [
+        "vscode-html-language-server"
+      ]
     },
     "Shell Script": {
-      "language_servers": ["bash-language-server"],
+      "language_servers": [
+        "bash-language-server"
+      ],
       "formatter": {
         "external": {
           "command": "shfmt",
-          "arguments": ["--filename", "{buffer_path}", "--indent", "2"]
+          "arguments": [
+            "--filename",
+            "{buffer_path}",
+            "--indent",
+            "2"
+          ]
         }
       }
     },
     "Rust": {
-      "language_servers": ["rust-analyzer"],
+      "language_servers": [
+        "rust-analyzer"
+      ],
       "formatter": "language_server"
     }
   },
@@ -131,7 +123,9 @@
     "nil": {
       "initialization_options": {
         "formatting": {
-          "command": ["nixfmt"]
+          "command": [
+            "nixfmt"
+          ]
         }
       }
     }

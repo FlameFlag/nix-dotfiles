@@ -26,10 +26,10 @@ id = "davidanson.vscode-markdownlint"
 id = "dbaeumer.vscode-eslint"
 
 [[extensions]]
-id = "editorconfig.editorconfig"
+id = "biomejs.biome"
 
 [[extensions]]
-id = "esbenp.prettier-vscode"
+id = "editorconfig.editorconfig"
 
 [[extensions]]
 id = "jjk.jjk"
