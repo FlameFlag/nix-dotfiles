@@ -430,15 +430,28 @@ mod tests {
 
         let tool = build_tool();
         assert!(!installed_tool_healthy(&ctx, &tool).expect("missing build health"));
-        dotfiles_common::fs::write_executable(
-            ctx.bin_dir.join("demo"),
-            b"#!/bin/sh\nprintf 'demo 1.2.3\\n'\n",
-        )
-        .expect("write build bin");
+        let script = ctx
+            .bin_dir
+            .join(if cfg!(windows) { "demo.cmd" } else { "demo" });
+        let script_bytes: &[u8] = if cfg!(windows) {
+            b"@echo off\r\necho demo 1.0.0\r\n"
+        } else {
+            b"#!/bin/sh\nprintf 'demo 1.0.0\\n'\n"
+        };
+        fs::write_executable(&script, script_bytes).expect("write build bin");
         assert!(installed_tool_healthy(&ctx, &tool).expect("build health"));
 
         fs_err::write(ctx.bin_dir.join("demo"), "not executable").expect("write junk build bin");
         assert!(!installed_tool_healthy(&ctx, &tool).expect("junk build health"));
+    }
+
+    #[test]
+    fn installed_tool_healthy_rejects_broken_build_bins() {
+        let (_temp, ctx) = context();
+        let tool = build_tool();
+        fs_err::write(ctx.bin_dir.join("demo"), "").expect("write broken build bin");
+
+        assert!(!installed_tool_healthy(&ctx, &tool).expect("build health"));
     }
 
     #[test]

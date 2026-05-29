@@ -337,7 +337,10 @@ mod tests {
                 links: vec![],
             }),
         );
-        let script = temp.path().join(if cfg!(windows) {
+        let build_script = temp
+            .path()
+            .join(if cfg!(windows) { "demo.cmd" } else { "demo" });
+        let file_script = temp.path().join(if cfg!(windows) {
             "version-script.cmd"
         } else {
             "version-script"
@@ -347,14 +350,20 @@ mod tests {
         } else {
             b"#!/bin/sh\nprintf 'demo version 1.2.3, extra metadata\\n'\n"
         };
-        dotfiles_common::fs::write_executable(&script, script_bytes).expect("write script");
+        dotfiles_common::fs::write_executable(&build_script, script_bytes).expect("write script");
+        dotfiles_common::fs::write_executable(&file_script, script_bytes).expect("write script");
 
         assert_eq!(
-            version_status(&ctx, &build_tool, &["version-script".into()], Some(&script)),
+            version_status(&ctx, &build_tool, &["demo".into()], Some(&build_script)),
             ("1.2.3".into(), false)
         );
         assert_eq!(
-            version_status(&ctx, &file_tool, &["version-script".into()], Some(&script)),
+            version_status(
+                &ctx,
+                &file_tool,
+                &["version-script".into()],
+                Some(&file_script)
+            ),
             ("installed".into(), false)
         );
         assert_eq!(
@@ -368,7 +377,7 @@ mod tests {
                 &ctx,
                 &required_tool,
                 &["version-script".into()],
-                Some(&script)
+                Some(&file_script)
             ),
             ("1.2.3".into(), false)
         );
