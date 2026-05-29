@@ -33,6 +33,8 @@ pub enum ArchiveError {
     Zip(#[from] zip::result::ZipError),
     #[error(transparent)]
     Link(#[from] links::LinkError),
+    #[error("unsafe archive path: {0}")]
+    UnsafePath(PathBuf),
     #[error("unsupported platform")]
     UnsupportedPlatform,
     #[error("source required for archive platform")]
@@ -297,6 +299,28 @@ fn extract_tar<R: Read>(
             continue;
         };
         let out_path = dest_path.join(path);
+        ensure_safe_output_path(dest_path, &out_path)?;
+        let entry_type = entry.header().entry_type();
+        if entry_type.is_symlink() {
+            let target = entry
+                .link_name()?
+                .ok_or_else(|| ArchiveError::UnsafePath(out_path.clone()))?;
+            ensure_safe_link_target(dest_path, &out_path, target.as_ref())?;
+        } else if entry_type.is_hard_link() {
+            let target = entry
+                .link_name()?
+                .ok_or_else(|| ArchiveError::UnsafePath(out_path.clone()))?;
+            let Some(target) = stripped_path(target.as_ref(), strip_components) else {
+                return Err(ArchiveError::UnsafePath(out_path));
+            };
+            let link_source = dest_path.join(target);
+            ensure_safe_output_path(dest_path, &link_source)?;
+            if let Some(parent) = out_path.parent() {
+                fs_err::create_dir_all(parent)?;
+            }
+            fs_err::hard_link(link_source, out_path)?;
+            continue;
+        }
         if let Some(parent) = out_path.parent() {
             fs_err::create_dir_all(parent)?;
         }
@@ -321,6 +345,7 @@ fn extract_zip(
             continue;
         };
         let out_path = dest_path.join(path);
+        ensure_safe_output_path(dest_path, &out_path)?;
         if file.is_dir() {
             fs_err::create_dir_all(&out_path)?;
         } else {
@@ -332,7 +357,7 @@ fn extract_zip(
                 if let Some(parent) = out_path.parent() {
                     fs_err::create_dir_all(parent)?;
                 }
-                create_zip_symlink(&mut file, &out_path)?;
+                create_zip_symlink(&mut file, dest_path, &out_path)?;
                 continue;
             }
             let mut out = File::create(&out_path)?;
@@ -345,6 +370,7 @@ fn extract_zip(
 #[cfg(unix)]
 fn create_zip_symlink<R: std::io::Read + ?Sized>(
     file: &mut zip::read::ZipFile<'_, R>,
+    root: &Path,
     out_path: &Path,
 ) -> Result<(), ArchiveError> {
     use std::ffi::OsStr;
@@ -352,8 +378,52 @@ fn create_zip_symlink<R: std::io::Read + ?Sized>(
 
     let mut target = Vec::with_capacity(file.size().try_into().unwrap_or(0));
     file.read_to_end(&mut target)?;
-    std::os::unix::fs::symlink(OsStr::from_bytes(&target), out_path)?;
+    let target = OsStr::from_bytes(&target);
+    ensure_safe_link_target(root, out_path, Path::new(target))?;
+    std::os::unix::fs::symlink(target, out_path)?;
     Ok(())
+}
+
+fn ensure_safe_output_path(root: &Path, out_path: &Path) -> Result<(), ArchiveError> {
+    let relative = out_path
+        .strip_prefix(root)
+        .map_err(|_| ArchiveError::UnsafePath(out_path.to_path_buf()))?;
+    let mut current = root.to_path_buf();
+    for component in relative.components() {
+        if !matches!(component, Component::Normal(_)) {
+            return Err(ArchiveError::UnsafePath(out_path.to_path_buf()));
+        }
+        current.push(component.as_os_str());
+        match fs_err::symlink_metadata(&current) {
+            Ok(metadata) if metadata.file_type().is_symlink() => {
+                return Err(ArchiveError::UnsafePath(current));
+            }
+            Ok(_) => {}
+            Err(err) if err.kind() == std::io::ErrorKind::NotFound => {}
+            Err(err) => return Err(err.into()),
+        }
+    }
+    Ok(())
+}
+
+fn ensure_safe_link_target(
+    root: &Path,
+    link_path: &Path,
+    target: &Path,
+) -> Result<(), ArchiveError> {
+    if target.is_absolute() {
+        return Err(ArchiveError::UnsafePath(link_path.to_path_buf()));
+    }
+    let parent = link_path
+        .parent()
+        .ok_or_else(|| ArchiveError::UnsafePath(link_path.to_path_buf()))?;
+    let root = fs::normalize(root);
+    let target = fs::normalize(&parent.join(target));
+    if target.starts_with(root) {
+        Ok(())
+    } else {
+        Err(ArchiveError::UnsafePath(link_path.to_path_buf()))
+    }
 }
 
 fn stripped_path(path: &Path, strip_components: usize) -> Option<PathBuf> {
@@ -532,6 +602,40 @@ mod tests {
         Ok(())
     }
 
+    #[cfg(unix)]
+    #[test]
+    fn tar_extraction_rejects_symlink_escape() -> Result<(), ArchiveError> {
+        let temp = fs::tmp_dir("bootstrap-tar-symlink-escape-test")?;
+        let outside = temp.path().join("outside");
+        fs_err::create_dir_all(&outside)?;
+        let archive_path = temp.path().join("archive.tar.gz");
+        let archive_file = File::create(&archive_path)?;
+        let encoder = flate2::write::GzEncoder::new(archive_file, flate2::Compression::default());
+        let mut archive = tar::Builder::new(encoder);
+
+        let mut link_header = tar::Header::new_gnu();
+        link_header.set_entry_type(tar::EntryType::Symlink);
+        link_header.set_size(0);
+        link_header.set_cksum();
+        archive.append_link(&mut link_header, "root/link", &outside)?;
+
+        let bytes = b"escaped";
+        let mut file_header = tar::Header::new_gnu();
+        file_header.set_path("root/link/escaped.txt")?;
+        file_header.set_size(bytes.len().try_into().unwrap_or(0));
+        file_header.set_cksum();
+        archive.append(&file_header, &bytes[..])?;
+        let encoder = archive.into_inner()?;
+        encoder.finish()?;
+
+        let dest = temp.path().join("dest");
+        let result = extract_file(&archive_path, &dest, ArchiveKind::TarGz, 1);
+
+        assert!(matches!(result, Err(ArchiveError::UnsafePath(_))));
+        assert!(!outside.join("escaped.txt").exists());
+        Ok(())
+    }
+
     #[test]
     fn extract_file_handles_zip_archives() -> Result<(), ArchiveError> {
         let temp = fs::tmp_dir("bootstrap-zip-test")?;
@@ -574,6 +678,37 @@ mod tests {
                 .is_symlink()
         );
         assert_eq!(fs_err::read_link(link_path)?, PathBuf::from("Code"));
+        Ok(())
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn zip_extraction_rejects_symlink_escape() -> Result<(), ArchiveError> {
+        let temp = fs::tmp_dir("bootstrap-zip-symlink-escape-test")?;
+        let outside = temp.path().join("outside");
+        fs_err::create_dir_all(&outside)?;
+        let archive_path = temp.path().join("archive.zip");
+        let archive_file = File::create(&archive_path)?;
+        let mut writer = zip::ZipWriter::new(archive_file);
+        let outside_text = outside.to_string_lossy();
+        writer.add_symlink(
+            "root/link",
+            outside_text.as_ref(),
+            zip::write::SimpleFileOptions::default(),
+        )?;
+        writer.start_file(
+            "root/link/escaped.txt",
+            zip::write::SimpleFileOptions::default(),
+        )?;
+        use std::io::Write;
+        writer.write_all(b"escaped")?;
+        writer.finish()?;
+
+        let dest = temp.path().join("dest");
+        let result = extract_zip(&archive_path, &dest, 1);
+
+        assert!(matches!(result, Err(ArchiveError::UnsafePath(_))));
+        assert!(!outside.join("escaped.txt").exists());
         Ok(())
     }
 }
