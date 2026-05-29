@@ -54,12 +54,74 @@ fn validate_tool<'a>(
 
 fn validate_action_shape(tool_index: usize, action: &Action) -> Result<(), CatalogError> {
     match action {
+        Action::Archive(action) if action.platforms.is_empty() => Err(CatalogError::Invalid(
+            format!("tools[{tool_index}].action.platforms: must not be empty"),
+        )),
+        Action::Archive(action) => {
+            for (platform_index, platform) in action.platforms.iter().enumerate() {
+                if action.platform_kind(platform).is_none() {
+                    return Err(CatalogError::Invalid(format!(
+                        "tools[{tool_index}].action.platforms[{platform_index}].kind: must be set or inferable from platform"
+                    )));
+                }
+                if action.platform_links(platform).is_empty() {
+                    return Err(CatalogError::Invalid(format!(
+                        "tools[{tool_index}].action.platforms[{platform_index}].links: must not be empty"
+                    )));
+                }
+            }
+            Ok(())
+        }
         Action::File(action) if action.file.is_empty() => Err(CatalogError::Invalid(format!(
             "tools[{tool_index}].action.file: must not be empty"
+        ))),
+        Action::File(action) if action.links.is_empty() => Err(CatalogError::Invalid(format!(
+            "tools[{tool_index}].action.links: must not be empty"
         ))),
         Action::Build(action) if action.path.is_empty() => Err(CatalogError::Invalid(format!(
             "tools[{tool_index}].action.path: must not be empty"
         ))),
+        Action::SourceBuild(action) if action.platforms.is_empty() => Err(CatalogError::Invalid(
+            format!("tools[{tool_index}].action.platforms: must not be empty"),
+        )),
+        Action::SourceBuild(action) => {
+            for (platform_index, platform) in action.platforms.iter().enumerate() {
+                if action.platform_kind(platform).is_none() {
+                    return Err(CatalogError::Invalid(format!(
+                        "tools[{tool_index}].action.platforms[{platform_index}].kind: must be set or inferable from archive_file/url"
+                    )));
+                }
+                if action.platform_links(platform).is_empty() {
+                    return Err(CatalogError::Invalid(format!(
+                        "tools[{tool_index}].action.platforms[{platform_index}].links: must not be empty"
+                    )));
+                }
+            }
+            Ok(())
+        }
+        Action::Toolchain(action) if action.components.is_empty() => Err(CatalogError::Invalid(
+            format!("tools[{tool_index}].action.components: must not be empty"),
+        )),
+        Action::Toolchain(action) if action.install.platforms.is_empty() => {
+            Err(CatalogError::Invalid(format!(
+                "tools[{tool_index}].action.install.platforms: must not be empty"
+            )))
+        }
+        Action::Toolchain(action) => {
+            for (platform_index, command) in action.install.platforms.iter().enumerate() {
+                if action.install.platform_file(command).is_none() {
+                    return Err(CatalogError::Invalid(format!(
+                        "tools[{tool_index}].action.install.platforms[{platform_index}].file: must be set or inherited"
+                    )));
+                }
+                if action.install.platform_argv(command).is_none() {
+                    return Err(CatalogError::Invalid(format!(
+                        "tools[{tool_index}].action.install.platforms[{platform_index}].argv: must be set or inherited"
+                    )));
+                }
+            }
+            Ok(())
+        }
         _ => Ok(()),
     }
 }
@@ -132,22 +194,36 @@ fn action_programs(tool_index: usize, action: &Action) -> Vec<(String, String)> 
         ),
         Action::SourceBuild(action) => {
             for (platform_index, platform) in action.platforms.iter().enumerate() {
-                collect_argv_program(
-                    &mut programs,
-                    &platform.argv,
-                    format!("tools[{tool_index}].action.platforms[{platform_index}].argv[0]"),
-                );
+                let (argv, label) = if let Some(argv) = platform.argv.as_deref() {
+                    (
+                        argv,
+                        format!("tools[{tool_index}].action.platforms[{platform_index}].argv[0]"),
+                    )
+                } else {
+                    (
+                        action.argv.as_slice(),
+                        format!("tools[{tool_index}].action.argv[0]"),
+                    )
+                };
+                collect_argv_program(&mut programs, argv, label);
             }
         }
         Action::Toolchain(action) => {
             for (platform_index, command) in action.install.platforms.iter().enumerate() {
-                collect_argv_program(
-                    &mut programs,
-                    &command.argv,
-                    format!(
-                        "tools[{tool_index}].action.install.platforms[{platform_index}].argv[0]"
-                    ),
-                );
+                let (argv, label) = if command.argv.is_empty() {
+                    (
+                        action.install.argv.as_slice(),
+                        format!("tools[{tool_index}].action.install.argv[0]"),
+                    )
+                } else {
+                    (
+                        command.argv.as_slice(),
+                        format!(
+                            "tools[{tool_index}].action.install.platforms[{platform_index}].argv[0]"
+                        ),
+                    )
+                };
+                collect_argv_program(&mut programs, argv, label);
             }
             collect_argv_program(
                 &mut programs,
@@ -214,6 +290,18 @@ fn executable_key(program: &str) -> Option<String> {
 fn validate_action_paths(tool_index: usize, action: &Action) -> Result<(), CatalogError> {
     match action {
         Action::Archive(action) => {
+            for (link_index, link) in action.links.iter().enumerate() {
+                validate_relative_utf8_path(
+                    &link.path,
+                    &format!("tools[{tool_index}].action.links[{link_index}].path"),
+                )?;
+            }
+            for (link_index, link) in action.app_links.iter().enumerate() {
+                validate_relative_utf8_path(
+                    &link.path,
+                    &format!("tools[{tool_index}].action.app_links[{link_index}].path"),
+                )?;
+            }
             for (platform_index, platform) in action.platforms.iter().enumerate() {
                 for (link_index, link) in platform.links.iter().enumerate() {
                     validate_relative_utf8_path(
@@ -252,6 +340,12 @@ fn validate_action_paths(tool_index: usize, action: &Action) -> Result<(), Catal
             }
         }
         Action::SourceBuild(action) => {
+            for (link_index, link) in action.links.iter().enumerate() {
+                validate_relative_utf8_path(
+                    &link.path,
+                    &format!("tools[{tool_index}].action.links[{link_index}].path"),
+                )?;
+            }
             for (platform_index, platform) in action.platforms.iter().enumerate() {
                 for (link_index, link) in platform.links.iter().enumerate() {
                     validate_relative_utf8_path(

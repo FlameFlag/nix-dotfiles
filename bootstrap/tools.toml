@@ -1,234 +1,84 @@
+# The catalog loader expands these shorthands:
+# - omitted bins => the tool name, and string bins use "<bin> --version"
+# - string links use the same value for link name and install-root path
+# - when accepts "os" or "os-arch" strings, for example "linux-x86_64"
+# - archive/source_build defaults are inherited by platform rows
+# - package defaults to "uv tool install --upgrade --force"
+# - build defaults to "cargo install --path {build_dir} --root {prefix} --force --locked"
+
 [[tools]]
 name = "chezmoi"
-
-[[tools.bins]]
-name = "chezmoi"
-version_argv = ["chezmoi", "--version"]
 
 [tools.action]
 type = "archive"
 source = { type = "github_latest", repo = "twpayne/chezmoi", tag_prefix = "v", asset = "chezmoi_{version}_{platform}" }
-
-[[tools.action.platforms]]
-when = { os = "macos", arch = "aarch64" }
-platform = "darwin_arm64.tar.gz"
-kind = "tar_gz"
-strip_components = 0
-links = [{ name = "chezmoi", path = "chezmoi" }]
-
-[[tools.action.platforms]]
-when = { os = "linux", arch = "aarch64" }
-platform = "linux_arm64.tar.gz"
-kind = "tar_gz"
-strip_components = 0
-links = [{ name = "chezmoi", path = "chezmoi" }]
-
-[[tools.action.platforms]]
-when = { os = "linux", arch = "x86_64" }
-platform = "linux_amd64.tar.gz"
-kind = "tar_gz"
-strip_components = 0
-links = [{ name = "chezmoi", path = "chezmoi" }]
-
-[[tools.action.platforms]]
-when = { os = "windows", arch = "aarch64" }
-platform = "windows_arm64.zip"
-kind = "zip"
-strip_components = 0
-links = [{ name = "chezmoi", path = "chezmoi.exe" }]
-
-[[tools.action.platforms]]
-when = { os = "windows", arch = "x86_64" }
-platform = "windows_amd64.zip"
-kind = "zip"
-strip_components = 0
-links = [{ name = "chezmoi", path = "chezmoi.exe" }]
+links = ["chezmoi"]
+platforms = [
+  { when = "macos-aarch64", platform = "darwin_arm64.tar.gz" },
+  { when = "linux-aarch64", platform = "linux_arm64.tar.gz" },
+  { when = "linux-x86_64", platform = "linux_amd64.tar.gz" },
+  { when = "windows-aarch64", platform = "windows_arm64.zip", links = [{ name = "chezmoi", path = "chezmoi.exe" }] },
+  { when = "windows-x86_64", platform = "windows_amd64.zip", links = [{ name = "chezmoi", path = "chezmoi.exe" }] },
+]
 
 [[tools]]
 name = "git"
 platforms = ["macos", "linux", "windows"]
 phase = "archives"
 
-[[tools.bins]]
-name = "git"
-version_argv = ["git", "--version"]
-
 [tools.action]
 type = "source_build"
 version = "2.54.0"
-
-[[tools.action.platforms]]
-when = { os = "macos" }
-platform = "macos"
-url = "https://www.kernel.org/pub/software/scm/git/git-{version}.tar.xz"
-archive_file = "git-{version}.tar.xz"
 kind = "tar_xz"
 strip_components = 1
 argv = ["make", "prefix={prefix}", "NO_GETTEXT=YesPlease", "NO_TCLTK=YesPlease", "NO_PERL=YesPlease", "NO_PYTHON=YesPlease", "NO_INSTALL_HARDLINKS=YesPlease", "-j{jobs}", "all", "install"]
 sandbox_home = true
 links = [{ name = "git", path = "bin/git" }]
-
-[[tools.action.platforms]]
-when = { os = "linux" }
-platform = "linux"
-url = "https://www.kernel.org/pub/software/scm/git/git-{version}.tar.xz"
-archive_file = "git-{version}.tar.xz"
-kind = "tar_xz"
-strip_components = 1
-argv = ["make", "prefix={prefix}", "NO_GETTEXT=YesPlease", "NO_TCLTK=YesPlease", "NO_PERL=YesPlease", "NO_PYTHON=YesPlease", "NO_INSTALL_HARDLINKS=YesPlease", "-j{jobs}", "all", "install"]
-sandbox_home = true
-links = [{ name = "git", path = "bin/git" }]
-
-[[tools.action.platforms]]
-when = { os = "windows", arch = "x86_64" }
-platform = "windows-amd64"
-url = "https://github.com/git-for-windows/git/releases/download/v{version}.windows.1/MinGit-{version}-64-bit.zip"
-archive_file = "MinGit-{version}-64-bit.zip"
-kind = "zip"
-strip_components = 0
-argv = []
-links = [{ name = "git.cmd", path = "mingw64/bin/git.exe" }]
-
-[[tools.action.platforms]]
-when = { os = "windows", arch = "aarch64" }
-platform = "windows-arm64"
-url = "https://github.com/git-for-windows/git/releases/download/v{version}.windows.1/MinGit-{version}-arm64.zip"
-archive_file = "MinGit-{version}-arm64.zip"
-kind = "zip"
-strip_components = 0
-argv = []
-links = [{ name = "git.cmd", path = "clangarm64/bin/git.exe" }]
+platforms = [
+  { when = "macos", platform = "macos", url = "https://www.kernel.org/pub/software/scm/git/git-{version}.tar.xz", archive_file = "git-{version}.tar.xz" },
+  { when = "linux", platform = "linux", url = "https://www.kernel.org/pub/software/scm/git/git-{version}.tar.xz", archive_file = "git-{version}.tar.xz" },
+  { when = "windows-x86_64", platform = "windows-amd64", url = "https://github.com/git-for-windows/git/releases/download/v{version}.windows.1/MinGit-{version}-64-bit.zip", archive_file = "MinGit-{version}-64-bit.zip", kind = "zip", strip_components = 0, argv = [], sandbox_home = false, links = [{ name = "git.cmd", path = "mingw64/bin/git.exe" }] },
+  { when = "windows-aarch64", platform = "windows-arm64", url = "https://github.com/git-for-windows/git/releases/download/v{version}.windows.1/MinGit-{version}-arm64.zip", archive_file = "MinGit-{version}-arm64.zip", kind = "zip", strip_components = 0, argv = [], sandbox_home = false, links = [{ name = "git.cmd", path = "clangarm64/bin/git.exe" }] },
+]
 
 [[tools]]
 name = "git-lfs"
-platforms = ["macos", "linux", "windows"]
-
-[[tools.bins]]
-name = "git-lfs"
-version_argv = ["git-lfs", "--version"]
+bins = ["git-lfs"]
 
 [tools.action]
 type = "archive"
-
-[tools.action.source]
-type = "github_latest"
-repo = "git-lfs/git-lfs"
-tag_prefix = "v"
-asset = "git-lfs-{platform}-v{version}.tar.gz"
-
-[[tools.action.platforms]]
-when = { os = "macos", arch = "aarch64" }
-platform = "darwin-arm64"
-kind = "zip"
-strip_components = 1
-source = { type = "github_latest", repo = "git-lfs/git-lfs", tag_prefix = "v", asset = "git-lfs-{platform}-v{version}.zip" }
-links = [{ name = "git-lfs", path = "git-lfs" }]
-
-[[tools.action.platforms]]
-when = { os = "linux", arch = "aarch64" }
-platform = "linux-arm64"
 kind = "tar_gz"
 strip_components = 1
-links = [{ name = "git-lfs", path = "git-lfs" }]
-
-[[tools.action.platforms]]
-when = { os = "linux", arch = "x86_64" }
-platform = "linux-amd64"
-kind = "tar_gz"
-strip_components = 1
-links = [{ name = "git-lfs", path = "git-lfs" }]
-
-[[tools.action.platforms]]
-when = { os = "windows", arch = "aarch64" }
-platform = "windows-arm64"
-kind = "zip"
-strip_components = 1
-source = { type = "github_latest", repo = "git-lfs/git-lfs", tag_prefix = "v", asset = "git-lfs-{platform}-v{version}.zip" }
-links = [{ name = "git-lfs", path = "git-lfs.exe" }]
-
-[[tools.action.platforms]]
-when = { os = "windows", arch = "x86_64" }
-platform = "windows-amd64"
-kind = "zip"
-strip_components = 1
-source = { type = "github_latest", repo = "git-lfs/git-lfs", tag_prefix = "v", asset = "git-lfs-{platform}-v{version}.zip" }
-links = [{ name = "git-lfs", path = "git-lfs.exe" }]
+source = { type = "github_latest", repo = "git-lfs/git-lfs", tag_prefix = "v", asset = "git-lfs-{platform}-v{version}.tar.gz" }
+links = ["git-lfs"]
+platforms = [
+  { when = "macos-aarch64", platform = "darwin-arm64", kind = "zip", source = { type = "github_latest", repo = "git-lfs/git-lfs", tag_prefix = "v", asset = "git-lfs-{platform}-v{version}.zip" } },
+  { when = "linux-aarch64", platform = "linux-arm64" },
+  { when = "linux-x86_64", platform = "linux-amd64" },
+  { when = "windows-aarch64", platform = "windows-arm64", kind = "zip", source = { type = "github_latest", repo = "git-lfs/git-lfs", tag_prefix = "v", asset = "git-lfs-{platform}-v{version}.zip" }, links = [{ name = "git-lfs", path = "git-lfs.exe" }] },
+  { when = "windows-x86_64", platform = "windows-amd64", kind = "zip", source = { type = "github_latest", repo = "git-lfs/git-lfs", tag_prefix = "v", asset = "git-lfs-{platform}-v{version}.zip" }, links = [{ name = "git-lfs", path = "git-lfs.exe" }] },
+]
 
 [[tools]]
 name = "uv"
-
-[[tools.bins]]
-name = "uv"
-version_argv = ["uv", "--version"]
-
-[[tools.bins]]
-name = "uvx"
-version_argv = ["uvx", "--version"]
+bins = ["uv", "uvx"]
 
 [tools.action]
 type = "archive"
-
-[tools.action.source]
-type = "github_latest"
-repo = "astral-sh/uv"
-tag_prefix = "v"
-asset = "uv-{platform}.tar.gz"
-
-[[tools.action.platforms]]
-when = { os = "macos", arch = "aarch64" }
-platform = "aarch64-apple-darwin"
 kind = "tar_gz"
 strip_components = 1
-links = [{ name = "uv", path = "uv" }, { name = "uvx", path = "uvx" }]
-
-[[tools.action.platforms]]
-when = { os = "linux", arch = "aarch64" }
-platform = "aarch64-unknown-linux-musl"
-kind = "tar_gz"
-strip_components = 1
-links = [{ name = "uv", path = "uv" }, { name = "uvx", path = "uvx" }]
-
-[[tools.action.platforms]]
-when = { os = "linux", arch = "x86_64" }
-platform = "x86_64-unknown-linux-musl"
-kind = "tar_gz"
-strip_components = 1
-links = [{ name = "uv", path = "uv" }, { name = "uvx", path = "uvx" }]
-
-[[tools.action.platforms]]
-when = { os = "windows", arch = "x86_64" }
-platform = "x86_64-pc-windows-msvc"
-kind = "zip"
-strip_components = 0
-source = { type = "github_latest", repo = "astral-sh/uv", tag_prefix = "v", asset = "uv-{platform}.zip" }
-links = [{ name = "uv", path = "uv.exe" }, { name = "uvx", path = "uvx.exe" }]
+source = { type = "github_latest", repo = "astral-sh/uv", tag_prefix = "v", asset = "uv-{platform}.tar.gz" }
+links = ["uv", "uvx"]
+platforms = [
+  { when = "macos-aarch64", platform = "aarch64-apple-darwin" },
+  { when = "linux-aarch64", platform = "aarch64-unknown-linux-musl" },
+  { when = "linux-x86_64", platform = "x86_64-unknown-linux-musl" },
+  { when = "windows-x86_64", platform = "x86_64-pc-windows-msvc", kind = "zip", strip_components = 0, source = { type = "github_latest", repo = "astral-sh/uv", tag_prefix = "v", asset = "uv-{platform}.zip" }, links = [{ name = "uv", path = "uv.exe" }, { name = "uvx", path = "uvx.exe" }] },
+]
 
 [[tools]]
 name = "rustup"
-
-[[tools.bins]]
-name = "rustup"
-version_argv = ["rustup", "--version"]
-
-[[tools.bins]]
-name = "cargo"
-version_argv = ["cargo", "--version"]
-
-[[tools.bins]]
-name = "rustc"
-version_argv = ["rustc", "--version"]
-
-[[tools.bins]]
-name = "rustfmt"
-version_argv = ["rustfmt", "--version"]
-
-[[tools.bins]]
-name = "cargo-clippy"
-version_argv = ["cargo-clippy", "--version"]
-
-[[tools.bins]]
-name = "rust-analyzer"
-version_argv = ["rust-analyzer", "--version"]
+bins = ["rustup", "cargo", "rustc", "rustfmt", "cargo-clippy", "rust-analyzer"]
 
 [tools.action]
 type = "toolchain"
@@ -243,272 +93,132 @@ default_argv = ["{manager_bin}", "default", "{toolchain}", "--force-non-host"]
 component_argv = ["--component", "{component}"]
 
 [tools.action.install]
+file = "rustup-init"
+argv = ["{file}", "-y", "--profile", "minimal", "--default-toolchain", "{toolchain}", "{components}"]
 platforms = [
-  { when = { os = "macos", arch = "aarch64" }, url = "https://static.rust-lang.org/rustup/dist/aarch64-apple-darwin/rustup-init", file = "rustup-init", argv = ["{file}", "-y", "--profile", "minimal", "--default-toolchain", "{toolchain}", "{components}"] },
-  { when = { os = "linux", arch = "aarch64" }, url = "https://static.rust-lang.org/rustup/dist/aarch64-unknown-linux-gnu/rustup-init", file = "rustup-init", argv = ["{file}", "-y", "--profile", "minimal", "--default-toolchain", "{toolchain}", "{components}"] },
-  { when = { os = "linux", arch = "x86_64" }, url = "https://static.rust-lang.org/rustup/dist/x86_64-unknown-linux-gnu/rustup-init", file = "rustup-init", argv = ["{file}", "-y", "--profile", "minimal", "--default-toolchain", "{toolchain}", "{components}"] },
-  { when = { os = "windows", arch = "aarch64" }, url = "https://static.rust-lang.org/rustup/dist/aarch64-pc-windows-msvc/rustup-init.exe", file = "rustup-init.exe", argv = ["{file}", "-y", "--profile", "minimal", "--default-toolchain", "{toolchain}", "{components}"] },
-  { when = { os = "windows", arch = "x86_64" }, url = "https://static.rust-lang.org/rustup/dist/x86_64-pc-windows-msvc/rustup-init.exe", file = "rustup-init.exe", argv = ["{file}", "-y", "--profile", "minimal", "--default-toolchain", "{toolchain}", "{components}"] },
+  { when = "macos-aarch64", url = "https://static.rust-lang.org/rustup/dist/aarch64-apple-darwin/rustup-init" },
+  { when = "linux-aarch64", url = "https://static.rust-lang.org/rustup/dist/aarch64-unknown-linux-gnu/rustup-init" },
+  { when = "linux-x86_64", url = "https://static.rust-lang.org/rustup/dist/x86_64-unknown-linux-gnu/rustup-init" },
+  { when = "windows-aarch64", url = "https://static.rust-lang.org/rustup/dist/aarch64-pc-windows-msvc/rustup-init.exe", file = "rustup-init.exe" },
+  { when = "windows-x86_64", url = "https://static.rust-lang.org/rustup/dist/x86_64-pc-windows-msvc/rustup-init.exe", file = "rustup-init.exe" },
 ]
 
 [[tools]]
 name = "node"
-
-[[tools.bins]]
-name = "node"
-version_argv = ["node", "--version"]
-
-[[tools.bins]]
-name = "npm"
-version_argv = ["npm", "--version"]
-
-[[tools.bins]]
-name = "npx"
-version_argv = ["npx", "--version"]
+bins = ["node", "npm", "npx"]
 
 [tools.action]
 type = "archive"
+kind = "tar_xz"
+strip_components = 1
 source = { type = "version_index", index_url = "https://nodejs.org/dist/index.json", url = "https://nodejs.org/dist/{version}/node-{version}-{platform}.tar.xz" }
-
-[[tools.action.platforms]]
-when = { os = "macos", arch = "aarch64" }
-platform = "darwin-arm64"
-kind = "tar_xz"
-strip_components = 1
 links = [{ name = "node", path = "bin/node" }, { name = "npm", path = "bin/npm" }, { name = "npx", path = "bin/npx" }]
-
-[[tools.action.platforms]]
-when = { os = "linux", arch = "aarch64" }
-platform = "linux-arm64"
-kind = "tar_xz"
-strip_components = 1
-links = [{ name = "node", path = "bin/node" }, { name = "npm", path = "bin/npm" }, { name = "npx", path = "bin/npx" }]
-
-[[tools.action.platforms]]
-when = { os = "linux", arch = "x86_64" }
-platform = "linux-x64"
-kind = "tar_xz"
-strip_components = 1
-links = [{ name = "node", path = "bin/node" }, { name = "npm", path = "bin/npm" }, { name = "npx", path = "bin/npx" }]
-
-[[tools.action.platforms]]
-when = { os = "windows", arch = "x86_64" }
-platform = "win-x64"
-kind = "zip"
-strip_components = 1
-source = { type = "version_index", index_url = "https://nodejs.org/dist/index.json", url = "https://nodejs.org/dist/{version}/node-{version}-{platform}.zip" }
-links = [{ name = "node", path = "node.exe" }, { name = "npm", path = "npm.cmd" }, { name = "npx", path = "npx.cmd" }]
+platforms = [
+  { when = "macos-aarch64", platform = "darwin-arm64" },
+  { when = "linux-aarch64", platform = "linux-arm64" },
+  { when = "linux-x86_64", platform = "linux-x64" },
+  { when = "windows-x86_64", platform = "win-x64", kind = "zip", source = { type = "version_index", index_url = "https://nodejs.org/dist/index.json", url = "https://nodejs.org/dist/{version}/node-{version}-{platform}.zip" }, links = [{ name = "node", path = "node.exe" }, { name = "npm", path = "npm.cmd" }, { name = "npx", path = "npx.cmd" }] },
+]
 
 [[tools]]
 name = "bun"
-
-[[tools.bins]]
-name = "bun"
-version_argv = ["bun", "--version"]
-
-[[tools.bins]]
-name = "bunx"
-version_argv = ["bunx", "--version"]
+bins = ["bun", "bunx"]
 
 [tools.action]
 type = "archive"
+kind = "zip"
 source = { type = "github_latest", repo = "oven-sh/bun", tag_prefix = "bun-v", asset = "bun-{platform}.zip" }
-
-[[tools.action.platforms]]
-when = { os = "macos", arch = "aarch64" }
-platform = "darwin-aarch64"
-kind = "zip"
-strip_components = 0
 links = [{ name = "bun", path = "bun-{platform}/bun" }, { name = "bunx", path = "bun-{platform}/bun" }]
-
-[[tools.action.platforms]]
-when = { os = "linux", arch = "aarch64" }
-platform = "linux-aarch64-musl"
-kind = "zip"
-strip_components = 0
-links = [{ name = "bun", path = "bun-{platform}/bun" }, { name = "bunx", path = "bun-{platform}/bun" }]
-
-[[tools.action.platforms]]
-when = { os = "linux", arch = "x86_64" }
-platform = "linux-x64-musl"
-kind = "zip"
-strip_components = 0
-links = [{ name = "bun", path = "bun-{platform}/bun" }, { name = "bunx", path = "bun-{platform}/bun" }]
-
-[[tools.action.platforms]]
-when = { os = "windows", arch = "x86_64" }
-platform = "windows-x64"
-kind = "zip"
-strip_components = 0
-links = [{ name = "bun", path = "bun-{platform}/bun.exe" }, { name = "bunx", path = "bun-{platform}/bun.exe" }]
+platforms = [
+  { when = "macos-aarch64", platform = "darwin-aarch64" },
+  { when = "linux-aarch64", platform = "linux-aarch64-musl" },
+  { when = "linux-x86_64", platform = "linux-x64-musl" },
+  { when = "windows-x86_64", platform = "windows-x64", links = [{ name = "bun", path = "bun-{platform}/bun.exe" }, { name = "bunx", path = "bun-{platform}/bun.exe" }] },
+]
 
 [[tools]]
 name = "vscode"
 platforms = ["macos", "linux", "windows"]
-
-[[tools.bins]]
-name = "code"
-version_argv = ["code", "--version"]
+bins = [{ name = "code", version_argv = ["code", "--version"] }]
 
 [tools.action]
 type = "archive"
 source = { type = "direct", version = "latest", url = "https://update.code.visualstudio.com/latest/{platform}/stable" }
-
-[[tools.action.platforms]]
-when = { os = "macos", arch = "aarch64" }
-platform = "darwin-arm64"
-kind = "zip"
-strip_components = 0
-links = [{ name = "code", path = "Visual Studio Code.app/Contents/Resources/app/bin/code" }]
-app_links = [{ name = "Visual Studio Code.app", path = "Visual Studio Code.app" }]
-
-[[tools.action.platforms]]
-when = { os = "linux", arch = "aarch64" }
-platform = "linux-arm64"
-kind = "tar_gz"
-strip_components = 1
-links = [{ name = "code", path = "bin/code" }]
-
-[[tools.action.platforms]]
-when = { os = "linux", arch = "x86_64" }
-platform = "linux-x64"
-kind = "tar_gz"
-strip_components = 1
-links = [{ name = "code", path = "bin/code" }]
-
-[[tools.action.platforms]]
-when = { os = "windows", arch = "aarch64" }
-platform = "win32-arm64-archive"
-kind = "zip"
-strip_components = 0
-links = [{ name = "code", path = "bin/code.cmd" }]
-
-[[tools.action.platforms]]
-when = { os = "windows", arch = "x86_64" }
-platform = "win32-x64-archive"
-kind = "zip"
-strip_components = 0
-links = [{ name = "code", path = "bin/code.cmd" }]
+platforms = [
+  { when = "macos-aarch64", platform = "darwin-arm64", kind = "zip", links = [{ name = "code", path = "Visual Studio Code.app/Contents/Resources/app/bin/code" }], app_links = [{ name = "Visual Studio Code.app", path = "Visual Studio Code.app" }] },
+  { when = "linux-aarch64", platform = "linux-arm64", kind = "tar_gz", strip_components = 1, links = [{ name = "code", path = "bin/code" }] },
+  { when = "linux-x86_64", platform = "linux-x64", kind = "tar_gz", strip_components = 1, links = [{ name = "code", path = "bin/code" }] },
+  { when = "windows-aarch64", platform = "win32-arm64-archive", kind = "zip", links = [{ name = "code", path = "bin/code.cmd" }] },
+  { when = "windows-x86_64", platform = "win32-x64-archive", kind = "zip", links = [{ name = "code", path = "bin/code.cmd" }] },
+]
 
 [[tools]]
 name = "yt-dlp"
 
-[[tools.bins]]
-name = "yt-dlp"
-version_argv = ["yt-dlp", "--version"]
-
 [tools.action]
 type = "package"
-name = "yt-dlp"
-install_argv = ["uv", "tool", "install", "--upgrade", "--force", "{package}"]
-inventory = "uv"
 
 [[tools]]
 name = "yt-dlp-script"
 platforms = ["macos", "linux"]
-
-[[tools.bins]]
-name = "yt-dlp-script"
-version_argv = ["yt-dlp-script", "--help"]
+bins = [{ name = "yt-dlp-script", version_argv = ["yt-dlp-script", "--help"] }]
 
 [tools.action]
 type = "file"
 source = { type = "direct", version = "latest", url = "https://raw.githubusercontent.com/euvlok/pkgs/HEAD/pkgs/by-name/yt/yt-dlp-script/yt-dlp-script.nu" }
 file = "yt-dlp-script"
-links = [{ name = "yt-dlp-script", path = "yt-dlp-script" }]
+links = ["yt-dlp-script"]
 
 [[tools]]
 name = "ruff"
 
-[[tools.bins]]
-name = "ruff"
-version_argv = ["ruff", "--version"]
-
 [tools.action]
 type = "package"
-name = "ruff"
-install_argv = ["uv", "tool", "install", "--upgrade", "--force", "{package}"]
-inventory = "uv"
 
 [[tools]]
 name = "ty"
 
-[[tools.bins]]
-name = "ty"
-version_argv = ["ty", "--version"]
-
 [tools.action]
 type = "package"
-name = "ty"
-install_argv = ["uv", "tool", "install", "--upgrade", "--force", "{package}"]
-inventory = "uv"
 
 [[tools]]
 name = "bootstrap"
 platforms = ["macos", "linux", "windows"]
-
-[[tools.bins]]
-name = "bootstrap"
-version_argv = ["bootstrap", "--version"]
 
 [tools.action]
 type = "build"
 path = "crates/bootstrap-cli"
-argv = ["cargo", "install", "--path", "{build_dir}", "--root", "{prefix}", "--force", "--locked"]
 
 [[tools]]
 name = "gh-hide-comment"
 platforms = ["macos", "linux", "windows"]
-
-[[tools.bins]]
-name = "gh-hide-comment"
-version_argv = ["gh-hide-comment", "--version"]
 
 [tools.action]
 type = "build"
 path = "pkgs/gh-hide-comment"
-argv = ["cargo", "install", "--path", "{build_dir}", "--root", "{prefix}", "--force", "--locked"]
 
 [[tools]]
 name = "zellij-theme-tools"
 platforms = ["macos", "linux"]
-
-[[tools.bins]]
-name = "codex-zellij-theme"
-version_argv = ["codex-zellij-theme", "--version"]
-
-[[tools.bins]]
-name = "zellij-auto-theme"
-version_argv = ["zellij-auto-theme", "--version"]
+bins = ["codex-zellij-theme", "zellij-auto-theme"]
 
 [tools.action]
 type = "build"
 path = "pkgs/zellij-theme-tools"
-argv = ["cargo", "install", "--path", "{build_dir}", "--root", "{prefix}", "--force", "--locked"]
 
 [[tools]]
 name = "chezmoi-support"
 platforms = ["macos", "linux", "windows"]
 
-[[tools.bins]]
-name = "chezmoi-support"
-version_argv = ["chezmoi-support", "--version"]
-
 [tools.action]
 type = "build"
 path = "crates/chezmoi-support"
-argv = ["cargo", "install", "--path", "{build_dir}", "--root", "{prefix}", "--force", "--locked"]
 
 [[tools]]
 name = "lenovo-con-mode"
 platforms = ["linux", "windows"]
 requires = ["lenovo_laptop"]
 
-[[tools.bins]]
-name = "lenovo-con-mode"
-version_argv = ["lenovo-con-mode", "--version"]
-
 [tools.action]
 type = "build"
 path = "pkgs/lenovo-con-mode"
-argv = ["cargo", "install", "--path", "{build_dir}", "--root", "{prefix}", "--force", "--locked"]

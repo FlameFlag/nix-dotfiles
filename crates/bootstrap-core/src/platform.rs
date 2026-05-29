@@ -1,5 +1,5 @@
-use schemars::JsonSchema;
-use serde::{Deserialize, Serialize};
+use schemars::{JsonSchema, Schema, SchemaGenerator, json_schema};
+use serde::{Deserialize, Serialize, de};
 
 #[cfg(target_os = "windows")]
 use dotfiles_common::process;
@@ -19,10 +19,80 @@ pub enum HostArch {
     X86_64,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Default)]
 pub struct Predicate {
     pub os: Option<HostOs>,
     pub arch: Option<HostArch>,
+}
+
+impl JsonSchema for Predicate {
+    fn inline_schema() -> bool {
+        true
+    }
+
+    fn schema_name() -> std::borrow::Cow<'static, str> {
+        "Predicate".into()
+    }
+
+    fn json_schema(_generator: &mut SchemaGenerator) -> Schema {
+        json_schema!({
+            "oneOf": [
+                {
+                    "type": "string",
+                    "examples": ["macos-aarch64", "linux-x86_64", "windows"]
+                },
+                {
+                    "type": "object",
+                    "properties": {
+                        "os": { "enum": ["macos", "linux", "windows"] },
+                        "arch": { "enum": ["aarch64", "x86_64"] }
+                    },
+                    "additionalProperties": false
+                }
+            ]
+        })
+    }
+}
+
+impl<'de> Deserialize<'de> for Predicate {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        #[derive(Deserialize)]
+        #[serde(untagged)]
+        enum PredicateRepr {
+            Short(String),
+            Full {
+                os: Option<HostOs>,
+                arch: Option<HostArch>,
+            },
+        }
+
+        match PredicateRepr::deserialize(deserializer)? {
+            PredicateRepr::Short(value) => parse_predicate(&value).map_err(de::Error::custom),
+            PredicateRepr::Full { os, arch } => Ok(Self { os, arch }),
+        }
+    }
+}
+
+fn parse_predicate(value: &str) -> Result<Predicate, String> {
+    let (os, arch) = value
+        .split_once('-')
+        .map_or((value, None), |(os, arch)| (os, Some(arch)));
+    let os = match os {
+        "macos" | "darwin" => HostOs::Macos,
+        "linux" => HostOs::Linux,
+        "windows" | "win32" => HostOs::Windows,
+        _ => return Err(format!("unknown host OS predicate {os:?}")),
+    };
+    let arch = match arch {
+        None => None,
+        Some("aarch64" | "arm64") => Some(HostArch::Aarch64),
+        Some("x86_64" | "amd64" | "x64") => Some(HostArch::X86_64),
+        Some(arch) => return Err(format!("unknown host architecture predicate {arch:?}")),
+    };
+    Ok(Predicate { os: Some(os), arch })
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -172,6 +242,21 @@ mod tests {
             }
             .rustup_triple(),
             Some("aarch64-unknown-linux-gnu")
+        );
+    }
+
+    #[test]
+    fn predicates_accept_short_platform_strings() {
+        let predicate: Predicate = toml::from_str(r#"when = "macos-aarch64""#)
+            .map(|value: toml::Table| value["when"].clone().try_into().expect("predicate"))
+            .expect("parse toml");
+
+        assert_eq!(
+            predicate,
+            Predicate {
+                os: Some(HostOs::Macos),
+                arch: Some(HostArch::Aarch64),
+            }
         );
     }
 }

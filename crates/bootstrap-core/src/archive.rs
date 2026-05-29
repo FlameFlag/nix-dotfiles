@@ -37,6 +37,8 @@ pub enum ArchiveError {
     UnsupportedPlatform,
     #[error("source required for archive platform")]
     MissingSource,
+    #[error("archive kind required for archive platform")]
+    MissingKind,
     #[error("version index did not contain a release")]
     EmptyVersionIndex,
 }
@@ -68,6 +70,10 @@ pub fn install_archive(
         .as_ref()
         .or(action.source.as_ref())
         .ok_or(ArchiveError::MissingSource)?;
+    let kind = action
+        .platform_kind(platform)
+        .ok_or(ArchiveError::MissingKind)?;
+    let strip_components = action.platform_strip_components(platform);
     let resolved = resolve_source(source, &platform.platform)?;
 
     let install_dir = links::install_dir(ctx, tool, &resolved.version);
@@ -76,15 +82,15 @@ pub fn install_archive(
     bindings.insert("version", resolved.version.as_str());
     bindings.insert("platform", platform.platform.as_str());
     bindings.insert("install_dir", install_dir_text.as_ref());
-    let rendered_links = render_links(&platform.links, &bindings)?;
-    let rendered_app_links = render_links(&platform.app_links, &bindings)?;
+    let rendered_links = render_links(action.platform_links(platform), &bindings)?;
+    let rendered_app_links = render_links(action.platform_app_links(platform), &bindings)?;
 
     let temp_dir = install_dir.with_extension("tmp");
     fs::remove_dir_if_exists(&temp_dir)?;
     fs::remove_dir_if_exists(&install_dir)?;
 
     let download_dir = fs::tmp_dir("bootstrap-archive")?;
-    let archive_path = download_dir.path().join(match platform.kind {
+    let archive_path = download_dir.path().join(match kind {
         ArchiveKind::TarXz => "archive.tar.xz",
         ArchiveKind::TarGz => "archive.tar.gz",
         ArchiveKind::Zip => "archive.zip",
@@ -94,12 +100,7 @@ pub fn install_archive(
     client.download_file(&resolved.url, &archive_path)?;
     progress.set_message(format!("{tool}: extracting {}", resolved.version));
 
-    extract_file(
-        &archive_path,
-        &temp_dir,
-        platform.kind,
-        platform.strip_components,
-    )?;
+    extract_file(&archive_path, &temp_dir, kind, strip_components)?;
     progress.set_message(format!("{tool}: repairing executable permissions"));
     repair_executable_permissions(&temp_dir)?;
     progress.set_message(format!("{tool}: installing {}", resolved.version));
