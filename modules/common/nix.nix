@@ -6,6 +6,7 @@
 }:
 let
   flakeInputs = lib.attrsets.filterAttrs (_: lib.types.isType "flake") inputs;
+  nixPathEntries = lib.attrsets.mapAttrsToList (n: _: "${n}=flake:${n}") flakeInputs;
 in
 {
   config = {
@@ -40,13 +41,14 @@ in
           "/nix/var/cache/ccache"
           "/nix/var/cache/sccache"
         ];
+        nix-path = nixPathEntries;
       }
       // lib.attrsets.optionalAttrs config.nixpkgs.hostPlatform.isLinux { flake-registry = ""; };
 
       channel.enable = false;
       # Opinionated: make flake registry and nix path match flake inputs
       registry = lib.attrsets.mapAttrs (_: flake: { inherit flake; }) flakeInputs;
-      nixPath = lib.attrsets.mapAttrsToList (n: _: "${n}=flake:${n}") flakeInputs;
+      nixPath = nixPathEntries;
     };
 
     sops.secrets.github-token = {
