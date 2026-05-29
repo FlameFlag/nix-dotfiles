@@ -1,7 +1,7 @@
 use std::path::Path;
 
 use fs_err as fs;
-use schemars::JsonSchema;
+use schemars::{JsonSchema, Schema, SchemaGenerator, json_schema};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
@@ -36,8 +36,9 @@ impl Catalog {
     pub fn load(path: impl AsRef<Path>) -> Result<Self, CatalogError> {
         let text = fs::read_to_string(path)?;
         let deserializer = toml::Deserializer::parse(&text)?;
-        let catalog: Self = serde_path_to_error::deserialize(deserializer)
+        let mut catalog: Self = serde_path_to_error::deserialize(deserializer)
             .map_err(|err| CatalogError::Invalid(format!("{}: {}", err.path(), err.inner())))?;
+        catalog.apply_defaults();
         catalog.validate()?;
         Ok(catalog)
     }
@@ -49,6 +50,19 @@ impl Catalog {
     /// Returns an error if the catalog contains invalid or inconsistent entries.
     pub fn validate(&self) -> Result<(), CatalogError> {
         validation::validate_catalog(self)
+    }
+
+    fn apply_defaults(&mut self) {
+        for tool in &mut self.tools {
+            if tool.bins.is_empty() {
+                tool.bins.push(Bin::for_name(&tool.name));
+            }
+            match &mut tool.action {
+                Action::Package(action) => action.apply_defaults(&tool.name),
+                Action::Build(action) => action.apply_defaults(),
+                _ => {}
+            }
+        }
     }
 }
 
@@ -68,6 +82,7 @@ pub struct Tool {
     #[garde(length(min = 1))]
     pub name: String,
     /// Executables that prove the tool is present and healthy.
+    #[serde(default)]
     #[garde(length(min = 1), dive)]
     pub bins: Vec<Bin>,
     /// Empty means all operating systems.
@@ -115,7 +130,7 @@ impl Tool {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, garde::Validate)]
+#[derive(Debug, Clone, Serialize, garde::Validate)]
 #[garde(allow_unvalidated)]
 pub struct Bin {
     /// Executable name as it should appear on `PATH`.
@@ -124,6 +139,79 @@ pub struct Bin {
     /// Command used to verify that the executable starts successfully.
     #[garde(length(min = 1))]
     pub version_argv: Vec<String>,
+}
+
+impl JsonSchema for Bin {
+    fn inline_schema() -> bool {
+        true
+    }
+
+    fn schema_name() -> std::borrow::Cow<'static, str> {
+        "Bin".into()
+    }
+
+    fn json_schema(_generator: &mut SchemaGenerator) -> Schema {
+        json_schema!({
+            "oneOf": [
+                { "type": "string" },
+                {
+                    "type": "object",
+                    "required": ["name"],
+                    "properties": {
+                        "name": { "type": "string" },
+                        "version_argv": {
+                            "type": "array",
+                            "items": { "type": "string" }
+                        }
+                    },
+                    "additionalProperties": false
+                }
+            ]
+        })
+    }
+}
+
+impl Bin {
+    fn for_name(name: &str) -> Self {
+        Self {
+            name: name.to_owned(),
+            version_argv: default_version_argv(name),
+        }
+    }
+}
+
+impl<'de> Deserialize<'de> for Bin {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        #[derive(Deserialize)]
+        #[serde(untagged)]
+        enum BinRepr {
+            Name(String),
+            Full {
+                name: String,
+                #[serde(default)]
+                version_argv: Vec<String>,
+            },
+        }
+
+        match BinRepr::deserialize(deserializer)? {
+            BinRepr::Name(name) => Ok(Bin::for_name(&name)),
+            BinRepr::Full { name, version_argv } => Ok(Bin {
+                version_argv: if version_argv.is_empty() {
+                    default_version_argv(&name)
+                } else {
+                    version_argv
+                },
+                name,
+            }),
+        }
+    }
+}
+
+fn default_version_argv(name: &str) -> Vec<String> {
+    vec![name.to_owned(), "--version".to_owned()]
 }
 
 /// Install phases run in declaration order; later phases may rely on binaries
@@ -164,9 +252,57 @@ pub enum Action {
 pub struct ArchiveAction {
     /// Default source for platforms that do not override it.
     pub source: Option<Source>,
+    /// Default archive format for platforms that do not override it.
+    #[serde(default)]
+    pub kind: Option<ArchiveKind>,
+    /// Default leading archive path components to discard during extraction.
+    #[serde(default)]
+    pub strip_components: Option<usize>,
+    /// Default files to link into the managed binary directory.
+    #[serde(default)]
+    pub links: Vec<Link>,
+    /// Default macOS application bundles to symlink into `/Applications`.
+    #[serde(default)]
+    pub app_links: Vec<Link>,
     /// Host-specific archive format, source, and link layout.
     #[garde(length(min = 1), dive)]
     pub platforms: Vec<ArchivePlatform>,
+}
+
+impl ArchiveAction {
+    #[must_use]
+    pub fn platform_kind(&self, platform: &ArchivePlatform) -> Option<ArchiveKind> {
+        platform
+            .kind
+            .or(self.kind)
+            .or_else(|| ArchiveKind::from_path(&platform.platform))
+    }
+
+    #[must_use]
+    pub fn platform_strip_components(&self, platform: &ArchivePlatform) -> usize {
+        platform
+            .strip_components
+            .or(self.strip_components)
+            .unwrap_or(0)
+    }
+
+    #[must_use]
+    pub fn platform_links<'a>(&'a self, platform: &'a ArchivePlatform) -> &'a [Link] {
+        if platform.links.is_empty() {
+            &self.links
+        } else {
+            &platform.links
+        }
+    }
+
+    #[must_use]
+    pub fn platform_app_links<'a>(&'a self, platform: &'a ArchivePlatform) -> &'a [Link] {
+        if platform.app_links.is_empty() {
+            &self.app_links
+        } else {
+            &platform.app_links
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, garde::Validate)]
@@ -221,10 +357,13 @@ pub struct ArchivePlatform {
     pub platform: String,
     /// Per-platform source override.
     pub source: Option<Source>,
-    pub kind: ArchiveKind,
+    #[serde(default)]
+    pub kind: Option<ArchiveKind>,
     /// Leading archive path components to discard during extraction.
-    pub strip_components: usize,
+    #[serde(default)]
+    pub strip_components: Option<usize>,
     /// Files to link into the managed binary directory.
+    #[serde(default)]
     #[garde(dive)]
     pub links: Vec<Link>,
     /// macOS application bundles to symlink into `/Applications`.
@@ -241,7 +380,19 @@ pub enum ArchiveKind {
     Zip,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, garde::Validate)]
+impl ArchiveKind {
+    #[must_use]
+    pub fn from_path(path: &str) -> Option<Self> {
+        match path {
+            path if path.ends_with(".tar.xz") || path.ends_with(".txz") => Some(Self::TarXz),
+            path if path.ends_with(".tar.gz") || path.ends_with(".tgz") => Some(Self::TarGz),
+            path if path.ends_with(".zip") => Some(Self::Zip),
+            _ => None,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, garde::Validate)]
 #[garde(allow_unvalidated)]
 pub struct Link {
     /// Link name to create in the destination directory.
@@ -256,6 +407,77 @@ pub struct Link {
     pub env: Vec<EnvVar>,
 }
 
+impl JsonSchema for Link {
+    fn inline_schema() -> bool {
+        true
+    }
+
+    fn schema_name() -> std::borrow::Cow<'static, str> {
+        "Link".into()
+    }
+
+    fn json_schema(_generator: &mut SchemaGenerator) -> Schema {
+        json_schema!({
+            "oneOf": [
+                { "type": "string" },
+                {
+                    "type": "object",
+                    "required": ["name"],
+                    "properties": {
+                        "name": { "type": "string" },
+                        "path": { "type": "string" },
+                        "env": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "required": ["name", "value"],
+                                "properties": {
+                                    "name": { "type": "string" },
+                                    "value": { "type": "string" }
+                                },
+                                "additionalProperties": false
+                            }
+                        }
+                    },
+                    "additionalProperties": false
+                }
+            ]
+        })
+    }
+}
+
+impl<'de> Deserialize<'de> for Link {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        #[derive(Deserialize)]
+        #[serde(untagged)]
+        enum LinkRepr {
+            Name(String),
+            Full {
+                name: String,
+                path: Option<String>,
+                #[serde(default)]
+                env: Vec<EnvVar>,
+            },
+        }
+
+        match LinkRepr::deserialize(deserializer)? {
+            LinkRepr::Name(name) => Ok(Self {
+                path: name.clone(),
+                name,
+                env: Vec::new(),
+            }),
+            LinkRepr::Full { name, path, env } => Ok(Self {
+                path: path.unwrap_or_else(|| name.clone()),
+                name,
+                env,
+            }),
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, garde::Validate)]
 #[garde(allow_unvalidated)]
 pub struct EnvVar {
@@ -267,13 +489,36 @@ pub struct EnvVar {
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, garde::Validate)]
 #[garde(allow_unvalidated)]
 pub struct PackageAction {
+    #[serde(default)]
     #[garde(length(min = 1))]
     pub name: String,
     /// Install command; `{package}` expands to `name`.
+    #[serde(default)]
     #[garde(length(min = 1))]
     pub install_argv: Vec<String>,
     /// Optional package-manager inventory used to decide ownership.
+    #[serde(default)]
     pub inventory: Option<Inventory>,
+}
+
+impl PackageAction {
+    fn apply_defaults(&mut self, tool_name: &str) {
+        if self.name.is_empty() {
+            self.name = tool_name.to_owned();
+        }
+        if self.install_argv.is_empty() {
+            self.install_argv = default_uv_tool_install_argv();
+        }
+        if self.inventory.is_none() && self.install_argv == default_uv_tool_install_argv() {
+            self.inventory = Some(Inventory::Uv);
+        }
+    }
+}
+
+fn default_uv_tool_install_argv() -> Vec<String> {
+    ["uv", "tool", "install", "--upgrade", "--force", "{package}"]
+        .map(str::to_owned)
+        .to_vec()
 }
 
 /// Package managers whose installed-file inventory can be queried.
@@ -289,6 +534,7 @@ pub struct BuildAction {
     /// Repository-relative build directory.
     pub path: String,
     /// Build command; supports `{repo_dir}`, `{build_dir}`, `{prefix}`, and `{tool}`.
+    #[serde(default)]
     #[garde(length(min = 1))]
     pub argv: Vec<String>,
     /// Explicit links from `{prefix}`; empty means `bin/<tool bin>`.
@@ -297,13 +543,84 @@ pub struct BuildAction {
     pub links: Vec<Link>,
 }
 
+impl BuildAction {
+    fn apply_defaults(&mut self) {
+        if self.argv.is_empty() {
+            self.argv = default_cargo_install_argv();
+        }
+    }
+}
+
+fn default_cargo_install_argv() -> Vec<String> {
+    [
+        "cargo",
+        "install",
+        "--path",
+        "{build_dir}",
+        "--root",
+        "{prefix}",
+        "--force",
+        "--locked",
+    ]
+    .map(str::to_owned)
+    .to_vec()
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, garde::Validate)]
 #[garde(allow_unvalidated)]
 pub struct SourceBuildAction {
     #[garde(length(min = 1))]
     pub version: String,
+    #[serde(default)]
+    pub kind: Option<ArchiveKind>,
+    #[serde(default)]
+    pub strip_components: Option<usize>,
+    #[serde(default)]
+    pub argv: Vec<String>,
+    #[serde(default)]
+    pub sandbox_home: bool,
+    #[serde(default)]
+    pub links: Vec<Link>,
     #[garde(length(min = 1), dive)]
     pub platforms: Vec<SourceBuildPlatform>,
+}
+
+impl SourceBuildAction {
+    #[must_use]
+    pub fn platform_kind(&self, platform: &SourceBuildPlatform) -> Option<ArchiveKind> {
+        platform
+            .kind
+            .or(self.kind)
+            .or_else(|| ArchiveKind::from_path(&platform.archive_file))
+            .or_else(|| ArchiveKind::from_path(&platform.url))
+    }
+
+    #[must_use]
+    pub fn platform_strip_components(&self, platform: &SourceBuildPlatform) -> usize {
+        platform
+            .strip_components
+            .or(self.strip_components)
+            .unwrap_or(0)
+    }
+
+    #[must_use]
+    pub fn platform_argv<'a>(&'a self, platform: &'a SourceBuildPlatform) -> &'a [String] {
+        platform.argv.as_deref().unwrap_or(&self.argv)
+    }
+
+    #[must_use]
+    pub fn platform_sandbox_home(&self, platform: &SourceBuildPlatform) -> bool {
+        platform.sandbox_home.unwrap_or(self.sandbox_home)
+    }
+
+    #[must_use]
+    pub fn platform_links<'a>(&'a self, platform: &'a SourceBuildPlatform) -> &'a [Link] {
+        if platform.links.is_empty() {
+            &self.links
+        } else {
+            &platform.links
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, garde::Validate)]
@@ -317,17 +634,20 @@ pub struct SourceBuildPlatform {
     pub url: String,
     /// File name to use for the downloaded source archive.
     pub archive_file: String,
-    pub kind: ArchiveKind,
-    pub strip_components: usize,
+    #[serde(default)]
+    pub kind: Option<ArchiveKind>,
+    #[serde(default)]
+    pub strip_components: Option<usize>,
     /// Optional build command run from the extracted source directory.
     ///
     /// If this is empty, the extracted source tree is installed directly.
     #[serde(default)]
-    pub argv: Vec<String>,
+    pub argv: Option<Vec<String>>,
     /// Whether to run the build command with an isolated fake home/cache.
     #[serde(default)]
-    pub sandbox_home: bool,
-    #[garde(length(min = 1), dive)]
+    pub sandbox_home: Option<bool>,
+    #[serde(default)]
+    #[garde(dive)]
     pub links: Vec<Link>,
 }
 
@@ -338,9 +658,10 @@ pub struct DownloadCommand {
     #[garde(length(min = 1))]
     pub url: String,
     /// Local file name for the downloaded executable.
+    #[serde(default)]
     pub file: String,
     /// Command to run; supports `{file}`, `{toolchain}`, and `{components}`.
-    #[garde(length(min = 1))]
+    #[serde(default)]
     pub argv: Vec<String>,
 }
 
@@ -386,7 +707,42 @@ pub struct ToolchainBinDir {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, garde::Validate)]
+#[garde(allow_unvalidated)]
 pub struct ToolchainInstall {
+    /// Default local installer file name for platforms that do not override it.
+    #[serde(default)]
+    pub file: String,
+    /// Default installer command for platforms that do not override it.
+    #[serde(default)]
+    pub argv: Vec<String>,
     #[garde(length(min = 1), dive)]
     pub platforms: Vec<DownloadCommand>,
+}
+
+impl ToolchainInstall {
+    #[must_use]
+    pub fn platform_file<'a>(&'a self, command: &'a DownloadCommand) -> Option<&'a str> {
+        if command.file.is_empty() {
+            non_empty(&self.file)
+        } else {
+            Some(&command.file)
+        }
+    }
+
+    #[must_use]
+    pub fn platform_argv<'a>(&'a self, command: &'a DownloadCommand) -> Option<&'a [String]> {
+        if command.argv.is_empty() {
+            non_empty_slice(&self.argv)
+        } else {
+            Some(&command.argv)
+        }
+    }
+}
+
+fn non_empty(value: &str) -> Option<&str> {
+    (!value.is_empty()).then_some(value)
+}
+
+fn non_empty_slice<T>(value: &[T]) -> Option<&[T]> {
+    (!value.is_empty()).then_some(value)
 }

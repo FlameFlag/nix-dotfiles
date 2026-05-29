@@ -237,6 +237,10 @@ mod tests {
         assert_eq!(
             action_label(&Action::Archive(ArchiveAction {
                 source: None,
+                kind: None,
+                strip_components: None,
+                links: vec![],
+                app_links: vec![],
                 platforms: vec![],
             })),
             "archive"
@@ -271,6 +275,11 @@ mod tests {
         assert_eq!(
             action_label(&Action::SourceBuild(SourceBuildAction {
                 version: "1".into(),
+                kind: None,
+                strip_components: None,
+                argv: vec![],
+                sandbox_home: false,
+                links: vec![],
                 platforms: vec![],
             })),
             "source-build"
@@ -285,7 +294,11 @@ mod tests {
                     home_relative: ".cargo/bin".into(),
                 },
                 components: vec!["rustfmt".into()],
-                install: ToolchainInstall { platforms: vec![] },
+                install: ToolchainInstall {
+                    file: String::new(),
+                    argv: vec![],
+                    platforms: vec![],
+                },
                 update_argv: vec!["rustup".into(), "update".into()],
                 active_argv: vec!["rustup".into(), "show".into()],
                 default_argv: vec!["rustup".into(), "default".into()],

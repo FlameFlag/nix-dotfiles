@@ -123,7 +123,11 @@ mod tests {
                 home_relative: ".toolchain/bin".into(),
             },
             components: vec!["demo".into()],
-            install: ToolchainInstall { platforms: vec![] },
+            install: ToolchainInstall {
+                file: String::new(),
+                argv: vec![],
+                platforms: vec![],
+            },
             update_argv: vec!["demo".into(), "update".into()],
             active_argv: vec!["demo".into(), "active".into()],
             default_argv: vec!["demo".into(), "default".into()],
@@ -220,12 +224,16 @@ mod tests {
         std::os::unix::fs::symlink(&install_bin, &linked_bin).expect("symlink");
         let tool = tool(Action::Archive(ArchiveAction {
             source: None,
+            kind: None,
+            strip_components: None,
+            links: vec![],
+            app_links: vec![],
             platforms: vec![ArchivePlatform {
                 when: Default::default(),
                 platform: "test".into(),
                 source: None,
-                kind: ArchiveKind::TarGz,
-                strip_components: 0,
+                kind: Some(ArchiveKind::TarGz),
+                strip_components: Some(0),
                 links: vec![Link {
                     name: "demo".into(),
                     path: "bin/demo".into(),

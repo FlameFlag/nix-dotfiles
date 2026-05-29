@@ -21,6 +21,10 @@ pub enum ToolchainError {
     Process(#[from] process::ProcessError),
     #[error("unsupported platform")]
     UnsupportedPlatform,
+    #[error("installer file required for selected platform")]
+    MissingInstallerFile,
+    #[error("installer command required for selected platform")]
+    MissingInstallerArgv,
     #[error("toolchain manager install did not produce {0}")]
     MissingManager(PathBuf),
 }
@@ -85,7 +89,11 @@ fn install_manager(
 ) -> Result<(), ToolchainError> {
     let command = selected_install_command(spec)?;
     let temp = fs::tmp_dir("toolchain-install")?;
-    let installer = temp.path().join(&command.file);
+    let file = spec
+        .install
+        .platform_file(command)
+        .ok_or(ToolchainError::MissingInstallerFile)?;
+    let installer = temp.path().join(file);
     let client = Client::new("dotfiles-bootstrap")?;
     let progress = Spinner::new(format!("{toolchain}: downloading toolchain manager"));
     client.download_file(&command.url, &installer)?;
@@ -93,7 +101,11 @@ fn install_manager(
     fs::make_executable(&installer)?;
     let installer_text = installer.to_string_lossy();
     let bindings = base_bindings("", toolchain, Some(&installer_text))?;
-    let argv = render_toolchain_argv(spec, &command.argv, &bindings)?;
+    let argv_template = spec
+        .install
+        .platform_argv(command)
+        .ok_or(ToolchainError::MissingInstallerArgv)?;
+    let argv = render_toolchain_argv(spec, argv_template, &bindings)?;
     progress.finish_and_clear();
     process::run_with_env(&argv, ctx.command_env())?;
     Ok(())
@@ -195,7 +207,11 @@ mod tests {
                 home_relative: ".cargo/bin".into(),
             },
             components: vec!["rustfmt".into(), "clippy".into()],
-            install: ToolchainInstall { platforms: vec![] },
+            install: ToolchainInstall {
+                file: String::new(),
+                argv: vec![],
+                platforms: vec![],
+            },
             update_argv: vec![],
             active_argv: vec![],
             default_argv: vec![],

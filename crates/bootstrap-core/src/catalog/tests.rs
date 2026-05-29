@@ -33,12 +33,16 @@ fn rejects_actions_that_use_managed_bins_before_their_phase() {
                 phase: None,
                 action: Action::Archive(ArchiveAction {
                     source: None,
+                    kind: None,
+                    strip_components: None,
+                    links: vec![],
+                    app_links: vec![],
                     platforms: vec![ArchivePlatform {
                         when: Predicate::default(),
                         platform: "test".into(),
                         source: None,
-                        kind: ArchiveKind::TarGz,
-                        strip_components: 0,
+                        kind: Some(ArchiveKind::TarGz),
+                        strip_components: Some(0),
                         links: vec![Link {
                             name: "git".into(),
                             path: "bin/git".into(),
@@ -67,6 +71,8 @@ fn rejects_actions_that_use_managed_bins_before_their_phase() {
                     },
                     components: vec!["demo".into()],
                     install: ToolchainInstall {
+                        file: String::new(),
+                        argv: vec![],
                         platforms: vec![DownloadCommand {
                             when: Predicate::default(),
                             url: "https://example.invalid/demo".into(),

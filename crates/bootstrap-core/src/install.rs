@@ -41,6 +41,8 @@ pub enum InstallError {
     Toolchain(#[from] toolchain::ToolchainError),
     #[error("unsupported platform")]
     UnsupportedPlatform,
+    #[error("catalog invariant failed: {0}")]
+    InvalidCatalog(&'static str),
     #[error(
         "{phase:?} phase failed with {failures} tool failures; stopping before dependent phases"
     )]
@@ -255,6 +257,13 @@ fn install_source_build(
     action: &SourceBuildAction,
 ) -> Result<(), InstallError> {
     let platform = select_source_build_platform(action)?;
+    let kind = action
+        .platform_kind(platform)
+        .ok_or(InstallError::InvalidCatalog("missing source archive kind"))?;
+    let strip_components = action.platform_strip_components(platform);
+    let platform_argv = action.platform_argv(platform);
+    let sandbox_home = action.platform_sandbox_home(platform);
+    let platform_links = action.platform_links(platform);
     let install_dir = links::install_dir(ctx, &tool.name, &action.version);
     let work_dir = fs::tmp_dir("bootstrap-source-build")?;
     let archive_path = work_dir.path().join(&platform.archive_file);
@@ -269,12 +278,7 @@ fn install_source_build(
     let progress = Spinner::new(format!("{}: downloading source", tool.name));
     client.download_file(&url, &archive_path)?;
     progress.set_message(format!("{}: extracting source", tool.name));
-    archive::extract_file(
-        &archive_path,
-        &source_dir,
-        platform.kind,
-        platform.strip_components,
-    )?;
+    archive::extract_file(&archive_path, &source_dir, kind, strip_components)?;
 
     let mut bindings = HashMap::new();
     let source_text = source_dir.to_string_lossy();
@@ -290,7 +294,7 @@ fn install_source_build(
         .unwrap_or(2)
         .to_string();
     bindings.insert("jobs", jobs.as_str());
-    let argv = template::render_slice(&platform.argv, &bindings)?;
+    let argv = template::render_slice(platform_argv, &bindings)?;
     fs::remove_dir_if_exists(&install_dir)?;
     if let Some(parent) = install_dir.parent() {
         fs_err::create_dir_all(parent)?;
@@ -301,12 +305,12 @@ fn install_source_build(
     } else {
         progress.finish_and_clear();
         let mut env = ctx.command_env();
-        env.extend(source_build_env(work_dir.path(), platform.sandbox_home)?);
+        env.extend(source_build_env(work_dir.path(), sandbox_home)?);
         process::run_in_with_env(Some(&source_dir), &argv, env)?;
     }
 
     let progress = Spinner::new(format!("{}: linking binaries", tool.name));
-    let rendered_links = archive::render_links(&platform.links, &bindings)?;
+    let rendered_links = archive::render_links(platform_links, &bindings)?;
     links::link_many(ctx, &tool.name, &install_dir, &rendered_links)?;
     progress.finish_and_clear();
     Ok(())
