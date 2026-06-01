@@ -228,7 +228,7 @@ pub fn executable_name(name: &str) -> String {
     }
 }
 
-/// Replaces argv[0] with a resolved path while preserving the caller's arguments.
+/// Replaces `argv[0]` with a resolved path while preserving the caller's arguments.
 #[inline]
 #[must_use]
 pub fn argv_with_resolved_program(argv_template: &[String], path: &Path) -> Vec<String> {

@@ -5,9 +5,8 @@ use camino::Utf8Path;
 use super::{Action, Catalog, CatalogError, Phase, Source, Tool};
 
 pub fn validate_catalog(catalog: &Catalog) -> Result<(), CatalogError> {
-    if catalog.tools.is_empty() {
-        return Err(CatalogError::Invalid("tools: must not be empty".into()));
-    }
+    garde::Validate::validate(catalog)
+        .map_err(|err| CatalogError::Invalid(format!("validation failed:\n{err}")))?;
     let mut seen_tools = HashSet::new();
     let mut seen_bins = HashSet::new();
     let mut managed_bins = HashMap::new();
@@ -33,32 +32,12 @@ fn validate_tool<'a>(
     seen_bins: &mut HashSet<&'a str>,
     managed_bins: &mut HashMap<String, (usize, Phase, &'a str)>,
 ) -> Result<(), CatalogError> {
-    if tool.name.is_empty() {
-        return Err(CatalogError::Invalid(format!(
-            "tools[{tool_index}].name: must not be empty"
-        )));
-    }
     if !seen_tools.insert(tool.name.as_str()) {
         return Err(CatalogError::Invalid(format!(
             "tools[{tool_index}].name: duplicate tool name"
         )));
     }
-    if tool.bins.is_empty() {
-        return Err(CatalogError::Invalid(format!(
-            "tools[{tool_index}].bins: must not be empty"
-        )));
-    }
     for (bin_index, bin) in tool.bins.iter().enumerate() {
-        if bin.name.is_empty() {
-            return Err(CatalogError::Invalid(format!(
-                "tools[{tool_index}].bins[{bin_index}].name: must not be empty"
-            )));
-        }
-        if bin.version_argv.is_empty() {
-            return Err(CatalogError::Invalid(format!(
-                "tools[{tool_index}].bins[{bin_index}].version_argv: must not be empty"
-            )));
-        }
         if !seen_bins.insert(bin.name.as_str()) {
             return Err(CatalogError::Invalid(format!(
                 "tools[{tool_index}].bins[{bin_index}].name: duplicate bin name"
@@ -75,29 +54,12 @@ fn validate_tool<'a>(
 
 fn validate_action_shape(tool_index: usize, action: &Action) -> Result<(), CatalogError> {
     match action {
-        Action::Archive(action) if action.platforms.is_empty() => Err(CatalogError::Invalid(
-            format!("tools[{tool_index}].action.platforms: must not be empty"),
-        )),
-        Action::File(action) if action.links.is_empty() => Err(CatalogError::Invalid(format!(
-            "tools[{tool_index}].action.links: must not be empty"
+        Action::File(action) if action.file.is_empty() => Err(CatalogError::Invalid(format!(
+            "tools[{tool_index}].action.file: must not be empty"
         ))),
-        Action::Package(action) if action.install_argv.is_empty() => Err(CatalogError::Invalid(
-            format!("tools[{tool_index}].action.install_argv: must not be empty"),
-        )),
-        Action::Build(action) if action.argv.is_empty() => Err(CatalogError::Invalid(format!(
-            "tools[{tool_index}].action.argv: must not be empty"
+        Action::Build(action) if action.path.is_empty() => Err(CatalogError::Invalid(format!(
+            "tools[{tool_index}].action.path: must not be empty"
         ))),
-        Action::SourceBuild(action) if action.platforms.is_empty() => Err(CatalogError::Invalid(
-            format!("tools[{tool_index}].action.platforms: must not be empty"),
-        )),
-        Action::Toolchain(action) if action.components.is_empty() => Err(CatalogError::Invalid(
-            format!("tools[{tool_index}].action.components: must not be empty"),
-        )),
-        Action::Toolchain(action) if action.install.platforms.is_empty() => {
-            Err(CatalogError::Invalid(format!(
-                "tools[{tool_index}].action.install.platforms: must not be empty"
-            )))
-        }
         _ => Ok(()),
     }
 }

@@ -10,7 +10,7 @@ use serde_json::json;
 use crate::cli::{Cli, Command, GlobalArgs, OutputFormat, PathsArgs, ToolsArgs};
 use crate::completions;
 
-pub type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
+pub type Result<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>>;
 
 pub fn run_bootstrap_cli(cli: Cli) -> Result<()> {
     let Cli { command, global } = cli;
