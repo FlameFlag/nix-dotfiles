@@ -7,6 +7,7 @@ use thiserror::Error;
 use crate::catalog::{Action, Catalog, Phase, SourceBuildAction, SourceBuildPlatform, Tool};
 use crate::packages::PackageInventory;
 use crate::platform::Host;
+use crate::progress::Spinner;
 use crate::{Context, archive, file, links, ownership, runtime, toolchain};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -272,7 +273,9 @@ fn install_source_build(
     download_bindings.insert("tool", tool.name.as_str());
     let url = template::render(&platform.url, &download_bindings)?;
     let client = Client::new("dotfiles-bootstrap")?;
+    let progress = Spinner::new(format!("{}: downloading source", tool.name));
     client.download_file(&url, &archive_path)?;
+    progress.set_message(format!("{}: extracting source", tool.name));
     archive::extract_file(
         &archive_path,
         &source_dir,
@@ -300,27 +303,20 @@ fn install_source_build(
         fs_err::create_dir_all(parent)?;
     }
     if argv.is_empty() {
-        move_tree(&source_dir, &install_dir)?;
+        progress.set_message(format!("{}: installing source tree", tool.name));
+        fs::move_dir(&source_dir, &install_dir)?;
     } else {
+        progress.finish_and_clear();
         let mut env = ctx.command_env();
         env.extend(source_build_env(work_dir.path(), platform.sandbox_home)?);
         process::run_in_with_env(Some(&source_dir), &argv, env)?;
     }
 
+    let progress = Spinner::new(format!("{}: linking binaries", tool.name));
     let rendered_links = archive::render_links(&platform.links, &bindings)?;
     links::link_many(ctx, &tool.name, &install_dir, &rendered_links)?;
+    progress.finish_and_clear();
     Ok(())
-}
-
-fn move_tree(source: &Path, dest: &Path) -> Result<(), InstallError> {
-    match fs_err::rename(source, dest) {
-        Ok(()) => Ok(()),
-        Err(_) => {
-            fs::copy_dir_recursive(source, dest)?;
-            fs::remove_dir_if_exists(source)?;
-            Ok(())
-        }
-    }
 }
 
 fn source_build_env(

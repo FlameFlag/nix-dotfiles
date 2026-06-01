@@ -4,6 +4,7 @@ use dotfiles_common::{fs, http::Client, template};
 use thiserror::Error;
 
 use crate::catalog::FileAction;
+use crate::progress::Spinner;
 use crate::{Context, archive, links};
 
 #[derive(Debug, Error)]
@@ -33,7 +34,9 @@ pub fn install_file(ctx: &Context, tool: &str, action: &FileAction) -> Result<()
 
     let target = install_dir.join(&action.file);
     let client = Client::new("dotfiles-bootstrap")?;
+    let progress = Spinner::new(format!("{tool}: downloading {}", resolved.version));
     client.download_file(&resolved.url, &target)?;
+    progress.set_message(format!("{tool}: repairing executable permissions"));
     fs::make_executable(&target)?;
 
     let install_dir_text = install_dir.to_string_lossy();
@@ -42,6 +45,8 @@ pub fn install_file(ctx: &Context, tool: &str, action: &FileAction) -> Result<()
     bindings.insert("platform", "");
     bindings.insert("install_dir", install_dir_text.as_ref());
     let rendered_links = archive::render_links(&action.links, &bindings)?;
+    progress.set_message(format!("{tool}: linking binaries"));
     links::link_many_adopt_existing(ctx, tool, &install_dir, &rendered_links)?;
+    progress.finish_and_clear();
     Ok(())
 }

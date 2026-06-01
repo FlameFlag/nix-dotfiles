@@ -10,6 +10,7 @@ pub mod links;
 pub mod ownership;
 pub mod packages;
 pub mod platform;
+mod progress;
 pub mod release;
 pub mod runtime;
 pub mod setup;

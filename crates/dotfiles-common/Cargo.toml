@@ -8,12 +8,12 @@ repository.workspace = true
 [dependencies]
 duct = "1.1.1"
 fs-err.workspace = true
+fs-more = "0.8.1"
 reqwest.workspace = true
 rustls.workspace = true
 serde.workspace = true
 tempfile.workspace = true
 thiserror.workspace = true
-walkdir.workspace = true
 which.workspace = true
 
 [lints]
