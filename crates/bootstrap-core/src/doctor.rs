@@ -61,7 +61,7 @@ pub fn run(ctx: &Context) -> Result<(), DoctorError> {
 /// Returns an error if the catalog cannot be loaded or tool inspection fails.
 pub fn report(ctx: &Context) -> Result<Report, DoctorError> {
     let catalog = Catalog::load(ctx.catalog_path())?;
-    let package_inventory = PackageInventory::collect(ctx)?;
+    let package_inventory = PackageInventory::collect_for_catalog(ctx, &catalog)?;
     let mut rows = Vec::new();
 
     for tool in catalog
@@ -123,9 +123,6 @@ fn version_status(
     let Some(path) = path else {
         return ("missing".into(), true);
     };
-    if matches!(tool.action, Action::Build(_)) {
-        return ("installed".into(), false);
-    }
     let argv = process::argv_with_resolved_program(argv_template, path);
     match process::capture_with_env(&argv, ctx.command_env()) {
         Ok(output) if output.succeeded() && matches!(tool.action, Action::File(_)) => {
@@ -353,8 +350,8 @@ mod tests {
         dotfiles_common::fs::write_executable(&script, script_bytes).expect("write script");
 
         assert_eq!(
-            version_status(&ctx, &build_tool, &["demo".into()], Some(&script)),
-            ("installed".into(), false)
+            version_status(&ctx, &build_tool, &["version-script".into()], Some(&script)),
+            ("1.2.3".into(), false)
         );
         assert_eq!(
             version_status(&ctx, &file_tool, &["version-script".into()], Some(&script)),

@@ -44,6 +44,8 @@ impl Context {
             )
         };
         let opt_dir = home.join(".local").join("opt");
+        let cargo_bin_dir = home.join(".cargo").join("bin");
+        validate_path_entries([bin_dir.as_path(), cargo_bin_dir.as_path()])?;
         fs::create_dir_all(&bin_dir)?;
         fs::create_dir_all(&opt_dir)?;
         Ok(Self {
@@ -149,12 +151,44 @@ fn bootstrap_path(prefixes: &[PathBuf]) -> Option<OsString> {
     std::env::join_paths(entries).ok()
 }
 
+fn validate_path_entries<'a>(
+    entries: impl IntoIterator<Item = &'a std::path::Path>,
+) -> std::io::Result<()> {
+    std::env::join_paths(entries).map(|_| ()).map_err(|err| {
+        std::io::Error::new(
+            std::io::ErrorKind::InvalidInput,
+            format!("bootstrap path cannot be represented in PATH: {err}"),
+        )
+    })
+}
+
 impl Context {
     fn env_or_path(&self, name: &str, fallback: PathBuf) -> PathBuf {
         if self.isolated_home {
             fallback
         } else {
-            std::env::var_os(name).map_or(fallback, PathBuf::from)
+            std::env::var_os(name)
+                .map(PathBuf::from)
+                .filter(|path| validate_path_entries([path.as_path()]).is_ok())
+                .unwrap_or(fallback)
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[cfg(unix)]
+    #[test]
+    fn rejects_isolated_home_that_cannot_be_represented_on_path() {
+        let temp = tempfile::tempdir().expect("tempdir");
+        let err = Context::new_with_home(
+            temp.path().join("repo"),
+            Some(temp.path().join("home:with-colon")),
+        )
+        .expect_err("colon home should be invalid on Unix PATH");
+
+        assert_eq!(err.kind(), std::io::ErrorKind::InvalidInput);
     }
 }

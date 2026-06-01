@@ -1,6 +1,7 @@
 use std::ffi::{OsStr, OsString};
 use std::path::{Path, PathBuf};
 use std::process::ExitStatus;
+use std::time::Duration;
 
 use thiserror::Error;
 
@@ -16,7 +17,14 @@ pub enum ProcessError {
     },
     #[error("command failed: {program}")]
     CommandFailed { program: String, status: ExitStatus },
+    #[error("command timed out after {timeout:?}: {program}")]
+    TimedOut { program: String, timeout: Duration },
 }
+
+const DEFAULT_RUN_TIMEOUT: Duration = Duration::from_secs(30 * 60);
+const DEFAULT_CAPTURE_TIMEOUT: Duration = Duration::from_secs(30);
+const RUN_TIMEOUT_ENV: &str = "DOTFILES_PROCESS_RUN_TIMEOUT_SECS";
+const CAPTURE_TIMEOUT_ENV: &str = "DOTFILES_PROCESS_CAPTURE_TIMEOUT_SECS";
 
 #[derive(Debug)]
 pub struct Output {
@@ -97,14 +105,17 @@ where
 {
     let expr = expression(cwd, argv, env)?;
     let program = argv[0].clone();
-    let status = expr
-        .unchecked()
-        .run()
-        .map_err(|source| ProcessError::Spawn {
-            program: program.clone(),
-            source,
-        })?
-        .status;
+    let output = wait_with_timeout(
+        expr.unchecked()
+            .start()
+            .map_err(|source| ProcessError::Spawn {
+                program: program.clone(),
+                source,
+            })?,
+        &program,
+        timeout_from_env(RUN_TIMEOUT_ENV, DEFAULT_RUN_TIMEOUT),
+    )?;
+    let status = output.status;
     if status.success() {
         Ok(())
     } else {
@@ -170,17 +181,55 @@ where
     V: Into<OsString>,
 {
     let program = argv.first().cloned().ok_or(ProcessError::EmptyCommand)?;
-    let output = expression(None::<&Path>, argv, env)?
-        .stdout_capture()
-        .stderr_capture()
-        .unchecked()
-        .run()
-        .map_err(|source| ProcessError::Spawn { program, source })?;
+    let output = wait_with_timeout(
+        expression(None::<&Path>, argv, env)?
+            .stdout_capture()
+            .stderr_capture()
+            .unchecked()
+            .start()
+            .map_err(|source| ProcessError::Spawn {
+                program: program.clone(),
+                source,
+            })?,
+        &program,
+        timeout_from_env(CAPTURE_TIMEOUT_ENV, DEFAULT_CAPTURE_TIMEOUT),
+    )?;
     Ok(Output {
         status: output.status,
         stdout: output.stdout,
         stderr: output.stderr,
     })
+}
+
+fn wait_with_timeout(
+    handle: duct::Handle,
+    program: &str,
+    timeout: Duration,
+) -> Result<std::process::Output, ProcessError> {
+    match handle
+        .wait_timeout(timeout)
+        .map_err(|source| ProcessError::Spawn {
+            program: program.to_owned(),
+            source,
+        })? {
+        Some(output) => Ok(output.clone()),
+        None => {
+            let _ = handle.kill();
+            let _ = handle.wait_timeout(Duration::from_secs(5));
+            Err(ProcessError::TimedOut {
+                program: program.to_owned(),
+                timeout,
+            })
+        }
+    }
+}
+
+fn timeout_from_env(name: &str, default: Duration) -> Duration {
+    std::env::var(name)
+        .ok()
+        .and_then(|value| value.parse::<u64>().ok())
+        .filter(|seconds| *seconds > 0)
+        .map_or(default, Duration::from_secs)
 }
 
 /// Runs a command and returns trimmed stdout as text.
@@ -275,5 +324,18 @@ mod tests {
         let resolved = argv_with_resolved_program(&argv, Path::new("/tools/npm.cmd"));
         assert_eq!(resolved[0], "/tools/npm.cmd");
         assert_eq!(resolved[1], "--version");
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn wait_with_timeout_kills_slow_commands() {
+        let handle = duct::cmd("sh", ["-c", "sleep 5"])
+            .unchecked()
+            .start()
+            .expect("start slow command");
+        let err = wait_with_timeout(handle, "slow-command", Duration::from_millis(100))
+            .expect_err("slow command should time out");
+
+        assert!(matches!(err, ProcessError::TimedOut { .. }));
     }
 }
