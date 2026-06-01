@@ -120,7 +120,7 @@ def main() -> int:
             wait_for_registry(registry_dir, started_server)
         return run_lldb_mcp()
     except Exception as error:
-        print(f"codex-lldb-mcp: {error}", file=sys.stderr)
+        print(f"lldb-mcp-launcher: {error}", file=sys.stderr)
         return 1
     finally:
         if started_server is not None:

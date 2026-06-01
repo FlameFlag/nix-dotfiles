@@ -15,7 +15,7 @@
       (final: prev: {
         gh = final.unstable.gh;
         yt-dlp = final.eupkgs.yt-dlp;
-        codex-lldb-mcp = final.callPackage ../../pkgs/codex-lldb-mcp.nix {
+        lldb-mcp-launcher = final.callPackage ../../pkgs/lldb-mcp-launcher.nix {
           lldb = final.unstable.llvmPackages_22.lldb;
           python3 = final.unstable.python3;
         };

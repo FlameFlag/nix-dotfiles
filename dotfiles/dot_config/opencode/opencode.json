@@ -9,7 +9,7 @@
     },
     "lldb": {
       "type": "local",
-      "command": ["codex-lldb-mcp"],
+      "command": ["lldb-mcp-launcher"],
       "enabled": true,
       "timeout": 30000
     }
