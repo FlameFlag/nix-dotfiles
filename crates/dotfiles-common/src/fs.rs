@@ -165,12 +165,16 @@ mod tests {
 
     #[test]
     fn relative_under_handles_dot_segments() {
-        assert!(relative_under("/tmp/root", "/tmp/root/./child/../child"));
+        let root = std::env::temp_dir().join("root");
+
+        assert!(relative_under(&root, root.join("./child/../child")));
     }
 
     #[test]
     fn relative_under_rejects_parent_escape() {
-        assert!(!relative_under("/tmp/root", "/tmp/root/../other"));
+        let root = std::env::temp_dir().join("root");
+
+        assert!(!relative_under(&root, root.join("../other")));
     }
 
     #[test]

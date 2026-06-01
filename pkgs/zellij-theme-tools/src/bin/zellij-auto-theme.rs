@@ -35,7 +35,7 @@ fn run() -> Result<i32> {
     });
     #[cfg(not(unix))]
     let uid = uid.unwrap_or_else(|| "0".to_owned());
-    let socket_dir = format!("/tmp/zellij-{uid}");
+    let socket_dir = std::env::temp_dir().join(format!("zellij-{uid}"));
     fs_err::create_dir_all(&socket_dir)?;
 
     let session_name = default_session_name()?;

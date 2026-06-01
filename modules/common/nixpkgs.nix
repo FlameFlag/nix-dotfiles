@@ -10,54 +10,6 @@
         };
       })
       (final: prev: {
-        unstable = prev.unstable.extend (
-          ufinal: uprev: {
-            yazi-unwrapped = uprev.yazi-unwrapped.overrideAttrs (old: rec {
-              version = "26.5.6";
-
-              srcs = builtins.attrValues passthru.srcs;
-              sourceRoot = passthru.srcs.code_src.name;
-              cargoHash = "sha256-HlMrv4NGSFFrsc3fm4OeiGcKpCTnwTdgVV792TU2hGk=";
-              cargoDeps = ufinal.rustPlatform.fetchCargoVendor {
-                inherit srcs sourceRoot;
-                hash = cargoHash;
-              };
-
-              env = (old.env or { }) // {
-                VERGEN_GIT_SHA = "3f5cc47a4852";
-                VERGEN_BUILD_DATE = "2026-05-15";
-              };
-
-              postPatch = ''
-                substituteInPlace Cargo.toml \
-                  --replace-fail 'rust-version = "1.95.0"' 'rust-version = "1.94.1"'
-
-                substituteInPlace yazi-config/src/theme/icon.rs \
-                  --replace-fail 'true if let Some(i) = self.dirs.matches(name) => Some(i),' 'true => self.dirs.matches(name).or_else(|| self.conds.matches(file, hovered)),' \
-                  --replace-fail 'false if let Some(i) = self.files.matches(name) => Some(i),' 'false => self.files.matches(name)' \
-                  --replace-fail 'false if let Some(i) = self.exts.matches(file.url.ext().unwrap_or_default()) => Some(i),' '.or_else(|| self.exts.matches(file.url.ext().unwrap_or_default())).or_else(|| self.conds.matches(file, hovered)),' \
-                  --replace-fail '_ => self.conds.matches(file, hovered),' ""
-              '';
-
-              passthru = (old.passthru or { }) // {
-                srcs = (old.passthru.srcs or { }) // {
-                  code_src = ufinal.fetchFromGitHub {
-                    owner = "sxyazi";
-                    repo = "yazi";
-                    rev = "3f5cc47a4852cbffbd8536507ae7499d3da1f0b7";
-                    hash = "sha256-TtawbMZ+tgKAiDpkJJw7m2OLOJHUbRZB0xLDXBxTPck=";
-                  };
-                };
-              };
-            });
-
-            yazi = uprev.yazi.override {
-              yazi-unwrapped = ufinal.yazi-unwrapped;
-            };
-          }
-        );
-      })
-      (final: prev: {
         eupkgs = final.unstable.extend inputs.eupkgs.overlays.default;
       })
       (final: prev: {
