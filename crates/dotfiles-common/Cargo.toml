@@ -6,7 +6,7 @@ license.workspace = true
 repository.workspace = true
 
 [dependencies]
-duct = "1.1.1"
+duct = { version = "1.1.1", features = ["timeout"] }
 fs-err.workspace = true
 fs-more = "0.8.1"
 reqwest.workspace = true

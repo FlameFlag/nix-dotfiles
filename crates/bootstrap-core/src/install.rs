@@ -195,7 +195,7 @@ fn should_install(ctx: &Context, tool: &Tool) -> Result<bool, InstallError> {
 fn installed_tool_healthy(ctx: &Context, tool: &Tool) -> Result<bool, InstallError> {
     match &tool.action {
         Action::Required => Ok(true),
-        Action::Build(_) => Ok(local_bins_present(ctx, tool)),
+        Action::Build(_) => managed_bins_missing_or_unhealthy(ctx, tool).map(|missing| !missing),
         Action::File(_) => managed_bins_missing_or_unhealthy(ctx, tool).map(|missing| !missing),
         Action::Toolchain(spec) => {
             let bin_dir = toolchain::bin_dir(ctx, spec);
@@ -210,17 +210,9 @@ fn installed_tool_healthy(ctx: &Context, tool: &Tool) -> Result<bool, InstallErr
     }
 }
 
-fn local_bins_present(ctx: &Context, tool: &Tool) -> bool {
-    // File and repository-build actions are considered managed only when
-    // their binaries resolve inside this bootstrap context's bin directory.
-    tool.bins
-        .iter()
-        .all(|bin| process::path_in_dir(&ctx.bin_dir, &bin.name).is_some())
-}
-
 fn managed_bins_missing_or_unhealthy(ctx: &Context, tool: &Tool) -> Result<bool, InstallError> {
-    let packages = match tool.action {
-        Action::Package(_) => PackageInventory::collect(ctx)?,
+    let packages = match &tool.action {
+        Action::Package(package) => PackageInventory::collect_for_package(ctx, package)?,
         _ => PackageInventory::default(),
     };
     for bin in &tool.bins {
@@ -452,8 +444,15 @@ mod tests {
 
         let tool = build_tool();
         assert!(!installed_tool_healthy(&ctx, &tool).expect("missing build health"));
-        fs_err::write(ctx.bin_dir.join("demo"), "").expect("write build bin");
+        dotfiles_common::fs::write_executable(
+            &ctx.bin_dir.join("demo"),
+            b"#!/bin/sh\nprintf 'demo 1.2.3\\n'\n",
+        )
+        .expect("write build bin");
         assert!(installed_tool_healthy(&ctx, &tool).expect("build health"));
+
+        fs_err::write(ctx.bin_dir.join("demo"), "not executable").expect("write junk build bin");
+        assert!(!installed_tool_healthy(&ctx, &tool).expect("junk build health"));
     }
 
     #[test]
