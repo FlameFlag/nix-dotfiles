@@ -4,9 +4,9 @@
     "./themes"
   ],
   "extensions": [
-    "./extensions/catppuccin-system-theme.ts",
-    "/run/current-system/sw/bin/agent-statusline-pi.ts",
-    "/run/current-system/sw/bin/pi-ssh-tools.ts",
-    "/run/current-system/sw/bin/web-search-pi.ts"
+    "/run/current-system/sw/bin/agent-statusline-pi",
+    "/run/current-system/sw/bin/catppuccin-system-theme-pi",
+    "/run/current-system/sw/bin/pi-ssh-tools",
+    "/run/current-system/sw/bin/web-search-pi"
   ]
 }

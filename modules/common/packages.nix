@@ -9,10 +9,11 @@ in
 {
   environment.systemPackages =
     (with pkgs; [
-      codex-lldb-mcp
+      lldb-mcp-launcher
       dis
       eupkgs.agent-statusline
       eupkgs.agent-statusline-pi
+      eupkgs.catppuccin-system-theme-pi
       eupkgs.pi-ssh-tools
       eupkgs.web-search-pi
       lsp-diagnostic-filter

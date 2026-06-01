@@ -418,11 +418,6 @@ fn codex_bin_from(
         return Ok(path);
     }
 
-    let patched = home.join(".local/opt/codex-patched/bin/codex");
-    if patched.is_file() {
-        return Ok(patched);
-    }
-
     if let Some(path) = find_on_path() {
         return Ok(path);
     }
