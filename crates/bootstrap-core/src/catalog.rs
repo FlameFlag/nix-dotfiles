@@ -21,8 +21,9 @@ pub enum CatalogError {
     Invalid(String),
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, garde::Validate)]
 pub struct Catalog {
+    #[garde(length(min = 1), dive)]
     pub tools: Vec<Tool>,
 }
 
@@ -60,11 +61,14 @@ pub fn schema_json() -> serde_json::Result<String> {
     serde_json::to_string_pretty(&schemars::schema_for!(Catalog))
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, garde::Validate)]
+#[garde(allow_unvalidated)]
 pub struct Tool {
     /// Stable tool key used in status output and managed install paths.
+    #[garde(length(min = 1))]
     pub name: String,
     /// Executables that prove the tool is present and healthy.
+    #[garde(length(min = 1), dive)]
     pub bins: Vec<Bin>,
     /// Empty means all operating systems.
     #[serde(default)]
@@ -75,6 +79,7 @@ pub struct Tool {
     /// Overrides the phase inferred from the action type.
     #[serde(default)]
     pub phase: Option<Phase>,
+    #[garde(dive)]
     pub action: Action,
 }
 
@@ -110,11 +115,14 @@ impl Tool {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, garde::Validate)]
+#[garde(allow_unvalidated)]
 pub struct Bin {
     /// Executable name as it should appear on `PATH`.
+    #[garde(length(min = 1))]
     pub name: String,
     /// Command used to verify that the executable starts successfully.
+    #[garde(length(min = 1))]
     pub version_argv: Vec<String>,
 }
 
@@ -132,40 +140,44 @@ pub enum Phase {
 }
 
 /// Installation strategy for a catalog entry.
-#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, garde::Validate)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum Action {
     /// A pre-bootstrap binary that must already be available.
     Required,
     /// Download a release archive and link files from it.
-    Archive(ArchiveAction),
+    Archive(#[garde(dive)] ArchiveAction),
     /// Download a standalone file and link it from the managed install root.
-    File(FileAction),
+    File(#[garde(dive)] FileAction),
     /// Invoke a package manager and then verify/link the managed binary.
-    Package(PackageAction),
+    Package(#[garde(dive)] PackageAction),
     /// Run a build command against a source tree already in this repository.
-    Build(BuildAction),
+    Build(#[garde(dive)] BuildAction),
     /// Download a source archive, build it, and link build outputs.
-    SourceBuild(SourceBuildAction),
+    SourceBuild(#[garde(dive)] SourceBuildAction),
     /// Manage components under a version manager such as rustup or uv.
-    Toolchain(Box<ToolchainAction>),
+    Toolchain(#[garde(dive)] Box<ToolchainAction>),
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, garde::Validate)]
+#[garde(allow_unvalidated)]
 pub struct ArchiveAction {
     /// Default source for platforms that do not override it.
     pub source: Option<Source>,
     /// Host-specific archive format, source, and link layout.
+    #[garde(length(min = 1), dive)]
     pub platforms: Vec<ArchivePlatform>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, garde::Validate)]
+#[garde(allow_unvalidated)]
 pub struct FileAction {
     /// Source used to resolve the file download URL and version.
     pub source: Source,
     /// File name to write under the managed install root.
     pub file: String,
     /// Files to link into the managed binary directory.
+    #[garde(length(min = 1), dive)]
     pub links: Vec<Link>,
 }
 
@@ -200,10 +212,12 @@ pub enum Source {
     },
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, garde::Validate)]
+#[garde(allow_unvalidated)]
 pub struct ArchivePlatform {
     pub when: Predicate,
     /// Template value exposed as `{platform}` in source URLs and link paths.
+    #[garde(length(min = 1))]
     pub platform: String,
     /// Per-platform source override.
     pub source: Option<Source>,
@@ -211,9 +225,11 @@ pub struct ArchivePlatform {
     /// Leading archive path components to discard during extraction.
     pub strip_components: usize,
     /// Files to link into the managed binary directory.
+    #[garde(dive)]
     pub links: Vec<Link>,
     /// macOS application bundles to symlink into `/Applications`.
     #[serde(default)]
+    #[garde(dive)]
     pub app_links: Vec<Link>,
 }
 
@@ -225,28 +241,36 @@ pub enum ArchiveKind {
     Zip,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, garde::Validate)]
+#[garde(allow_unvalidated)]
 pub struct Link {
     /// Link name to create in the destination directory.
+    #[garde(length(min = 1))]
     pub name: String,
     /// Relative path under the install root.
     pub path: String,
     /// Environment variables to export from a generated wrapper before execing
     /// the linked binary.
     #[serde(default)]
+    #[garde(dive)]
     pub env: Vec<EnvVar>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, garde::Validate)]
+#[garde(allow_unvalidated)]
 pub struct EnvVar {
+    #[garde(length(min = 1))]
     pub name: String,
     pub value: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, garde::Validate)]
+#[garde(allow_unvalidated)]
 pub struct PackageAction {
+    #[garde(length(min = 1))]
     pub name: String,
     /// Install command; `{package}` expands to `name`.
+    #[garde(length(min = 1))]
     pub install_argv: Vec<String>,
     /// Optional package-manager inventory used to decide ownership.
     pub inventory: Option<Inventory>,
@@ -259,28 +283,37 @@ pub enum Inventory {
     Uv,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, garde::Validate)]
+#[garde(allow_unvalidated)]
 pub struct BuildAction {
     /// Repository-relative build directory.
     pub path: String,
     /// Build command; supports `{repo_dir}`, `{build_dir}`, `{prefix}`, and `{tool}`.
+    #[garde(length(min = 1))]
     pub argv: Vec<String>,
     /// Explicit links from `{prefix}`; empty means `bin/<tool bin>`.
     #[serde(default)]
+    #[garde(dive)]
     pub links: Vec<Link>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, garde::Validate)]
+#[garde(allow_unvalidated)]
 pub struct SourceBuildAction {
+    #[garde(length(min = 1))]
     pub version: String,
+    #[garde(length(min = 1), dive)]
     pub platforms: Vec<SourceBuildPlatform>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, garde::Validate)]
+#[garde(allow_unvalidated)]
 pub struct SourceBuildPlatform {
     pub when: Predicate,
     /// Template value exposed as `{platform}` in source URLs and link paths.
+    #[garde(length(min = 1))]
     pub platform: String,
+    #[garde(length(min = 1))]
     pub url: String,
     /// File name to use for the downloaded source archive.
     pub archive_file: String,
@@ -294,42 +327,57 @@ pub struct SourceBuildPlatform {
     /// Whether to run the build command with an isolated fake home/cache.
     #[serde(default)]
     pub sandbox_home: bool,
+    #[garde(length(min = 1), dive)]
     pub links: Vec<Link>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, garde::Validate)]
+#[garde(allow_unvalidated)]
 pub struct DownloadCommand {
     pub when: Predicate,
+    #[garde(length(min = 1))]
     pub url: String,
     /// Local file name for the downloaded executable.
     pub file: String,
     /// Command to run; supports `{file}`, `{toolchain}`, and `{components}`.
+    #[garde(length(min = 1))]
     pub argv: Vec<String>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, garde::Validate)]
+#[garde(allow_unvalidated)]
 pub struct ToolchainAction {
     /// Version-manager executable used to manage components.
+    #[garde(length(min = 1))]
     pub manager_bin: String,
     /// Toolchain/channel name passed to the manager.
+    #[garde(length(min = 1))]
     pub name: String,
     /// Optional environment variable that overrides `name`.
     pub name_env: Option<String>,
+    #[garde(dive)]
     pub bin_dir: ToolchainBinDir,
     /// Components expected to be installed for this toolchain.
+    #[garde(length(min = 1))]
     pub components: Vec<String>,
+    #[garde(dive)]
     pub install: ToolchainInstall,
     /// Command that updates the manager or selected toolchain.
+    #[garde(length(min = 1))]
     pub update_argv: Vec<String>,
     /// Command that checks whether `name` is currently active.
+    #[garde(length(min = 1))]
     pub active_argv: Vec<String>,
     /// Command that makes `name` the default toolchain.
+    #[garde(length(min = 1))]
     pub default_argv: Vec<String>,
     /// Command template used once per component.
+    #[garde(length(min = 1))]
     pub component_argv: Vec<String>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, garde::Validate)]
+#[garde(allow_unvalidated)]
 pub struct ToolchainBinDir {
     /// Environment variable that can point at the executable directory.
     pub env_var: Option<String>,
@@ -337,7 +385,8 @@ pub struct ToolchainBinDir {
     pub home_relative: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, garde::Validate)]
 pub struct ToolchainInstall {
+    #[garde(length(min = 1), dive)]
     pub platforms: Vec<DownloadCommand>,
 }

@@ -19,6 +19,7 @@ duct = "1.1.1"
 flate2.workspace = true
 fs-err.workspace = true
 hex = "0.4.3"
+miette = { version = "7.6.0", features = ["fancy"] }
 serde.workspace = true
 serde_json.workspace = true
 sha2 = "0.11.0"

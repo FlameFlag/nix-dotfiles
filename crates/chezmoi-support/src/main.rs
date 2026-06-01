@@ -101,12 +101,10 @@ enum CompletionShell {
     Zsh,
 }
 
-fn main() {
+fn main() -> miette::Result<()> {
     let cli = Cli::parse();
-    if let Err(err) = run_chezmoi_support(cli.command, cli.global.into()) {
-        eprintln!("error: {err}");
-        std::process::exit(1);
-    }
+    run_chezmoi_support(cli.command, cli.global.into())?;
+    Ok(())
 }
 
 fn run_chezmoi_support(command: CommandName, options: Options) -> Result<()> {
