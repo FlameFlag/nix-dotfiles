@@ -54,10 +54,19 @@ pub fn path_of(bin: &str) -> Option<PathBuf> {
 
 #[must_use]
 pub fn path_in_dir(dir: &Path, bin: &str) -> Option<PathBuf> {
-    executable_candidates(bin)
+    which::which_in(bin, Some(dir), Path::new(".")).ok()
+}
+
+/// Converts command arguments into owned strings.
+///
+/// This keeps command-building call sites compact while preserving the
+/// workspace convention of passing argv vectors to process helpers.
+#[must_use]
+pub fn argv(items: impl IntoIterator<Item = impl AsRef<str>>) -> Vec<String> {
+    items
         .into_iter()
-        .map(|name| dir.join(name))
-        .find(|path| path.is_file())
+        .map(|item| item.as_ref().to_owned())
+        .collect()
 }
 
 /// Runs a command and requires a successful exit status.
@@ -158,15 +167,12 @@ fn resolve_with_env_path(program: &str, env: &[(OsString, OsString)]) -> Option<
         return None;
     }
 
-    let path = env
+    let paths = env
         .iter()
         .rev()
         .find_map(|(name, value)| (name == OsStr::new("PATH")).then_some(value))?;
     let executable = executable_name(program);
-    std::env::split_paths(path).find_map(|dir| {
-        let candidate = dir.join(&executable);
-        candidate.is_file().then_some(candidate)
-    })
+    which::which_in(executable, Some(paths), Path::new(".")).ok()
 }
 
 /// Runs a command with extra environment and captures stdout and stderr.
@@ -180,12 +186,50 @@ where
     K: Into<OsString>,
     V: Into<OsString>,
 {
+    capture_with_env_and_stdin(argv, env, None::<Vec<u8>>)
+}
+
+/// Runs a command, writes bytes to stdin, and captures stdout and stderr.
+///
+/// # Errors
+///
+/// Returns an error if the command is empty or cannot be spawned.
+pub fn capture_with_stdin<T>(argv: &[String], stdin: T) -> Result<Output, ProcessError>
+where
+    T: Into<Vec<u8>>,
+{
+    capture_with_env_and_stdin(
+        argv,
+        std::iter::empty::<(OsString, OsString)>(),
+        Some(stdin.into()),
+    )
+}
+
+/// Runs a command with extra environment and optional stdin, capturing stdout and stderr.
+///
+/// # Errors
+///
+/// Returns an error if the command is empty or cannot be spawned.
+pub fn capture_with_env_and_stdin<I, K, V, T>(
+    argv: &[String],
+    env: I,
+    stdin: Option<T>,
+) -> Result<Output, ProcessError>
+where
+    I: IntoIterator<Item = (K, V)>,
+    K: Into<OsString>,
+    V: Into<OsString>,
+    T: Into<Vec<u8>>,
+{
     let program = argv.first().cloned().ok_or(ProcessError::EmptyCommand)?;
+    let mut expr = expression(None::<&Path>, argv, env)?
+        .stdout_capture()
+        .stderr_capture();
+    if let Some(stdin) = stdin {
+        expr = expr.stdin_bytes(stdin);
+    }
     let output = wait_with_timeout(
-        expression(None::<&Path>, argv, env)?
-            .stdout_capture()
-            .stderr_capture()
-            .unchecked()
+        expr.unchecked()
             .start()
             .map_err(|source| ProcessError::Spawn {
                 program: program.clone(),
@@ -301,17 +345,6 @@ fn executable_stem(name: &str) -> Option<&str> {
         "bat" | "cmd" | "com" | "exe" => Some(stem),
         _ => None,
     }
-}
-
-fn executable_candidates(name: &str) -> Vec<String> {
-    match (cfg!(windows), Path::new(name).extension().is_some()) {
-        (true, false) => {}
-        _ => return vec![name.to_owned()],
-    }
-    ["", ".exe", ".cmd", ".bat", ".com"]
-        .into_iter()
-        .map(|extension| format!("{name}{extension}"))
-        .collect()
 }
 
 #[cfg(test)]

@@ -400,7 +400,6 @@ dependencies = [
  "comfy-table",
  "directories",
  "dotfiles-common",
- "duct",
  "flate2",
  "fs-err",
  "garde",
@@ -475,7 +474,6 @@ dependencies = [
  "clap_complete_nushell",
  "directories",
  "dotfiles-common",
- "duct",
  "flate2",
  "fs-err",
  "hex",
@@ -487,7 +485,6 @@ dependencies = [
  "tempfile",
  "thiserror",
  "toml",
- "which",
 ]
 
 [[package]]
@@ -1083,9 +1080,7 @@ dependencies = [
  "clap",
  "clap_complete",
  "clap_complete_nushell",
- "duct",
- "reqwest",
- "rustls",
+ "dotfiles-common",
  "secrecy",
  "serde",
  "serde_json",

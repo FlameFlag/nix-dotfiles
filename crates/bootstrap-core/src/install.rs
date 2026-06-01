@@ -1,10 +1,11 @@
 use dotfiles_common::{fs, http::Client, process, template};
 use std::collections::HashMap;
 use std::ffi::OsString;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use thiserror::Error;
 
 use crate::catalog::{Action, Catalog, Phase, SourceBuildAction, SourceBuildPlatform, Tool};
+use crate::context::{WindowsHomeEnv, create_isolated_home_env};
 use crate::packages::PackageInventory;
 use crate::platform::Host;
 use crate::progress::Spinner;
@@ -323,40 +324,21 @@ fn source_build_env(
     let config = home.join(".config");
     let cache = home.join(".cache");
     let tmp = root.join("tmp");
-    fs_err::create_dir_all(&config)?;
-    fs_err::create_dir_all(&cache)?;
-    fs_err::create_dir_all(&tmp)?;
-
-    let mut env = vec![
-        (OsString::from("HOME"), home.into_os_string()),
-        (OsString::from("XDG_CONFIG_HOME"), config.into_os_string()),
-        (OsString::from("XDG_CACHE_HOME"), cache.into_os_string()),
-        (OsString::from("TMPDIR"), tmp.clone().into_os_string()),
-        (OsString::from("TMP"), tmp.clone().into_os_string()),
-        (OsString::from("TEMP"), tmp.into_os_string()),
-        (OsString::from("GIT_CONFIG_NOSYSTEM"), OsString::from("1")),
-    ];
-
-    if cfg!(windows) {
-        let win_home = root.join("profile");
-        let appdata = root.join("appdata").join("roaming");
-        let local_appdata = root.join("appdata").join("local");
-        fs_err::create_dir_all(&win_home)?;
-        fs_err::create_dir_all(&appdata)?;
-        fs_err::create_dir_all(&local_appdata)?;
-        if let Some(prefix) = win_home.components().next() {
-            let drive = PathBuf::from(prefix.as_os_str());
-            env.push((OsString::from("HOMEDRIVE"), drive.into_os_string()));
-        }
-        env.push((OsString::from("USERPROFILE"), win_home.into_os_string()));
-        env.push((OsString::from("APPDATA"), appdata.into_os_string()));
-        env.push((
-            OsString::from("LOCALAPPDATA"),
-            local_appdata.into_os_string(),
-        ));
-    }
-
-    Ok(env)
+    let win_home = root.join("profile");
+    let appdata = root.join("appdata").join("roaming");
+    let local_appdata = root.join("appdata").join("local");
+    Ok(create_isolated_home_env(
+        &home,
+        &config,
+        &cache,
+        &tmp,
+        Some(WindowsHomeEnv {
+            profile: &win_home,
+            appdata: &appdata,
+            local_appdata: &local_appdata,
+        }),
+        true,
+    )?)
 }
 
 fn select_source_build_platform(
@@ -445,7 +427,7 @@ mod tests {
         let tool = build_tool();
         assert!(!installed_tool_healthy(&ctx, &tool).expect("missing build health"));
         dotfiles_common::fs::write_executable(
-            &ctx.bin_dir.join("demo"),
+            ctx.bin_dir.join("demo"),
             b"#!/bin/sh\nprintf 'demo 1.2.3\\n'\n",
         )
         .expect("write build bin");

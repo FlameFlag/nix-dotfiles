@@ -1,10 +1,10 @@
 use std::collections::HashMap;
-use std::fs::File;
 use std::io::Read;
 use std::path::{Component, Path, PathBuf};
 
 use dotfiles_common::{fs, http::Client, process, template};
 use flate2::read::GzDecoder;
+use fs_err::File;
 use serde::Deserialize;
 use thiserror::Error;
 use walkdir::WalkDir;
@@ -414,7 +414,7 @@ fn link_applications(install_dir: &Path, entries: &[Link]) -> Result<(), Archive
             let target = install_dir.join(&entry.path);
             let link_path = Path::new("/Applications").join(&entry.name);
             if link_path.exists() {
-                match std::fs::read_link(&link_path) {
+                match fs_err::read_link(&link_path) {
                     Ok(_) => fs_err::remove_file(&link_path)?,
                     Err(_) => continue,
                 }

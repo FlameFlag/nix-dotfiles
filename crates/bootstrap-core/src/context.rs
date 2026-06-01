@@ -1,5 +1,5 @@
 use std::ffi::OsString;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use directories::BaseDirs;
 use fs_err as fs;
@@ -107,38 +107,112 @@ impl Context {
         let config = self.home.join(".config");
         let cache = self.home.join(".cache");
         let tmp = self.home.join(".cache").join("tmp");
+        let appdata = self.home.join("AppData").join("Roaming");
+        let local_appdata = self.home.join("AppData").join("Local");
         let _ = fs::create_dir_all(&tmp);
-        let mut env = vec![
-            (OsString::from("HOME"), self.home.clone().into_os_string()),
-            (OsString::from("XDG_CONFIG_HOME"), config.into_os_string()),
-            (OsString::from("XDG_CACHE_HOME"), cache.into_os_string()),
-            (OsString::from("TMPDIR"), tmp.clone().into_os_string()),
-            (OsString::from("TMP"), tmp.clone().into_os_string()),
-            (OsString::from("TEMP"), tmp.into_os_string()),
-        ];
+        isolated_home_env(
+            &self.home,
+            &config,
+            &cache,
+            &tmp,
+            Some(WindowsHomeEnv {
+                profile: &self.home,
+                appdata: &appdata,
+                local_appdata: &local_appdata,
+            }),
+            false,
+        )
+    }
+}
 
-        if cfg!(windows) {
-            let appdata = self.home.join("AppData").join("Roaming");
-            let local_appdata = self.home.join("AppData").join("Local");
-            if let Some(prefix) = self.home.components().next() {
-                env.push((
-                    OsString::from("HOMEDRIVE"),
-                    PathBuf::from(prefix.as_os_str()).into_os_string(),
-                ));
-            }
+#[cfg_attr(not(windows), allow(dead_code))]
+pub(crate) struct WindowsHomeEnv<'a> {
+    pub(crate) profile: &'a Path,
+    pub(crate) appdata: &'a Path,
+    pub(crate) local_appdata: &'a Path,
+}
+
+pub(crate) fn create_isolated_home_env(
+    home: &Path,
+    config: &Path,
+    cache: &Path,
+    tmp: &Path,
+    windows: Option<WindowsHomeEnv<'_>>,
+    git_config_nosystem: bool,
+) -> std::io::Result<Vec<(OsString, OsString)>> {
+    fs::create_dir_all(config)?;
+    fs::create_dir_all(cache)?;
+    fs::create_dir_all(tmp)?;
+
+    #[cfg(windows)]
+    if let Some(windows) = &windows {
+        fs::create_dir_all(windows.profile)?;
+        fs::create_dir_all(windows.appdata)?;
+        fs::create_dir_all(windows.local_appdata)?;
+    }
+
+    Ok(isolated_home_env(
+        home,
+        config,
+        cache,
+        tmp,
+        windows,
+        git_config_nosystem,
+    ))
+}
+
+pub(crate) fn isolated_home_env(
+    home: &Path,
+    config: &Path,
+    cache: &Path,
+    tmp: &Path,
+    windows: Option<WindowsHomeEnv<'_>>,
+    git_config_nosystem: bool,
+) -> Vec<(OsString, OsString)> {
+    let mut env = vec![
+        (OsString::from("HOME"), home.to_path_buf().into_os_string()),
+        (
+            OsString::from("XDG_CONFIG_HOME"),
+            config.to_path_buf().into_os_string(),
+        ),
+        (
+            OsString::from("XDG_CACHE_HOME"),
+            cache.to_path_buf().into_os_string(),
+        ),
+        (OsString::from("TMPDIR"), tmp.to_path_buf().into_os_string()),
+        (OsString::from("TMP"), tmp.to_path_buf().into_os_string()),
+        (OsString::from("TEMP"), tmp.to_path_buf().into_os_string()),
+    ];
+
+    if git_config_nosystem {
+        env.push((OsString::from("GIT_CONFIG_NOSYSTEM"), OsString::from("1")));
+    }
+
+    #[cfg(windows)]
+    if let Some(windows) = windows {
+        if let Some(prefix) = windows.profile.components().next() {
             env.push((
-                OsString::from("USERPROFILE"),
-                self.home.clone().into_os_string(),
-            ));
-            env.push((OsString::from("APPDATA"), appdata.into_os_string()));
-            env.push((
-                OsString::from("LOCALAPPDATA"),
-                local_appdata.into_os_string(),
+                OsString::from("HOMEDRIVE"),
+                PathBuf::from(prefix.as_os_str()).into_os_string(),
             ));
         }
-
-        env
+        env.push((
+            OsString::from("USERPROFILE"),
+            windows.profile.to_path_buf().into_os_string(),
+        ));
+        env.push((
+            OsString::from("APPDATA"),
+            windows.appdata.to_path_buf().into_os_string(),
+        ));
+        env.push((
+            OsString::from("LOCALAPPDATA"),
+            windows.local_appdata.to_path_buf().into_os_string(),
+        ));
     }
+    #[cfg(not(windows))]
+    let _ = windows;
+
+    env
 }
 
 fn bootstrap_path(prefixes: &[PathBuf]) -> Option<OsString> {

@@ -5,7 +5,7 @@ use thiserror::Error;
 #[derive(Debug, Error)]
 pub enum Error {
     #[error(transparent)]
-    Http(#[from] reqwest::Error),
+    Http(#[from] dotfiles_common::http::HttpError),
     #[error(transparent)]
     Io(#[from] io::Error),
     #[error("missing GitHub token; set GH_TOKEN/GITHUB_TOKEN or run `gh auth login`")]

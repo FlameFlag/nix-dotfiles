@@ -1,6 +1,7 @@
 use crate::command::{command_text, run_command};
 use crate::context::{Options, context_with_options};
 use crate::error::Result;
+use dotfiles_common::process;
 use serde::Deserialize;
 use std::path::Path;
 
@@ -15,7 +16,7 @@ struct ExtensionSpec {
 }
 
 pub fn install_vs_extensions(options: &Options) -> Result<()> {
-    if which::which("code").is_err() {
+    if process::path_of("code").is_none() {
         return Ok(());
     }
     let ctx = context_with_options(options)?;
@@ -25,7 +26,7 @@ pub fn install_vs_extensions(options: &Options) -> Result<()> {
     if !extensions_file.exists() {
         return Ok(());
     }
-    let installed = command_text(&duct::cmd("code", ["--list-extensions"]))?;
+    let installed = command_text(&["code".to_owned(), "--list-extensions".to_owned()])?;
     for extension in extension_ids(&extensions_file)? {
         if installed
             .lines()
@@ -33,10 +34,12 @@ pub fn install_vs_extensions(options: &Options) -> Result<()> {
         {
             continue;
         }
-        run_command(&duct::cmd(
-            "code",
-            ["--install-extension", &extension, "--force"],
-        ))?;
+        run_command(&[
+            "code".to_owned(),
+            "--install-extension".to_owned(),
+            extension,
+            "--force".to_owned(),
+        ])?;
     }
     Ok(())
 }

@@ -1,8 +1,9 @@
 use std::path::{Path, PathBuf};
 
-use crate::command::{warn_if_failed, write_command_text_if_available};
+use crate::command::{command_output, warn_if_failed, write_command_text_if_available};
 use crate::error::{Error, Result};
-use crate::fs::write_text_if_changed;
+use dotfiles_common::fs::write_text_if_changed;
+use dotfiles_common::process;
 
 struct CompletionSpec {
     bin: &'static str,
@@ -114,18 +115,18 @@ pub fn nushell_init() -> Result<()> {
     write_command_text_if_available(
         "starship",
         &home_dir.join(".cache/starship/init.nu"),
-        &duct::cmd("starship", ["init", "nu"]),
+        &process::argv(["starship", "init", "nu"]),
     )?;
     write_command_text_if_available(
         "zoxide",
         &home_dir.join(".cache/zoxide/init.nu"),
-        &duct::cmd("zoxide", ["init", "nushell", "--cmd", "cd"]),
+        &process::argv(["zoxide", "init", "nushell", "--cmd", "cd"]),
     )?;
     let atuin = home_dir.join(".local/share/atuin/init.nu");
     write_command_text_if_available(
         "atuin",
         &atuin,
-        &duct::cmd("atuin", ["init", "nu", "--disable-up-arrow"]),
+        &process::argv(["atuin", "init", "nu", "--disable-up-arrow"]),
     )?;
     if let Ok(current) = fs_err::read_to_string(&atuin) {
         write_text_if_changed(
@@ -171,12 +172,12 @@ fn write_init_files(home: &Path, shell: &str) -> Result<()> {
         ("tv", "television", &[]),
     ];
     for (bin, dir, suffix) in commands {
-        if which::which(bin).is_err() {
+        if process::path_of(bin).is_none() {
             continue;
         }
         let path = home.join(".cache").join(dir).join(format!("init.{shell}"));
         let args = ["init", shell].into_iter().chain(suffix.iter().copied());
-        let command = duct::cmd(bin, args);
+        let command = process::argv(std::iter::once(bin).chain(args));
         write_command_text_if_available(bin, &path, &command)?;
     }
     Ok(())
@@ -185,42 +186,37 @@ fn write_init_files(home: &Path, shell: &str) -> Result<()> {
 fn write_completion_files(home: &Path, shell: &str) -> Result<()> {
     let outdir = home.join(".cache").join(shell).join("completions");
     let prefix = if shell == "zsh" { "_" } else { "" };
-    if which::which("atuin").is_ok() {
+    if process::path_of("atuin").is_some() {
         let args = [
-            "gen-completions".into(),
-            "--shell".into(),
-            shell.into(),
-            "--out-dir".into(),
+            "atuin".to_owned(),
+            "gen-completions".to_owned(),
+            "--shell".to_owned(),
+            shell.to_owned(),
+            "--out-dir".to_owned(),
+            outdir.to_string_lossy().into_owned(),
         ]
         .into_iter()
-        .chain([outdir.as_os_str().to_os_string()]);
-        warn_if_failed(
-            "atuin completions",
-            &duct::cmd("atuin", args).unchecked().run()?,
-        );
+        .collect::<Vec<_>>();
+        warn_if_failed("atuin completions", &command_output(&args)?);
     }
 
     for spec in COMPLETION_SPECS {
-        if which::which(spec.bin).is_err() {
+        if process::path_of(spec.bin).is_none() {
             continue;
         }
-        let args = spec
-            .before
-            .iter()
-            .copied()
-            .chain([shell])
-            .chain(spec.after.iter().copied());
-        let output = duct::cmd(spec.argv0, args)
-            .stdout_capture()
-            .stderr_capture()
-            .unchecked()
-            .run()?;
+        let command = process::argv(
+            std::iter::once(spec.argv0)
+                .chain(spec.before.iter().copied())
+                .chain([shell])
+                .chain(spec.after.iter().copied()),
+        );
+        let output = command_output(&command)?;
         if !output.status.success() {
             warn_if_failed(spec.name, &output);
             continue;
         }
         write_text_if_changed(
-            &outdir.join(format!("{prefix}{}", spec.name)),
+            outdir.join(format!("{prefix}{}", spec.name)),
             &String::from_utf8_lossy(&output.stdout),
         )?;
     }

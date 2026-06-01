@@ -1,6 +1,9 @@
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
+#[cfg(target_os = "windows")]
+use dotfiles_common::process;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum HostOs {
@@ -92,20 +95,24 @@ pub fn meets_requirement(requirement: HostRequirement) -> bool {
 fn is_lenovo_laptop() -> bool {
     #[cfg(target_os = "linux")]
     {
-        let vendor = std::fs::read_to_string("/sys/class/dmi/id/sys_vendor").unwrap_or_default();
-        let chassis = std::fs::read_to_string("/sys/class/dmi/id/chassis_type").unwrap_or_default();
+        let vendor = fs_err::read_to_string("/sys/class/dmi/id/sys_vendor").unwrap_or_default();
+        let chassis = fs_err::read_to_string("/sys/class/dmi/id/chassis_type").unwrap_or_default();
         let is_lenovo = vendor.to_ascii_lowercase().contains("lenovo");
         let chassis = chassis.trim();
         is_lenovo && matches!(chassis, "8" | "9" | "10" | "14")
     }
     #[cfg(target_os = "windows")]
     {
-        let Ok(output) = duct::cmd("wmic", ["computersystem", "get", "manufacturer,model"])
-            .stdout_capture()
-            .stderr_null()
-            .unchecked()
-            .run()
-        else {
+        let command = [
+            "wmic".to_owned(),
+            "computersystem".to_owned(),
+            "get".to_owned(),
+            "manufacturer,model".to_owned(),
+        ];
+        let Ok(output) = process::capture_with_env(
+            &command,
+            std::iter::empty::<(std::ffi::OsString, std::ffi::OsString)>(),
+        ) else {
             return false;
         };
         if !output.status.success() {
