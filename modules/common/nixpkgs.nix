@@ -49,6 +49,7 @@
             };
           });
         kanata-with-cmd = final.kanata.override { withCmd = true; };
+        http-fixture = final.callPackage ../../pkgs/http-fixture.nix { };
         ghidra-mcp-headless = final.callPackage ../../pkgs/ghidra-mcp-headless.nix {
           inherit (final.unstable)
             ghidra

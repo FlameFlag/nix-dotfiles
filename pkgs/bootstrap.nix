@@ -40,6 +40,7 @@ rustPlatform.buildRustPackage {
       ../Cargo.toml
       ../bootstrap
       ../crates
+      ./http-fixture
       ./gh-hide-comment
       ./lenovo-con-mode
       ./lsp-diagnostic-filter
