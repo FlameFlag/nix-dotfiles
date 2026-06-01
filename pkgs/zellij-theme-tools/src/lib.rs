@@ -174,10 +174,11 @@ fn theme_mode_from_rgb((r, g, b): (u8, u8, u8)) -> ThemeMode {
 #[cfg(unix)]
 mod imp {
     use super::*;
-    use std::fs::OpenOptions;
     use std::io;
     use std::os::fd::OwnedFd;
     use std::time::Duration;
+
+    use fs_err::OpenOptions;
 
     struct Tty {
         reader: OwnedFd,

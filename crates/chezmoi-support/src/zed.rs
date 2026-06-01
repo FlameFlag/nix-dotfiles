@@ -2,9 +2,9 @@ use flate2::read::GzDecoder;
 
 use crate::context::{Options, context_with_options};
 use crate::error::Result;
-use dotfiles_common::fs::{copy_dir_recursive, remove_dir_if_exists};
+use dotfiles_common::fs::{copy_dir_recursive, remove_dir_if_exists, write_text_if_changed};
 
-use crate::fs::{first_dir, write_text_if_changed};
+use crate::fs::first_dir;
 use crate::github::latest_tag;
 use dotfiles_common::http::Client;
 

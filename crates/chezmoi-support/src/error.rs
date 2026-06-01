@@ -7,6 +7,8 @@ pub enum Error {
     #[error(transparent)]
     Http(#[from] dotfiles_common::http::HttpError),
     #[error(transparent)]
+    Process(#[from] dotfiles_common::process::ProcessError),
+    #[error(transparent)]
     Json(#[from] serde_json::Error),
     #[error(transparent)]
     Toml(#[from] toml::de::Error),

@@ -14,12 +14,11 @@ fn token_from_env() -> Option<SecretString> {
 }
 
 fn token_from_gh_cli() -> Result<SecretString> {
-    let output = duct::cmd("gh", ["auth", "token"])
-        .stdout_capture()
-        .stderr_capture()
-        .unchecked()
-        .run()
-        .map_err(|err| Error::GhAuth(err.to_string()))?;
+    let output = dotfiles_common::process::capture_with_env(
+        &["gh".to_owned(), "auth".to_owned(), "token".to_owned()],
+        std::iter::empty::<(String, String)>(),
+    )
+    .map_err(|err| Error::GhAuth(err.to_string()))?;
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr).trim().to_owned();
         return Err(if stderr.is_empty() {

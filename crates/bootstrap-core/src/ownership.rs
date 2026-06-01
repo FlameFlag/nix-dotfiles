@@ -79,7 +79,7 @@ pub fn classify_bin_on_path(
 }
 
 fn symlink_target(path: &Path) -> Option<PathBuf> {
-    let raw = std::fs::read_link(path).ok()?;
+    let raw = fs_err::read_link(path).ok()?;
     if raw.is_absolute() {
         Some(raw)
     } else {

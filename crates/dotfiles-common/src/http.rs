@@ -1,7 +1,9 @@
 use std::path::Path;
 
 use fs_err as fs;
+pub use reqwest::StatusCode;
 use reqwest::blocking::{Client as ReqwestClient, Response};
+use serde::Serialize;
 use serde::de::DeserializeOwned;
 use thiserror::Error;
 
@@ -15,6 +17,11 @@ pub enum HttpError {
 
 pub struct Client {
     inner: ReqwestClient,
+}
+
+pub struct TextResponse {
+    pub status: StatusCode,
+    pub body: String,
 }
 
 impl Client {
@@ -34,6 +41,43 @@ impl Client {
 
     fn get(&self, url: &str) -> Result<Response, HttpError> {
         Ok(self.inner.get(url).send()?.error_for_status()?)
+    }
+
+    fn text_response(
+        &self,
+        request: reqwest::blocking::RequestBuilder,
+    ) -> Result<TextResponse, HttpError> {
+        let response = request.send()?;
+        let status = response.status();
+        let body = response.text()?;
+        Ok(TextResponse { status, body })
+    }
+
+    /// Downloads `url` with bearer authentication and returns status plus body text.
+    ///
+    /// Unlike [`Self::text`], non-successful HTTP status codes are preserved in
+    /// the returned response so API callers can include the response body in
+    /// their own domain-specific errors.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the request or response body read fails.
+    pub fn get_bearer_text(&self, url: &str, token: &str) -> Result<TextResponse, HttpError> {
+        self.text_response(self.inner.get(url).bearer_auth(token))
+    }
+
+    /// Posts a JSON body with bearer authentication and returns status plus body text.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the request, serialization, or response body read fails.
+    pub fn post_json_bearer_text<T: Serialize + ?Sized>(
+        &self,
+        url: &str,
+        token: &str,
+        body: &T,
+    ) -> Result<TextResponse, HttpError> {
+        self.text_response(self.inner.post(url).bearer_auth(token).json(body))
     }
 
     /// Opens a response body reader for `url`.

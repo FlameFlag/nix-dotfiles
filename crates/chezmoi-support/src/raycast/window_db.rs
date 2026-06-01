@@ -5,7 +5,9 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use sha2::{Digest, Sha256};
 
+use crate::command::{command_output, command_output_with_stdin, output_detail};
 use crate::error::{Error, Result};
+use dotfiles_common::process::argv;
 
 const KEYCHAIN_SERVICE: &str = "Raycast Beta";
 const DATABASE_KEYCHAIN_ACCOUNT: &str = "database_key";
@@ -119,27 +121,19 @@ pub(super) fn apply_config(
     let password = database_password()?;
     let payload = apply_payload(config, &password)?;
     let node = raycast_beta_node(support_dir)?;
-    let output = duct::cmd(
-        node,
-        [
-            "-e".into(),
-            APPLY_SCRIPT.into(),
-            support_dir.as_os_str().to_owned(),
-            native_binding.as_os_str().to_owned(),
-        ],
-    )
-    .stdin_bytes(serde_json::to_vec(&payload)?)
-    .stdout_capture()
-    .stderr_capture()
-    .unchecked()
-    .run()?;
+    let command = vec![
+        node.to_string_lossy().into_owned(),
+        "-e".to_owned(),
+        APPLY_SCRIPT.to_owned(),
+        support_dir.to_string_lossy().into_owned(),
+        native_binding.to_string_lossy().into_owned(),
+    ];
+    let output = command_output_with_stdin(&command, serde_json::to_vec(&payload)?)?;
     if output.status.success() {
         return Ok(());
     }
 
-    let stderr = String::from_utf8_lossy(&output.stderr).trim().to_owned();
-    let stdout = String::from_utf8_lossy(&output.stdout).trim().to_owned();
-    let detail = if stderr.is_empty() { stdout } else { stderr };
+    let detail = output_detail(&output);
     Err(Error::CommandFailed(format!(
         "Raycast Beta native database update failed: {detail}"
     )))
@@ -204,21 +198,15 @@ fn database_password() -> Result<String> {
 }
 
 fn database_key_from_keychain() -> Result<String> {
-    let output = duct::cmd(
+    let output = command_output(&argv([
         "security",
-        [
-            "find-generic-password",
-            "-s",
-            KEYCHAIN_SERVICE,
-            "-a",
-            DATABASE_KEYCHAIN_ACCOUNT,
-            "-w",
-        ],
-    )
-    .stdout_capture()
-    .stderr_capture()
-    .unchecked()
-    .run()?;
+        "find-generic-password",
+        "-s",
+        KEYCHAIN_SERVICE,
+        "-a",
+        DATABASE_KEYCHAIN_ACCOUNT,
+        "-w",
+    ]))?;
     if output.status.success() {
         return Ok(String::from_utf8_lossy(&output.stdout).trim().to_owned());
     }

@@ -19,7 +19,7 @@ use std::path::PathBuf;
 use crate::context::Options;
 use crate::context::context_with_options;
 use crate::error::Result;
-use crate::fs::write_text_if_changed;
+use dotfiles_common::fs::write_text_if_changed;
 
 const STATIC_COMPLETION_PATHS: &[StaticCompletionPath] = &[
     StaticCompletionPath {
@@ -141,7 +141,7 @@ fn sync_completions(options: &Options) -> Result<()> {
     let ctx = context_with_options(options)?;
     for completion in STATIC_COMPLETION_PATHS {
         write_text_if_changed(
-            &ctx.source_dir.join(completion.path),
+            ctx.source_dir.join(completion.path),
             &generated_completions(completion.shell),
         )?;
     }

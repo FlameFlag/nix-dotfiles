@@ -1,4 +1,4 @@
-use reqwest::blocking::Client;
+use dotfiles_common::http::{Client, StatusCode};
 use secrecy::{ExposeSecret, SecretString};
 use serde::Deserialize;
 
@@ -48,13 +48,8 @@ pub fn hide(
 }
 
 fn node_id(client: &Client, token: &SecretString, comment: &Comment) -> Result<String> {
-    let response = client
-        .get(node_id_url(comment))
-        .bearer_auth(token.expose_secret())
-        .send()?;
-    let status = response.status();
-    let body = response.text()?;
-    parse_node_id_response(status, &body)
+    let response = client.get_bearer_text(&node_id_url(comment), token.expose_secret())?;
+    parse_node_id_response(response.status, &response.body)
 }
 
 fn node_id_url(comment: &Comment) -> String {
@@ -70,7 +65,7 @@ fn node_id_url(comment: &Comment) -> String {
     }
 }
 
-fn parse_node_id_response(status: reqwest::StatusCode, body: &str) -> Result<String> {
+fn parse_node_id_response(status: StatusCode, body: &str) -> Result<String> {
     if !status.is_success() {
         return Err(Error::GithubApi {
             status: status.as_u16(),
@@ -86,23 +81,21 @@ fn parse_node_id_response(status: reqwest::StatusCode, body: &str) -> Result<Str
 }
 
 fn minimize(client: &Client, token: &SecretString, id: &str, reason: Reason) -> Result<String> {
-    let response = client
-        .post("https://api.github.com/graphql")
-        .bearer_auth(token.expose_secret())
-        .json(&serde_json::json!({
+    let response = client.post_json_bearer_text(
+        "https://api.github.com/graphql",
+        token.expose_secret(),
+        &serde_json::json!({
             "query": "mutation HideComment($id: ID!, $reason: ReportedContentClassifiers!) { minimizeComment(input: { subjectId: $id, classifier: $reason }) { minimizedComment { isMinimized minimizedReason } } }",
             "variables": {
                 "id": id,
                 "reason": classifier(reason),
             },
-        }))
-        .send()?;
-    let status = response.status();
-    let body = response.text()?;
-    parse_minimize_response(status, &body)
+        }),
+    )?;
+    parse_minimize_response(response.status, &response.body)
 }
 
-fn parse_minimize_response(status: reqwest::StatusCode, body: &str) -> Result<String> {
+fn parse_minimize_response(status: StatusCode, body: &str) -> Result<String> {
     if !status.is_success() {
         return Err(Error::GithubApi {
             status: status.as_u16(),
@@ -169,7 +162,7 @@ mod tests {
             }
         }"#;
 
-        let reason = parse_minimize_response(reqwest::StatusCode::OK, body).expect("reason");
+        let reason = parse_minimize_response(StatusCode::OK, body).expect("reason");
 
         assert_eq!(reason, "OUTDATED");
     }
@@ -178,7 +171,7 @@ mod tests {
     fn parse_minimize_response_reports_graphql_errors_without_data() {
         let body = r#"{"errors":[{"message":"nope"}]}"#;
 
-        let err = parse_minimize_response(reqwest::StatusCode::OK, body).expect_err("error");
+        let err = parse_minimize_response(StatusCode::OK, body).expect_err("error");
 
         assert!(err.to_string().contains("nope"));
     }
@@ -210,8 +203,8 @@ mod tests {
 
     #[test]
     fn parse_node_id_response_reads_rest_payload() {
-        let node_id = parse_node_id_response(reqwest::StatusCode::OK, r#"{"node_id":"IC_kw"}"#)
-            .expect("node id");
+        let node_id =
+            parse_node_id_response(StatusCode::OK, r#"{"node_id":"IC_kw"}"#).expect("node id");
 
         assert_eq!(node_id, "IC_kw");
     }

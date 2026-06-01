@@ -8,7 +8,7 @@ mod github;
 
 use clap::{CommandFactory, Parser};
 use clap_complete::generate;
-use reqwest::blocking::Client;
+use dotfiles_common::http::Client;
 use std::io::Write;
 
 use crate::auth::token;
@@ -49,8 +49,7 @@ fn run_gh_hide_comment(mut cli: Cli) -> Result<i32> {
     }
 
     let token = token()?;
-    let _ = rustls::crypto::ring::default_provider().install_default();
-    let client = Client::builder().user_agent("gh-hide-comment").build()?;
+    let client = Client::new("gh-hide-comment")?;
 
     let mut hidden = 0_usize;
     for comment_url in &cli.urls {

@@ -1,50 +1,60 @@
 use std::path::Path;
 
 use crate::error::{Error, Result};
-use crate::fs::write_text_if_changed;
+use dotfiles_common::fs::write_text_if_changed;
+use dotfiles_common::process::{self, Output};
 
-pub fn write_command_text_if_available(
-    bin: &str,
-    path: &Path,
-    command: &duct::Expression,
-) -> Result<bool> {
-    if which::which(bin).is_err() {
+pub fn write_command_text_if_available(bin: &str, path: &Path, argv: &[String]) -> Result<bool> {
+    if process::path_of(bin).is_none() {
         return Ok(false);
     }
-    let text = command_text(command)?;
-    write_text_if_changed(path, &text)
+    let text = command_text(argv)?;
+    Ok(write_text_if_changed(path, &text)?)
 }
 
-pub fn command_text(command: &duct::Expression) -> Result<String> {
-    let output = command
-        .stdout_capture()
-        .stderr_capture()
-        .unchecked()
-        .run()?;
+pub fn command_text(argv: &[String]) -> Result<String> {
+    let output = process::capture_with_env(argv, std::iter::empty::<(String, String)>())?;
     if !output.status.success() {
-        return Err(Error::CommandFailed(format!("{command:?}")));
+        return Err(Error::CommandFailed(command_label(argv)));
     }
     Ok(String::from_utf8_lossy(&output.stdout).into_owned())
 }
 
-pub fn run_command(command: &duct::Expression) -> Result<()> {
-    let output = command.unchecked().run()?;
-    if output.status.success() {
-        Ok(())
+pub fn command_output(argv: &[String]) -> Result<Output> {
+    process::capture_with_env(argv, std::iter::empty::<(String, String)>()).map_err(Into::into)
+}
+
+pub fn command_output_with_stdin(argv: &[String], stdin: impl Into<Vec<u8>>) -> Result<Output> {
+    process::capture_with_stdin(argv, stdin).map_err(Into::into)
+}
+
+pub fn run_command(argv: &[String]) -> Result<()> {
+    process::run(argv).map_err(Into::into)
+}
+
+pub fn output_detail(output: &Output) -> String {
+    let stderr = String::from_utf8_lossy(&output.stderr).trim().to_owned();
+    if stderr.is_empty() {
+        String::from_utf8_lossy(&output.stdout).trim().to_owned()
     } else {
-        Err(Error::CommandFailed(format!("{command:?}")))
+        stderr
     }
 }
 
-pub fn warn_if_failed(name: &str, output: &std::process::Output) {
+pub fn warn_if_failed(name: &str, output: &Output) {
     if output.status.success() {
         return;
     }
-    let message = String::from_utf8_lossy(&output.stderr);
-    let message = message.trim();
+    let message = output_detail(output);
     if message.is_empty() {
         eprintln!("warn: failed to generate {name} completions");
     } else {
         eprintln!("warn: failed to generate {name} completions: {message}");
     }
+}
+
+fn command_label(argv: &[String]) -> String {
+    argv.first()
+        .cloned()
+        .unwrap_or_else(|| "<empty>".to_owned())
 }

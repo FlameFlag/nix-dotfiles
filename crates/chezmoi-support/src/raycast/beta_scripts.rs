@@ -1,6 +1,8 @@
 use std::path::Path;
 
+use crate::command::{command_output, output_detail};
 use crate::error::{Error, Result};
+use dotfiles_common::process::argv;
 
 const FRONTEND_OPEN_SETTINGS_BROKEN: &str =
     "openSettings:async e=>{Na({to:e.to,params:e.routeParams})}";
@@ -458,66 +460,43 @@ fn codesign_beta_app(beta_app: &Path) -> Result<()> {
         .tempfile()?;
     fs_err::write(entitlements.path(), AD_HOC_ENTITLEMENTS)?;
     let entitlements_path = entitlements.path().to_string_lossy();
-    let output = duct::cmd(
+    let beta_app = beta_app
+        .to_str()
+        .ok_or_else(|| Error::CommandFailed("invalid Raycast Beta app path".into()))?;
+    let output = command_output(&argv([
         "codesign",
-        [
-            "--force",
-            "--deep",
-            "--preserve-metadata=flags,runtime",
-            "--entitlements",
-            &entitlements_path,
-            "--sign",
-            "-",
-            beta_app
-                .to_str()
-                .ok_or_else(|| Error::CommandFailed("invalid Raycast Beta app path".into()))?,
-        ],
-    )
-    .stdout_capture()
-    .stderr_capture()
-    .unchecked()
-    .run()?;
+        "--force",
+        "--deep",
+        "--preserve-metadata=flags,runtime",
+        "--entitlements",
+        &entitlements_path,
+        "--sign",
+        "-",
+        beta_app,
+    ]))?;
     if output.status.success() {
         return Ok(());
     }
 
-    let stderr = String::from_utf8_lossy(&output.stderr).trim().to_owned();
-    let stdout = String::from_utf8_lossy(&output.stdout).trim().to_owned();
-    let detail = if stderr.is_empty() { stdout } else { stderr };
+    let detail = output_detail(&output);
     Err(Error::CommandFailed(format!(
         "Raycast Beta app re-sign failed: {detail}"
     )))
 }
 
 fn clear_quarantine(beta_app: &Path) -> Result<()> {
-    let output = duct::cmd(
-        "xattr",
-        [
-            "-dr",
-            "com.apple.quarantine",
-            beta_app
-                .to_str()
-                .ok_or_else(|| Error::CommandFailed("invalid Raycast Beta app path".into()))?,
-        ],
-    )
-    .stdout_capture()
-    .stderr_capture()
-    .unchecked()
-    .run()?;
+    let beta_app = beta_app
+        .to_str()
+        .ok_or_else(|| Error::CommandFailed("invalid Raycast Beta app path".into()))?;
+    let output = command_output(&argv(["xattr", "-dr", "com.apple.quarantine", beta_app]))?;
     if output.status.success() {
         return Ok(());
     }
 
-    let stderr = String::from_utf8_lossy(&output.stderr);
-    if stderr.contains("No such xattr") {
+    let detail = output_detail(&output);
+    if detail.contains("No such xattr") {
         return Ok(());
     }
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    let detail = if stderr.trim().is_empty() {
-        stdout.trim()
-    } else {
-        stderr.trim()
-    };
     Err(Error::CommandFailed(format!(
         "failed to clear Raycast Beta quarantine attribute: {detail}"
     )))

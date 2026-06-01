@@ -19,6 +19,26 @@ pub fn write_executable(path: impl AsRef<Path>, bytes: &[u8]) -> std::io::Result
     Ok(())
 }
 
+/// Writes text to a file only when the current contents differ.
+///
+/// Parent directories are created automatically. The return value indicates
+/// whether the file contents changed.
+///
+/// # Errors
+///
+/// Returns an error if reading, creating parent directories, or writing fails.
+pub fn write_text_if_changed(path: impl AsRef<Path>, text: &str) -> std::io::Result<bool> {
+    let path = path.as_ref();
+    if fs::read_to_string(path).is_ok_and(|current| current == text) {
+        return Ok(false);
+    }
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent)?;
+    }
+    fs::write(path, text)?;
+    Ok(true)
+}
+
 /// Marks a file executable on Unix platforms.
 ///
 /// # Errors
@@ -167,6 +187,17 @@ mod tests {
             let mode = fs::metadata(&path).expect("metadata").permissions().mode();
             assert_ne!(mode & 0o111, 0);
         }
+    }
+
+    #[test]
+    fn write_text_if_changed_reports_changes() {
+        let temp = tempfile::tempdir().expect("tempdir");
+        let path = temp.path().join("nested").join("file.txt");
+
+        assert!(write_text_if_changed(&path, "hello").expect("write hello"));
+        assert!(!write_text_if_changed(&path, "hello").expect("skip unchanged"));
+        assert!(write_text_if_changed(&path, "goodbye").expect("write goodbye"));
+        assert_eq!(fs::read_to_string(path).expect("read file"), "goodbye");
     }
 
     #[test]
