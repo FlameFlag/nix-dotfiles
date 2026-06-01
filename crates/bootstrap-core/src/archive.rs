@@ -12,6 +12,7 @@ use xz2::read::XzDecoder;
 
 use crate::catalog::{ArchiveAction, ArchiveKind, ArchivePlatform, Link, Source};
 use crate::platform::Host;
+use crate::progress::Spinner;
 use crate::{Context, links, release};
 
 #[derive(Debug, Error)]
@@ -89,7 +90,9 @@ pub fn install_archive(
         ArchiveKind::Zip => "archive.zip",
     });
     let client = Client::new("dotfiles-bootstrap")?;
+    let progress = Spinner::new(format!("{tool}: downloading {}", resolved.version));
     client.download_file(&resolved.url, &archive_path)?;
+    progress.set_message(format!("{tool}: extracting {}", resolved.version));
 
     extract_file(
         &archive_path,
@@ -97,13 +100,17 @@ pub fn install_archive(
         platform.kind,
         platform.strip_components,
     )?;
+    progress.set_message(format!("{tool}: repairing executable permissions"));
     repair_executable_permissions(&temp_dir)?;
+    progress.set_message(format!("{tool}: installing {}", resolved.version));
     if let Some(parent) = install_dir.parent() {
         fs_err::create_dir_all(parent)?;
     }
     fs_err::rename(&temp_dir, &install_dir)?;
+    progress.set_message(format!("{tool}: linking binaries"));
     links::link_many(ctx, tool, &install_dir, &rendered_links)?;
     link_applications(&install_dir, &rendered_app_links)?;
+    progress.finish_and_clear();
     Ok(())
 }
 

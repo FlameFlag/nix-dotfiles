@@ -59,24 +59,28 @@ pub fn remove_dir_if_exists(path: impl AsRef<Path>) -> std::io::Result<()> {
 ///
 /// Returns an error if walking, creating, or copying any directory entry fails.
 pub fn copy_dir_recursive(src: &Path, dst: &Path) -> std::io::Result<()> {
-    for entry in walkdir::WalkDir::new(src) {
-        let entry = entry.map_err(std::io::Error::other)?;
-        let relative = entry
-            .path()
-            .strip_prefix(src)
-            .map_err(std::io::Error::other)?;
-        let target = dst.join(relative);
+    fs_more::directory::copy_directory(
+        src,
+        dst,
+        fs_more::directory::DirectoryCopyOptions::default(),
+    )
+    .map(drop)
+    .map_err(std::io::Error::other)
+}
 
-        if entry.file_type().is_dir() {
-            fs::create_dir_all(&target)?;
-        } else if entry.file_type().is_file() {
-            if let Some(parent) = target.parent() {
-                fs::create_dir_all(parent)?;
-            }
-            fs::copy(entry.path(), target)?;
-        }
-    }
-    Ok(())
+/// Moves `src` to `dst`, falling back to copy-and-delete when rename cannot be used.
+///
+/// # Errors
+///
+/// Returns an error if source/destination validation, renaming, copying, or cleanup fails.
+pub fn move_dir(src: &Path, dst: &Path) -> std::io::Result<()> {
+    fs_more::directory::move_directory(
+        src,
+        dst,
+        fs_more::directory::DirectoryMoveOptions::default(),
+    )
+    .map(drop)
+    .map_err(std::io::Error::other)
 }
 
 /// Creates a temporary directory with the supplied prefix.
@@ -180,6 +184,23 @@ mod tests {
             fs::read_to_string(dst.join("root.txt")).expect("read root"),
             "root"
         );
+        assert_eq!(
+            fs::read_to_string(dst.join("nested").join("leaf.txt")).expect("read leaf"),
+            "leaf"
+        );
+    }
+
+    #[test]
+    fn move_dir_moves_nested_files() {
+        let temp = tempfile::tempdir().expect("tempdir");
+        let src = temp.path().join("src");
+        let dst = temp.path().join("dst");
+        fs::create_dir_all(src.join("nested")).expect("create nested source");
+        fs::write(src.join("nested").join("leaf.txt"), "leaf").expect("write leaf");
+
+        move_dir(&src, &dst).expect("move tree");
+
+        assert!(!src.exists());
         assert_eq!(
             fs::read_to_string(dst.join("nested").join("leaf.txt")).expect("read leaf"),
             "leaf"

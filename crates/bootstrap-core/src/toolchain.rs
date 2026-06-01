@@ -7,6 +7,7 @@ use thiserror::Error;
 use crate::Context;
 use crate::catalog::{DownloadCommand, ToolchainAction};
 use crate::platform::Host;
+use crate::progress::Spinner;
 
 #[derive(Debug, Error)]
 pub enum ToolchainError {
@@ -86,11 +87,14 @@ fn install_manager(
     let temp = fs::tmp_dir("toolchain-install")?;
     let installer = temp.path().join(&command.file);
     let client = Client::new("dotfiles-bootstrap")?;
+    let progress = Spinner::new(format!("{toolchain}: downloading toolchain manager"));
     client.download_file(&command.url, &installer)?;
+    progress.set_message(format!("{toolchain}: preparing installer"));
     fs::make_executable(&installer)?;
     let installer_text = installer.to_string_lossy();
     let bindings = base_bindings("", toolchain, Some(&installer_text))?;
     let argv = render_toolchain_argv(spec, &command.argv, &bindings)?;
+    progress.finish_and_clear();
     process::run_with_env(&argv, ctx.command_env())?;
     Ok(())
 }

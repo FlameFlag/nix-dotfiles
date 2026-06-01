@@ -25,6 +25,7 @@ walkdir.workspace = true
 serde_path_to_error = "0.1.20"
 duct = "1.1.1"
 garde = { version = "0.23.0", features = ["derive"] }
+indicatif = "0.18.4"
 
 [target.'cfg(windows)'.dependencies]
 winreg = "0.52.0"
