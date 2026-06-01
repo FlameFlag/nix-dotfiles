@@ -1,7 +1,7 @@
 { lib, rustPlatform }:
 
 rustPlatform.buildRustPackage {
-  pname = "lsp-diagnostic-filter";
+  pname = "http-fixture";
   version = "0.1.0";
 
   src = lib.fileset.toSource {
@@ -21,10 +21,15 @@ rustPlatform.buildRustPackage {
 
   cargoBuildFlags = [
     "--package"
-    "lsp-diagnostic-filter"
+    "http-fixture"
   ];
   cargoTestFlags = [
     "--package"
-    "lsp-diagnostic-filter"
+    "http-fixture"
   ];
+
+  meta = {
+    description = "Small local fixture HTTP server";
+    mainProgram = "http-fixture";
+  };
 }

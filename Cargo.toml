@@ -5,7 +5,9 @@ members = [
     "crates/chezmoi-support",
     "crates/dotfiles-common",
     "pkgs/gh-hide-comment",
-    "pkgs/lenovo-con-mode", "pkgs/lsp-diagnostic-filter",
+    "pkgs/http-fixture",
+    "pkgs/lenovo-con-mode",
+    "pkgs/lsp-diagnostic-filter",
     "pkgs/zellij-theme-tools",
 ]
 resolver = "3"
@@ -30,6 +32,7 @@ serde_json = "1.0.149"
 tar = "0.4.46"
 tempfile = "3.27.0"
 thiserror = "2.0.18"
+tiny_http = { version = "0.12.0", features = ["ssl-rustls"] }
 toml = "1.1.2"
 toml_edit = "0.25.11"
 url = "2.5.8"
