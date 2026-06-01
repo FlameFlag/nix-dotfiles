@@ -379,7 +379,8 @@ mod tests {
     fn codex_home_ignores_inherited_trust_overlay() -> Result<()> {
         let home = std::path::PathBuf::from("/home/user");
 
-        let resolved = codex_home_from(Some("/tmp/codex-trustabc".into()), home)?;
+        let inherited_overlay = std::env::temp_dir().join("codex-trustabc");
+        let resolved = codex_home_from(Some(inherited_overlay.into_os_string()), home)?;
 
         assert_eq!(resolved, std::path::PathBuf::from("/home/user/.codex"));
         Ok(())
@@ -388,10 +389,11 @@ mod tests {
     #[test]
     fn codex_home_keeps_custom_temp_home() -> Result<()> {
         let home = std::path::PathBuf::from("/home/user");
+        let custom_home = std::env::temp_dir().join("custom-codex");
 
-        let resolved = codex_home_from(Some("/tmp/custom-codex".into()), home)?;
+        let resolved = codex_home_from(Some(custom_home.clone().into_os_string()), home)?;
 
-        assert_eq!(resolved, std::path::PathBuf::from("/tmp/custom-codex"));
+        assert_eq!(resolved, custom_home);
         Ok(())
     }
 
