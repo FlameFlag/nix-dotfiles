@@ -23,18 +23,14 @@
           let
             version = "1.12.0-prerelease-2";
             src = final.fetchFromGitHub {
-              owner = "jtroo";
+              owner = "FlameFlag";
               repo = "kanata";
-              rev = "c4e07fbb39b28a18dca4a2234e65793bef526f99";
-              hash = "sha256-dcwMOAptUhmbnlpxBHS9bimvV4IPmhHd4qtcunJ05h8=";
+              rev = "d188a7570b8fa9cd07b08e5012e82a86cc8f9243";
+              hash = "sha256-NSrfKtbxM6AsqGzDPU+ajQq1ucPUlzPv5KQvyYgL9No=";
             };
           in
           prev.kanata.overrideAttrs (old: {
             inherit version src;
-
-            patches = (old.patches or [ ]) ++ [
-              ../../pkgs/patches/kanata-macos-window-dsl.patch
-            ];
 
             cargoCheckFeatures =
               (old.cargoCheckFeatures or [ ])
@@ -44,7 +40,7 @@
 
             cargoDeps = final.rustPlatform.fetchCargoVendor {
               inherit src;
-              name = "kanata-unstable-2026-05-09";
+              name = "kanata-flameflag-2026-06-04";
               hash = "sha256-dVQhiEj8izA4lv4lZdLHr6rND8Gm8pvAx6mP6MPK1zk=";
             };
           });

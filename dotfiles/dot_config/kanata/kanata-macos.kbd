@@ -25,10 +25,8 @@
     (5000 0 5000 10000)
     (3333 0 6667 10000)
     (6667 0 3333 10000))
-  win-max-almost (macos-window
-    (500 500 9000 9000))
-  win-max (macos-window
-    (0 0 10000 10000))
+  win-max-almost (macos-window almost-maximize)
+  win-max (macos-window maximize)
 )
 
 (deflayer base
