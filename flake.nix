@@ -3,7 +3,7 @@
 
   inputs = {
     nix-darwin.inputs.nixpkgs.follows = "nixpkgs";
-    nix-darwin.url = "github:nix-darwin/nix-darwin/nix-darwin-25.11";
+    nix-darwin.url = "github:nix-darwin/nix-darwin/nix-darwin-26.05";
 
     dis.inputs.nixpkgs.follows = "nixpkgs-unstable";
     dis.url = "github:FlameFlag/dis";
@@ -15,7 +15,7 @@
     nixcord.url = "github:FlameFlag/nixcord";
 
     nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixos-unstable-small";
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.11-small";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-26.05-small";
 
     sops-nix.inputs.nixpkgs.follows = "nixpkgs-unstable";
     sops-nix.url = "github:Mic92/sops-nix";
