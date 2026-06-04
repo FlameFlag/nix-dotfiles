@@ -12,6 +12,9 @@ use std::{
 use directories::BaseDirs;
 use thiserror::Error;
 
+pub mod codex_zellij_theme;
+pub mod zellij_auto_theme;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Colors {
     pub fg: &'static str,
@@ -55,6 +58,28 @@ pub enum Error {
 }
 
 pub type Result<T> = std::result::Result<T, Error>;
+
+/// Exits the process using the result from a command runner.
+///
+/// # Panics
+///
+/// Never panics.
+pub fn exit_with_result(result: Result<i32>) -> ! {
+    match result {
+        Ok(code) => std::process::exit(code),
+        Err(err) => {
+            eprintln!("error: {err}");
+            std::process::exit(1);
+        }
+    }
+}
+
+#[must_use]
+pub fn wants_version_arg() -> bool {
+    std::env::args_os()
+        .skip(1)
+        .any(|arg| arg == "--version" || arg == "-V")
+}
 
 #[must_use]
 pub fn detect_theme() -> Theme {
