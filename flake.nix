@@ -21,16 +21,60 @@
     sops-nix.url = "github:Mic92/sops-nix";
   };
 
-  outputs = inputs: {
-    formatter = {
-      aarch64-darwin = inputs.nixpkgs.legacyPackages.aarch64-darwin.nixfmt-tree;
-      x86_64-linux = inputs.nixpkgs.legacyPackages.x86_64-linux.nixfmt-tree;
+  outputs =
+    inputs:
+    let
+      systems = [
+        "aarch64-darwin"
+        "x86_64-linux"
+      ];
+      forAllSystems = inputs.nixpkgs.lib.genAttrs systems;
+      commonNixpkgs = import ./modules/common/nixpkgs.nix { inherit inputs; };
+      mkPkgs =
+        system:
+        import inputs.nixpkgs {
+          inherit system;
+          config.allowUnfree = true;
+          inherit (commonNixpkgs.nixpkgs) overlays;
+        };
+    in
+    {
+      formatter = forAllSystems (system: inputs.nixpkgs.legacyPackages.${system}.nixfmt-tree);
+
+      packages = forAllSystems (
+        system:
+        let
+          pkgs = mkPkgs system;
+        in
+        {
+          inherit (pkgs)
+            bootstrap
+            chezmoi-support
+            dis
+            gh-hide-comment
+            http-fixture
+            kanata
+            kanata-with-cmd
+            lldb-mcp-launcher
+            lsp-diagnostic-filter
+            zellij-theme-tools
+            ;
+
+          ghidra-mcp-headless-bridge = pkgs.ghidra-mcp-headless.bridge;
+          ghidra-mcp-headless-httpd = pkgs.ghidra-mcp-headless.httpd;
+          ghidra-mcp-headless-server = pkgs.ghidra-mcp-headless.server;
+
+          default = pkgs.bootstrap;
+        }
+        // inputs.nixpkgs.lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux {
+          inherit (pkgs) lenovo-con-mode;
+        }
+      );
+
+      nixosModules.default = import ./modules/nixos;
+      darwinModules.default = import ./modules/darwin;
+
+      darwinConfigurations = import ./hosts/darwin { inherit inputs; };
+      nixosConfigurations = import ./hosts/linux { inherit inputs; };
     };
-
-    nixosModules.default = import ./modules/nixos;
-    darwinModules.default = import ./modules/darwin;
-
-    darwinConfigurations = import ./hosts/darwin { inherit inputs; };
-    nixosConfigurations = import ./hosts/linux { inherit inputs; };
-  };
 }
