@@ -155,10 +155,10 @@ fn install_action(ctx: &Context, tool: &Tool) -> Result<(), InstallError> {
                 [] => {
                     for bin in &tool.bins {
                         let target = prefix.join("bin").join(process::executable_name(&bin.name));
-                        links::managed(ctx, &tool.name, &target, &bin.name)?;
+                        links::managed_adopt_existing(ctx, &tool.name, &target, &bin.name)?;
                     }
                 }
-                links => links::link_many(ctx, &tool.name, &prefix, links)?,
+                links => links::link_many_adopt_existing(ctx, &tool.name, &prefix, links)?,
             }
             Ok(())
         }

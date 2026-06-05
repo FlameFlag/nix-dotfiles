@@ -268,6 +268,21 @@ mod tests {
 
     #[cfg(unix)]
     #[test]
+    fn managed_adopt_existing_replaces_existing_files() {
+        let (_temp, ctx) = context();
+        let target = write_target(&ctx, "demo", "1", "demo");
+        fse::write(ctx.bin_dir.join("demo"), "old direct install").expect("write existing file");
+
+        managed_adopt_existing(&ctx, "demo", &target, "demo").expect("adopt file");
+
+        assert_eq!(
+            fse::read_link(ctx.bin_dir.join("demo")).expect("read link"),
+            target
+        );
+    }
+
+    #[cfg(unix)]
+    #[test]
     fn managed_adopt_existing_rejects_existing_directories() {
         let (_temp, ctx) = context();
         let target = write_target(&ctx, "demo", "1", "demo");
