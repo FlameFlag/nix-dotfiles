@@ -68,8 +68,8 @@
               src = final.fetchFromGitHub {
                 owner = "FlameFlag";
                 repo = "kanata";
-                rev = "d188a7570b8fa9cd07b08e5012e82a86cc8f9243";
-                hash = "sha256-NSrfKtbxM6AsqGzDPU+ajQq1ucPUlzPv5KQvyYgL9No=";
+                rev = "c8c720ded5a34bbc4bdfbfbe33c97b7bb2e60e77";
+                hash = "sha256-xnmoRf+xKRSlKPKnCRYsid4laL5+eCD1IP09RjuyjXY=";
               };
             in
             prev.kanata.overrideAttrs (old: {
@@ -83,7 +83,7 @@
 
               cargoDeps = final.rustPlatform.fetchCargoVendor {
                 inherit src;
-                name = "kanata-flameflag-2026-06-04";
+                name = "kanata-flameflag-2026-06-05";
                 hash = "sha256-dVQhiEj8izA4lv4lZdLHr6rND8Gm8pvAx6mP6MPK1zk=";
               };
             });
