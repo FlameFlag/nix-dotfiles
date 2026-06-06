@@ -200,7 +200,7 @@ path = "pkgs/gh-hide-comment"
 [[tools]]
 name = "zellij-theme-tools"
 platforms = ["macos", "linux"]
-bins = ["codex-zellij-theme", "zellij-auto-theme"]
+bins = ["codex-zellij-theme", "zellij-auto-theme", "btop-auto-theme"]
 
 [tools.action]
 type = "build"

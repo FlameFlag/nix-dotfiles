@@ -12,6 +12,7 @@ use std::{
 use directories::BaseDirs;
 use thiserror::Error;
 
+pub mod btop_auto_theme;
 pub mod codex_zellij_theme;
 pub mod zellij_auto_theme;
 
@@ -51,6 +52,8 @@ pub enum Error {
     HomeMissing,
     #[error("codex executable not found")]
     CodexNotFound,
+    #[error("btop executable not found")]
+    BtopNotFound,
     #[error(transparent)]
     Toml(#[from] toml_edit::TomlError),
     #[error("invalid Codex config TOML shape")]

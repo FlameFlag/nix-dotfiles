@@ -7,6 +7,7 @@ alias l = ls
 alias ll = ls
 alias cat = open
 alias htop = btop
+alias top = btop
 alias neofetch = pfetch
 
 alias m4a = yt-dlp-script m4a

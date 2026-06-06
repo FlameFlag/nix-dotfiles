@@ -1,0 +1,29 @@
+#!/usr/bin/env sh
+set -eu
+
+if command -v btop-auto-theme >/dev/null 2>&1; then
+  BTOP_AUTO_THEME_WRAPPER="$(command -v -- "$0" 2>/dev/null || printf '%s\n' "$0")"
+  export BTOP_AUTO_THEME_WRAPPER
+  exec btop-auto-theme "$@"
+fi
+
+self_dir="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
+old_path="$PATH"
+PATH=
+while [ -n "$old_path" ]; do
+  dir="${old_path%%:*}"
+  if [ "$old_path" = "$dir" ]; then
+    old_path=
+  else
+    old_path="${old_path#*:}"
+  fi
+  [ "$dir" = "$self_dir" ] && continue
+  if [ -z "$PATH" ]; then
+    PATH="$dir"
+  else
+    PATH="$PATH:$dir"
+  fi
+done
+export PATH
+
+exec btop "$@"

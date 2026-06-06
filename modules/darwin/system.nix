@@ -1,5 +1,9 @@
 { lib, ... }:
 {
+  environment.pathsToLink = [
+    "/share/btop"
+  ];
+
   system.activationScripts.extraActivation.text = lib.modules.mkAfter ''
     install -d -m 0755 /usr/local/bin
 

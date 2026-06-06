@@ -13,6 +13,10 @@ path = "src/bin/codex-zellij-theme.rs"
 name = "zellij-auto-theme"
 path = "src/bin/zellij-auto-theme.rs"
 
+[[bin]]
+name = "btop-auto-theme"
+path = "src/bin/btop-auto-theme.rs"
+
 [dependencies]
 dark-light = "2.0.0"
 directories.workspace = true
