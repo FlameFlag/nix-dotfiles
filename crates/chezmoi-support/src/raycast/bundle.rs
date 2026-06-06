@@ -77,9 +77,7 @@ pub(super) fn patch(frontend_dir: &Path, backend_index: &Path, beta_app: &Path) 
     if changed {
         eprintln!("info: Patched Raycast Beta bundle; ensuring app bundle signature...");
     } else {
-        eprintln!(
-            "info: Raycast Beta bundle already patched; ensuring app bundle signature..."
-        );
+        eprintln!("info: Raycast Beta bundle already patched; ensuring app bundle signature...");
     }
     codesign_beta_app(beta_app)?;
     clear_quarantine(beta_app)?;
