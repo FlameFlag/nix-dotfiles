@@ -83,7 +83,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          release_tag="bootstrap-rolling"
+          release_tag="bootstrap-latest"
           release_title="Bootstrap Rolling Release"
           release_notes="Rolling bootstrap binaries for bootstrapping nix-dotfiles at ${GITHUB_SHA}."
 
