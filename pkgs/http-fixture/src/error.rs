@@ -10,8 +10,6 @@ pub(crate) enum Error {
         addr: std::net::SocketAddr,
         source: Box<dyn std::error::Error + Send + Sync>,
     },
-    #[error("--tls-cert and --tls-key must be provided together")]
-    IncompleteTlsConfig,
     #[error("failed to read config at {path}")]
     ReadConfig {
         path: PathBuf,
@@ -21,16 +19,6 @@ pub(crate) enum Error {
     ParseConfig {
         path: PathBuf,
         source: toml::de::Error,
-    },
-    #[error("failed to read TLS certificate at {path}")]
-    ReadTlsCert {
-        path: PathBuf,
-        source: std::io::Error,
-    },
-    #[error("failed to read TLS private key at {path}")]
-    ReadTlsKey {
-        path: PathBuf,
-        source: std::io::Error,
     },
     #[error("route {index} must set exactly one of path, path_prefix, or path_suffix")]
     InvalidRouteMatcher { index: usize },

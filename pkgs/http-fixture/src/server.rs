@@ -1,8 +1,7 @@
-use std::fs;
 use std::net::SocketAddr;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use tiny_http::{Method, Request, Server, SslConfig};
+use tiny_http::{Method, Request, Server};
 use url::Url;
 
 use crate::app::App;
@@ -12,12 +11,10 @@ use crate::response::{internal_error_response, not_found_response};
 
 const REQUEST_URL_BASE: &str = "http://http-fixture.local/";
 
-pub(crate) fn serve(cli: &Cli, app: &App) -> Result<()> {
-    let tls_enabled = cli.tls_cert.is_some() || cli.tls_key.is_some();
-    let server = make_server(cli, app.listen)?;
+pub(crate) fn serve(_cli: &Cli, app: &App) -> Result<()> {
+    let server = make_server(app.listen)?;
 
-    let scheme = if tls_enabled { "https" } else { "http" };
-    println!("http-fixture listening on {scheme}://{}", app.listen);
+    println!("http-fixture listening on http://{}", app.listen);
     for route in &app.routes {
         println!("{}", route.describe());
     }
@@ -29,35 +26,11 @@ pub(crate) fn serve(cli: &Cli, app: &App) -> Result<()> {
     Ok(())
 }
 
-fn make_server(cli: &Cli, listen: SocketAddr) -> Result<Server> {
-    match (&cli.tls_cert, &cli.tls_key) {
-        (Some(cert_path), Some(key_path)) => {
-            let certificate = fs::read(cert_path).map_err(|source| Error::ReadTlsCert {
-                path: cert_path.clone(),
-                source,
-            })?;
-            let private_key = fs::read(key_path).map_err(|source| Error::ReadTlsKey {
-                path: key_path.clone(),
-                source,
-            })?;
-            Server::https(
-                listen,
-                SslConfig {
-                    certificate,
-                    private_key,
-                },
-            )
-            .map_err(|source| Error::Bind {
-                addr: listen,
-                source,
-            })
-        }
-        (None, None) => Server::http(listen).map_err(|source| Error::Bind {
-            addr: listen,
-            source,
-        }),
-        _ => Err(Error::IncompleteTlsConfig),
-    }
+fn make_server(listen: SocketAddr) -> Result<Server> {
+    Server::http(listen).map_err(|source| Error::Bind {
+        addr: listen,
+        source,
+    })
 }
 
 fn handle_request(mut request: Request, app: &App) {
