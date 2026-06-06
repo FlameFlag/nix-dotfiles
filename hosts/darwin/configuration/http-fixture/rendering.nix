@@ -47,6 +47,7 @@ rec {
       exactPaths = passThrough.paths or [ ];
       pathPrefixes = passThrough.path_prefixes or [ ];
       websitePrefix = passThrough.website_prefix or null;
+      websiteRootRedirect = passThrough.website_root_redirect or false;
       exactPathHandles = lib.concatMapStringsSep "\n" (path: ''
         	handle ${path} {
         		import ${name}
@@ -66,6 +67,11 @@ rec {
         		import ${name}
         	}
       '';
+      websiteRootRedirectHandles = lib.optionalString (websitePrefix != null && websiteRootRedirect) ''
+        	handle @${websiteRootRedirectMatcherName domain} {
+        		redir * ${websitePrefix}{uri} 308
+        	}
+      '';
     in
     lib.optionalString (passThrough != null) ''
       ${lib.trim exactPathHandles}
@@ -73,6 +79,43 @@ rec {
       ${lib.trim pathPrefixHandles}
 
       ${lib.trim websiteHandles}
+
+      ${lib.trim websiteRootRedirectHandles}
+    '';
+
+  websiteRootRedirectMatcherName = domain: "${snippetName domain}_website_root_redirect";
+
+  passThroughMatchers =
+    domain:
+    let
+      route = settings.routes.${domain};
+      passThrough = route.passThrough;
+      exactPaths = passThrough.paths or [ ];
+      pathPrefixes = passThrough.path_prefixes or [ ];
+      websitePrefix = passThrough.website_prefix or null;
+      websiteRootRedirect = passThrough.website_root_redirect or false;
+      fixtureRoutePatterns = lib.concatMap (
+        fixtureRoute:
+        lib.optional (fixtureRoute ? path) fixtureRoute.path
+        ++ lib.optional (fixtureRoute ? path_prefix) "${fixtureRoute.path_prefix}*"
+      ) (route.fixtureRoutes or [ ]);
+      passThroughPatterns = exactPaths ++ map (pathPrefix: "${pathPrefix}*") pathPrefixes;
+      excludedPatterns = lib.unique (
+        [
+          "/"
+          "${websitePrefix}"
+          "${websitePrefix}/*"
+        ]
+        ++ passThroughPatterns
+        ++ fixtureRoutePatterns
+      );
+    in
+    lib.optionalString (passThrough != null && websitePrefix != null && websiteRootRedirect) ''
+      	@${websiteRootRedirectMatcherName domain} {
+      		method GET HEAD
+      		path /*
+      		not path ${lib.concatStringsSep " " excludedPatterns}
+      	}
     '';
 
   siteBlock =
@@ -85,6 +128,8 @@ rec {
       https://${lib.concatStringsSep ", https://" names} {
       	bind 127.0.0.1 ::1
       	tls ${settings.cert} ${settings.key}
+
+      ${passThroughMatchers domain}
 
       	route {
       ${passThroughHandles domain}

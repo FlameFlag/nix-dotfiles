@@ -15,6 +15,7 @@ let
         aliases = host.aliases or [ ];
         upstream = host.upstream or upstreamDefault;
         passThrough = host.pass_through or null;
+        fixtureRoutes = parsedConfig.routes or [ ];
       };
     }) fixtureHosts
   );

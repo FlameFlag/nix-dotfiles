@@ -11,6 +11,7 @@ port = 443
 resolvers = ["1.1.1.1", "8.8.8.8"]
 versions = ["ipv4"]
 website_prefix = "/website"
+website_root_redirect = true
 paths = ["/appcast.xml", "/changelog-bare"]
 path_prefixes = ["/public/"]
 
