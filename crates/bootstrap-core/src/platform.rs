@@ -23,6 +23,7 @@ pub enum HostArch {
 pub struct Predicate {
     pub os: Option<HostOs>,
     pub arch: Option<HostArch>,
+    pub musl: Option<bool>,
 }
 
 impl JsonSchema for Predicate {
@@ -45,7 +46,8 @@ impl JsonSchema for Predicate {
                     "type": "object",
                     "properties": {
                         "os": { "enum": ["macos", "linux", "windows"] },
-                        "arch": { "enum": ["aarch64", "x86_64"] }
+                        "arch": { "enum": ["aarch64", "x86_64"] },
+                        "musl": { "type": "boolean" }
                     },
                     "additionalProperties": false
                 }
@@ -66,12 +68,13 @@ impl<'de> Deserialize<'de> for Predicate {
             Full {
                 os: Option<HostOs>,
                 arch: Option<HostArch>,
+                musl: Option<bool>,
             },
         }
 
         match PredicateRepr::deserialize(deserializer)? {
             PredicateRepr::Short(value) => parse_predicate(&value).map_err(de::Error::custom),
-            PredicateRepr::Full { os, arch } => Ok(Self { os, arch }),
+            PredicateRepr::Full { os, arch, musl } => Ok(Self { os, arch, musl }),
         }
     }
 }
@@ -92,7 +95,11 @@ fn parse_predicate(value: &str) -> Result<Predicate, String> {
         Some("x86_64" | "amd64" | "x64") => Some(HostArch::X86_64),
         Some(arch) => return Err(format!("unknown host architecture predicate {arch:?}")),
     };
-    Ok(Predicate { os: Some(os), arch })
+    Ok(Predicate {
+        os: Some(os),
+        arch,
+        musl: None,
+    })
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -124,6 +131,7 @@ impl Host {
     pub fn matches(self, predicate: Predicate) -> bool {
         predicate.os.is_none_or(|os| os == self.os)
             && predicate.arch.is_none_or(|arch| arch == self.arch)
+            && predicate.musl.is_none_or(|musl| musl == is_musl_linux())
     }
 
     #[inline]
@@ -132,7 +140,13 @@ impl Host {
         match (self.os, self.arch) {
             (HostOs::Macos, HostArch::Aarch64) => Some("aarch64-apple-darwin"),
             (HostOs::Macos, HostArch::X86_64) => None,
+            (HostOs::Linux, HostArch::Aarch64) if cfg!(target_env = "musl") => {
+                Some("aarch64-unknown-linux-musl")
+            }
             (HostOs::Linux, HostArch::Aarch64) => Some("aarch64-unknown-linux-gnu"),
+            (HostOs::Linux, HostArch::X86_64) if cfg!(target_env = "musl") => {
+                Some("x86_64-unknown-linux-musl")
+            }
             (HostOs::Linux, HostArch::X86_64) => Some("x86_64-unknown-linux-gnu"),
             (HostOs::Windows, HostArch::Aarch64) => Some("aarch64-pc-windows-msvc"),
             (HostOs::Windows, HostArch::X86_64) => Some("x86_64-pc-windows-msvc"),
@@ -144,6 +158,7 @@ impl Host {
 #[serde(rename_all = "snake_case")]
 pub enum HostRequirement {
     LenovoLaptop,
+    NonMusl,
 }
 
 #[inline]
@@ -155,7 +170,14 @@ pub enum HostRequirement {
 pub fn meets_requirement(requirement: HostRequirement) -> bool {
     match requirement {
         HostRequirement::LenovoLaptop => is_lenovo_laptop(),
+        HostRequirement::NonMusl => !is_musl_linux(),
     }
+}
+
+#[inline]
+#[must_use]
+fn is_musl_linux() -> bool {
+    cfg!(target_os = "linux") && cfg!(target_env = "musl")
 }
 
 #[cfg_attr(
@@ -209,31 +231,64 @@ mod tests {
         };
         assert!(host.matches(Predicate {
             os: Some(HostOs::Linux),
-            arch: None
+            arch: None,
+            musl: None
         }));
         assert!(host.matches(Predicate {
             os: Some(HostOs::Linux),
-            arch: Some(HostArch::X86_64)
+            arch: Some(HostArch::X86_64),
+            musl: None
         }));
         assert!(!host.matches(Predicate {
             os: Some(HostOs::Macos),
-            arch: None
+            arch: None,
+            musl: None
         }));
         assert!(!host.matches(Predicate {
             os: Some(HostOs::Linux),
-            arch: Some(HostArch::Aarch64)
+            arch: Some(HostArch::Aarch64),
+            musl: None
         }));
     }
 
     #[test]
-    fn rustup_triples_use_gnu_linux_targets() {
+    fn predicates_can_require_linux_abi() {
+        let host = Host {
+            os: HostOs::Linux,
+            arch: HostArch::X86_64,
+        };
+        assert_eq!(
+            host.matches(Predicate {
+                os: Some(HostOs::Linux),
+                arch: Some(HostArch::X86_64),
+                musl: Some(true)
+            }),
+            cfg!(target_env = "musl")
+        );
+        assert_eq!(
+            host.matches(Predicate {
+                os: Some(HostOs::Linux),
+                arch: Some(HostArch::X86_64),
+                musl: Some(false)
+            }),
+            !cfg!(target_env = "musl")
+        );
+    }
+
+    #[test]
+    fn rustup_triples_follow_current_linux_abi() {
+        let (x86_64, aarch64) = if cfg!(target_env = "musl") {
+            ("x86_64-unknown-linux-musl", "aarch64-unknown-linux-musl")
+        } else {
+            ("x86_64-unknown-linux-gnu", "aarch64-unknown-linux-gnu")
+        };
         assert_eq!(
             Host {
                 os: HostOs::Linux,
                 arch: HostArch::X86_64
             }
             .rustup_triple(),
-            Some("x86_64-unknown-linux-gnu")
+            Some(x86_64)
         );
         assert_eq!(
             Host {
@@ -241,7 +296,7 @@ mod tests {
                 arch: HostArch::Aarch64
             }
             .rustup_triple(),
-            Some("aarch64-unknown-linux-gnu")
+            Some(aarch64)
         );
     }
 
@@ -256,6 +311,7 @@ mod tests {
             Predicate {
                 os: Some(HostOs::Macos),
                 arch: Some(HostArch::Aarch64),
+                musl: None,
             }
         );
     }

@@ -1,13 +1,37 @@
-.git/
-.direnv/
-.jj/
-.zig-cache/
-.venv/
-zig-out/
-result
-result-*
+# Start from an empty build context and add back only what the smoke-test
+# Dockerfile needs for Cargo, bootstrap, and the focused chezmoi apply.
+*
 
-secrets/
+!Cargo.lock
+!Cargo.toml
+!Dockerfile
+!.dockerignore
 
+!bootstrap/
+!bootstrap/**
+
+!crates/
+!crates/**
+
+!dotfiles/
+!dotfiles/**
+
+!pkgs/
+pkgs/*
+!pkgs/gh-hide-comment/
+!pkgs/gh-hide-comment/**
+!pkgs/http-fixture/
+!pkgs/http-fixture/**
+!pkgs/lenovo-con-mode/
+!pkgs/lenovo-con-mode/**
+!pkgs/lsp-diagnostic-filter/
+!pkgs/lsp-diagnostic-filter/**
+!pkgs/zellij-theme-tools/
+!pkgs/zellij-theme-tools/**
+
+# Never send local generated state if it appears under an included path.
+**/.DS_Store
+**/__pycache__/
+**/*.pyc
+**/target/
 *.log
-.DS_Store

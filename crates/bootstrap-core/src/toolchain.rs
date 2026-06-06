@@ -95,8 +95,10 @@ fn install_manager(
         .ok_or(ToolchainError::MissingInstallerFile)?;
     let installer = temp.path().join(file);
     let client = Client::new("dotfiles-bootstrap")?;
+    let url_bindings = base_bindings("", toolchain, None)?;
+    let url = template::render(&command.url, &url_bindings)?;
     let progress = Spinner::new(format!("{toolchain}: downloading toolchain manager"));
-    client.download_file(&command.url, &installer)?;
+    client.download_file(&url, &installer)?;
     progress.set_message(format!("{toolchain}: preparing installer"));
     fs::make_executable(&installer)?;
     let installer_text = installer.to_string_lossy();

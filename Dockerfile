@@ -17,36 +17,66 @@ apk_packages="
   ca-certificates
   cargo
   curl
+  curl-dev
+  expat-dev
   file
   gcompat
   git
   libc6-compat
   libatomic
   libstdc++
+  nushell
+  openssl-dev
   tar
   unzip
   xz
+  zlib-dev
   zsh
 "
 
 dnf_packages="
+  alsa-lib
+  atk
+  at-spi2-atk
+  at-spi2-core
   bash
   ca-certificates
   cargo
+  cairo
   curl
+  dbus-libs
+  diffutils
+  expat-devel
+  libcurl-devel
   file
   findutils
   gcc
   git
   glibc
   gzip
+  gtk3
+  libX11
+  libXcomposite
+  libXdamage
+  libXext
+  libXfixes
+  libXrandr
   libatomic
   libstdc++
+  libxcb
+  libxkbcommon
   make
+  mesa-libgbm
+  nspr
+  nss
+  nushell
+  openssl-devel
+  pango
   rust
   tar
   unzip
   xz
+  zlib-devel
   zsh
 "
 
@@ -85,18 +115,25 @@ RUN cargo run --locked --bin bootstrap -- bootstrap
 RUN <<EOF
 set -eu
 
-node_target="$(readlink "${HOME}/.local/bin/node")"
-case "$node_target" in
-  "${HOME}/.local/opt/node/"*/bin/node) ;;
-  *) printf 'node is not bootstrap-managed: %s\n' "$node_target" >&2; exit 1 ;;
-esac
-case "$node_target" in
-  *musl*) printf 'node still points at a musl build: %s\n' "$node_target" >&2; exit 1 ;;
-esac
+if ldd --version 2>&1 | grep -qi musl; then
+  if command -v node >/dev/null 2>&1; then
+    printf 'node should be unsupported on musl Linux, but found: %s\n' "$(command -v node)" >&2
+    exit 1
+  fi
+else
+  node_target="$(readlink "${HOME}/.local/bin/node")"
+  case "$node_target" in
+    "${HOME}/.local/opt/node/"*/bin/node) ;;
+    *) printf 'node is not bootstrap-managed: %s\n' "$node_target" >&2; exit 1 ;;
+  esac
+  case "$node_target" in
+    *musl*) printf 'node still points at a musl build: %s\n' "$node_target" >&2; exit 1 ;;
+  esac
 
-node --version
-npm --version
-npx --version
+  node --version
+  npm --version
+  npx --version
+fi
 EOF
 
 RUN <<EOF
