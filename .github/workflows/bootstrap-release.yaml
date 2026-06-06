@@ -83,10 +83,19 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          release_tag="bootstrap-rolling-${GITHUB_RUN_NUMBER}-${GITHUB_RUN_ATTEMPT}"
-          gh release create "${release_tag}" dist/bootstrap-* \
-            --repo "${GITHUB_REPOSITORY}" \
-            --target "${GITHUB_SHA}" \
-            --title "Bootstrap Rolling Release (${GITHUB_SHA::7})" \
-            --notes "Rolling bootstrap binaries for bootstrapping nix-dotfiles at ${GITHUB_SHA}." \
-            --latest
+          release_tag="bootstrap-rolling"
+          release_title="Bootstrap Rolling Release"
+          release_notes="Rolling bootstrap binaries for bootstrapping nix-dotfiles at ${GITHUB_SHA}."
+
+          if gh release view "${release_tag}" --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
+            gh release upload "${release_tag}" dist/bootstrap-* \
+              --repo "${GITHUB_REPOSITORY}" \
+              --clobber
+          else
+            gh release create "${release_tag}" dist/bootstrap-* \
+              --repo "${GITHUB_REPOSITORY}" \
+              --target "${GITHUB_SHA}" \
+              --title "${release_title}" \
+              --notes "${release_notes}" \
+              --latest
+          fi
