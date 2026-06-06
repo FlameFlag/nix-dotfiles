@@ -3,6 +3,7 @@ use std::path::PathBuf;
 use bootstrap_core::install;
 use clap::builder::styling::{AnsiColor, Color, Effects, Style, Styles};
 use clap::{Args, Parser, Subcommand, ValueEnum, ValueHint};
+use clap_complete_command::Shell;
 
 pub const BIN_NAME: &str = "bootstrap";
 
@@ -174,15 +175,5 @@ pub enum OutputFormat {
 #[command(next_help_heading = "Completion Options")]
 pub struct CompletionsArgs {
     #[arg(value_enum)]
-    pub shell: CompletionShell,
-}
-
-#[derive(Debug, Clone, Copy, ValueEnum)]
-pub enum CompletionShell {
-    Bash,
-    Elvish,
-    Fish,
-    Nushell,
-    Powershell,
-    Zsh,
+    pub shell: Shell,
 }

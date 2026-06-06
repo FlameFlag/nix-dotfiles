@@ -24,8 +24,6 @@ pub(crate) enum Error {
     InvalidRouteMatcher { index: usize },
     #[error("route {index} must set at most one of body, body_html, or body_json")]
     InvalidRouteBody { index: usize },
-    #[error("failed to parse header {name}")]
-    Header { name: String },
     #[error("failed to serialize JSON response")]
     Json(#[from] serde_json::Error),
     #[error("failed to parse socket address")]

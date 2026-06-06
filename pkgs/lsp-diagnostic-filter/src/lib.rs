@@ -1,8 +1,11 @@
 #![cfg_attr(test, allow(clippy::expect_used, clippy::panic, clippy::unwrap_used))]
 
-use std::io::{self, Write};
+use std::io::{self, Cursor, Write};
 
-const HEADER_SEPARATOR: &[u8] = b"\r\n\r\n";
+use lsp_server::{Message, Notification};
+use lsp_types::notification::Notification as _;
+use lsp_types::{PublishDiagnosticsParams, notification::PublishDiagnostics};
+
 const TEMPLATE_DIRECTORY_PATTERN: &str = "/.chezmoitemplates/";
 
 #[derive(Debug, Default)]
@@ -24,89 +27,65 @@ impl LspFilter {
     pub fn accept<W: Write>(&mut self, chunk: &[u8], writer: &mut W) -> io::Result<()> {
         self.buffer.extend_from_slice(chunk);
 
-        while let Some(header_end) = find_subsequence(&self.buffer, HEADER_SEPARATOR) {
-            let header = String::from_utf8_lossy(&self.buffer[..header_end]);
-            let Some(length) = content_length(&header) else {
-                writer.write_all(&self.buffer)?;
-                self.buffer.clear();
-                return Ok(());
-            };
-
-            let body_start = header_end + HEADER_SEPARATOR.len();
-            let message_end = body_start + length;
-            if self.buffer.len() < message_end {
+        loop {
+            if !has_complete_header(&self.buffer) {
                 return Ok(());
             }
-
-            let body = String::from_utf8_lossy(&self.buffer[body_start..message_end]).into_owned();
-            self.buffer.drain(..message_end);
-            write_lsp_message(transform_body(&body).as_bytes(), writer)?;
-        }
-
-        Ok(())
-    }
-}
-
-fn transform_body(body: &str) -> String {
-    match serde_json::from_str::<serde_json::Value>(body) {
-        Ok(serde_json::Value::Object(mut message)) => {
-            if should_clear_diagnostics(&message) {
-                clear_diagnostics(&mut message);
+            let mut cursor = Cursor::new(self.buffer.as_slice());
+            match Message::read(&mut cursor) {
+                Ok(Some(message)) => {
+                    let consumed = usize::try_from(cursor.position()).map_err(io::Error::other)?;
+                    self.buffer.drain(..consumed);
+                    transform_message(message).write(writer)?;
+                }
+                Ok(None) => return Ok(()),
+                Err(error) if error.kind() == io::ErrorKind::UnexpectedEof => return Ok(()),
+                Err(error) => {
+                    let consumed = usize::try_from(cursor.position()).map_err(io::Error::other)?;
+                    if consumed == 0 {
+                        return Err(error);
+                    }
+                    writer.write_all(&self.buffer[..consumed])?;
+                    self.buffer.drain(..consumed);
+                }
             }
-            serde_json::to_string(&message).unwrap_or_else(|_| body.to_owned())
         }
-        _ => body.to_owned(),
     }
 }
 
-fn should_clear_diagnostics(message: &serde_json::Map<String, serde_json::Value>) -> bool {
-    if message.get("method").and_then(serde_json::Value::as_str)
-        != Some("textDocument/publishDiagnostics")
-    {
-        return false;
+fn transform_message(message: Message) -> Message {
+    match message {
+        Message::Notification(notification)
+            if notification.method == PublishDiagnostics::METHOD =>
+        {
+            Message::Notification(transform_publish_diagnostics(notification))
+        }
+        _ => message,
     }
-
-    message
-        .get("params")
-        .and_then(serde_json::Value::as_object)
-        .and_then(|params| params.get("uri"))
-        .and_then(serde_json::Value::as_str)
-        .is_some_and(is_template_uri)
 }
 
-fn clear_diagnostics(message: &mut serde_json::Map<String, serde_json::Value>) {
-    let Some(serde_json::Value::Object(params)) = message.get_mut("params") else {
-        return;
+fn transform_publish_diagnostics(mut notification: Notification) -> Notification {
+    let Ok(mut params) =
+        serde_json::from_value::<PublishDiagnosticsParams>(notification.params.clone())
+    else {
+        return notification;
     };
 
-    params.insert(
-        "diagnostics".to_owned(),
-        serde_json::Value::Array(Vec::new()),
-    );
+    if is_template_uri(params.uri.as_str()) {
+        params.diagnostics.clear();
+    }
+    notification.params = serde_json::to_value(params).unwrap_or(serde_json::Value::Null);
+    notification
 }
 
 fn is_template_uri(uri: &str) -> bool {
     uri.ends_with(".tmpl") || uri.contains(TEMPLATE_DIRECTORY_PATTERN)
 }
 
-fn content_length(header: &str) -> Option<usize> {
-    header.lines().find_map(|line| {
-        let (name, value) = line.split_once(':')?;
-        name.eq_ignore_ascii_case("content-length")
-            .then(|| value.trim().parse().ok())
-            .flatten()
-    })
-}
-
-fn find_subsequence(haystack: &[u8], needle: &[u8]) -> Option<usize> {
-    haystack
-        .windows(needle.len())
-        .position(|window| window == needle)
-}
-
-fn write_lsp_message<W: Write>(body: &[u8], writer: &mut W) -> io::Result<()> {
-    write!(writer, "Content-Length: {}\r\n\r\n", body.len())?;
-    writer.write_all(body)
+fn has_complete_header(buffer: &[u8]) -> bool {
+    buffer
+        .windows(b"\r\n\r\n".len())
+        .any(|window| window == b"\r\n\r\n")
 }
 
 #[cfg(test)]
@@ -115,8 +94,8 @@ mod tests {
 
     #[test]
     fn clears_template_diagnostics() -> io::Result<()> {
-        let body = r#"{"jsonrpc":"2.0","method":"textDocument/publishDiagnostics","params":{"uri":"file:///repo/config.nu.tmpl","diagnostics":[{"message":"bad"}]}}"#;
-        let output = run_filter(frame(body).as_bytes())?;
+        let body = diagnostic_body("file:///repo/config.nu.tmpl");
+        let output = run_filter(frame(&body).as_bytes())?;
         let output = String::from_utf8_lossy(&output);
 
         assert!(output.contains(r#""diagnostics":[]"#));
@@ -126,18 +105,18 @@ mod tests {
 
     #[test]
     fn keeps_regular_diagnostics() -> io::Result<()> {
-        let body = r#"{"jsonrpc":"2.0","method":"textDocument/publishDiagnostics","params":{"uri":"file:///repo/config.nu","diagnostics":[{"message":"bad"}]}}"#;
-        let output = run_filter(frame(body).as_bytes())?;
+        let body = diagnostic_body("file:///repo/config.nu");
+        let output = run_filter(frame(&body).as_bytes())?;
         let output = String::from_utf8_lossy(&output);
 
-        assert!(output.contains(r#""diagnostics":[{"message":"bad"}]"#));
+        assert!(output.contains(r#""message":"bad""#));
         Ok(())
     }
 
     #[test]
     fn handles_split_frames() -> io::Result<()> {
-        let body = r#"{"jsonrpc":"2.0","method":"textDocument/publishDiagnostics","params":{"uri":"file:///repo/.chezmoitemplates/x.nu","diagnostics":[{"message":"bad"}]}}"#;
-        let frame = frame(body);
+        let body = diagnostic_body("file:///repo/.chezmoitemplates/x.nu");
+        let frame = frame(&body);
         let (first, second) = frame.as_bytes().split_at(10);
 
         let mut filter = LspFilter::new();
@@ -169,5 +148,11 @@ mod tests {
 
     fn frame(body: &str) -> String {
         format!("Content-Length: {}\r\n\r\n{body}", body.len())
+    }
+
+    fn diagnostic_body(uri: &str) -> String {
+        format!(
+            r#"{{"jsonrpc":"2.0","method":"textDocument/publishDiagnostics","params":{{"uri":"{uri}","diagnostics":[{{"range":{{"start":{{"line":0,"character":0}},"end":{{"line":0,"character":1}}}},"message":"bad"}}]}}}}"#
+        )
     }
 }

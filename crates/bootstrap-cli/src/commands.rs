@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use bootstrap_core::catalog::{Action, Catalog};
+use bootstrap_core::catalog::Catalog;
 use bootstrap_core::platform::Host;
 use bootstrap_core::{Context, catalog, doctor, install, setup};
 use clap::CommandFactory;
@@ -118,8 +118,8 @@ fn print_tools(ctx: &Context, args: &ToolsArgs) -> Result<()> {
             let supported = tool.supports_host(host);
             json!({
                 "name": tool.name,
-                "phase": phase_label(tool.phase()),
-                "action": action_label(&tool.action),
+                "phase": tool.phase().to_string(),
+                "action": tool.action.to_string(),
                 "bins": bins,
                 "supported": supported,
             })
@@ -188,27 +188,6 @@ fn print_paths(ctx: &Context, args: PathsArgs) -> Result<()> {
     Ok(())
 }
 
-fn phase_label(phase: bootstrap_core::catalog::Phase) -> &'static str {
-    match phase {
-        bootstrap_core::catalog::Phase::Prerequisites => "prerequisites",
-        bootstrap_core::catalog::Phase::Archives => "archives",
-        bootstrap_core::catalog::Phase::Packages => "packages",
-        bootstrap_core::catalog::Phase::Builds => "builds",
-    }
-}
-
-fn action_label(action: &Action) -> &'static str {
-    match action {
-        Action::Required => "required",
-        Action::Archive(_) => "archive",
-        Action::File(_) => "file",
-        Action::Package(_) => "package",
-        Action::Build(_) => "build",
-        Action::SourceBuild(_) => "source-build",
-        Action::Toolchain(_) => "toolchain",
-    }
-}
-
 fn display_path(path: &Path) -> String {
     path.to_string_lossy().into_owned()
 }
@@ -227,53 +206,57 @@ fn display_bins(value: &serde_json::Value) -> String {
 mod tests {
     use super::*;
     use bootstrap_core::catalog::{
-        ArchiveAction, BuildAction, FileAction, PackageAction, Source, SourceBuildAction,
+        Action, ArchiveAction, BuildAction, FileAction, PackageAction, Source, SourceBuildAction,
         ToolchainAction, ToolchainBinDir, ToolchainInstall,
     };
 
     #[test]
-    fn action_labels_cover_catalog_action_variants() {
-        assert_eq!(action_label(&Action::Required), "required");
+    fn action_display_covers_catalog_action_variants() {
+        assert_eq!(Action::Required.to_string(), "required");
         assert_eq!(
-            action_label(&Action::Archive(ArchiveAction {
+            Action::Archive(ArchiveAction {
                 source: None,
                 kind: None,
                 strip_components: None,
                 links: vec![],
                 app_links: vec![],
                 platforms: vec![],
-            })),
+            })
+            .to_string(),
             "archive"
         );
         assert_eq!(
-            action_label(&Action::File(FileAction {
+            Action::File(FileAction {
                 source: Source::Direct {
                     version: "1".into(),
                     url: "https://example.invalid/tool".into(),
                 },
                 file: "tool".into(),
                 links: vec![],
-            })),
+            })
+            .to_string(),
             "file"
         );
         assert_eq!(
-            action_label(&Action::Package(PackageAction {
+            Action::Package(PackageAction {
                 name: "tool".into(),
                 install_argv: vec!["manager".into(), "install".into()],
                 inventory: None,
-            })),
+            })
+            .to_string(),
             "package"
         );
         assert_eq!(
-            action_label(&Action::Build(BuildAction {
+            Action::Build(BuildAction {
                 path: "tool".into(),
                 argv: vec!["cargo".into(), "build".into()],
                 links: vec![],
-            })),
+            })
+            .to_string(),
             "build"
         );
         assert_eq!(
-            action_label(&Action::SourceBuild(SourceBuildAction {
+            Action::SourceBuild(SourceBuildAction {
                 version: "1".into(),
                 kind: None,
                 strip_components: None,
@@ -281,11 +264,12 @@ mod tests {
                 sandbox_home: false,
                 links: vec![],
                 platforms: vec![],
-            })),
+            })
+            .to_string(),
             "source-build"
         );
         assert_eq!(
-            action_label(&Action::Toolchain(Box::new(ToolchainAction {
+            Action::Toolchain(Box::new(ToolchainAction {
                 manager_bin: "rustup".into(),
                 name: "stable".into(),
                 name_env: None,
@@ -302,8 +286,9 @@ mod tests {
                 update_argv: vec!["rustup".into(), "update".into()],
                 active_argv: vec!["rustup".into(), "show".into()],
                 default_argv: vec!["rustup".into(), "default".into()],
-                component_argv: vec!["--component".into(), "{component}".into()],
-            }))),
+                component_argv: vec!["--component".into(), "{{ component }}".into()],
+            }))
+            .to_string(),
             "toolchain"
         );
     }

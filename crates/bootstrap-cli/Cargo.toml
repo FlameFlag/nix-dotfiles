@@ -13,8 +13,7 @@ path = "src/main.rs"
 bootstrap-core = { path = "../bootstrap-core" }
 clap.workspace = true
 clap-markdown = "0.1.5"
-clap_complete = "4.6.5"
-clap_complete_nushell = "4.6.0"
+clap_complete_command.workspace = true
 clap_mangen = "0.3.0"
 comfy-table.workspace = true
 miette = { version = "7.6.0", features = ["fancy"] }

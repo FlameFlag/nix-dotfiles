@@ -11,8 +11,7 @@ path = "src/main.rs"
 
 [dependencies]
 clap.workspace = true
-clap_complete = "4.6.5"
-clap_complete_nushell = "4.6.0"
+clap_complete_command.workspace = true
 fs-err.workspace = true
 thiserror.workspace = true
 

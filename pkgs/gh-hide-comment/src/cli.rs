@@ -1,4 +1,5 @@
 use clap::{Parser, ValueEnum};
+use clap_complete_command::Shell;
 
 #[derive(Debug, Parser)]
 #[command(
@@ -8,7 +9,7 @@ use clap::{Parser, ValueEnum};
 )]
 pub struct Cli {
     #[arg(long, value_enum)]
-    pub completions: Option<CompletionShell>,
+    pub completions: Option<Shell>,
 
     #[arg(long, value_enum, default_value_t = Reason::Outdated)]
     pub reason: Reason,
@@ -24,14 +25,4 @@ pub enum Reason {
     Resolved,
     Spam,
     Abuse,
-}
-
-#[derive(Debug, Clone, Copy, ValueEnum)]
-pub enum CompletionShell {
-    Bash,
-    Elvish,
-    Fish,
-    Nushell,
-    Powershell,
-    Zsh,
 }

@@ -11,8 +11,7 @@ path = "src/main.rs"
 
 [dependencies]
 clap.workspace = true
-clap_complete = "4.6.5"
-clap_complete_nushell = "4.6.0"
+clap_complete_command.workspace = true
 dotfiles-common = { path = "../../crates/dotfiles-common" }
 secrecy = "0.10.3"
 serde.workspace = true

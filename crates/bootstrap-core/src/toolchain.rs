@@ -156,7 +156,7 @@ fn render_toolchain_argv(
     let mut argv = Vec::new();
     for item in templates {
         match item.as_str() {
-            "{components}" => {
+            "{{ components }}" => {
                 for component in &spec.components {
                     let mut component_bindings = bindings.clone();
                     component_bindings.insert("component", component);
@@ -200,7 +200,7 @@ mod tests {
     fn render_toolchain_argv_expands_components_and_bindings() {
         let spec = ToolchainAction {
             manager_bin: "rustup".into(),
-            name: "stable-{host_triple}".into(),
+            name: "stable-{{ host_triple }}".into(),
             name_env: None,
             bin_dir: ToolchainBinDir {
                 env_var: Some("CARGO_HOME".into()),
@@ -215,7 +215,7 @@ mod tests {
             update_argv: vec![],
             active_argv: vec![],
             default_argv: vec![],
-            component_argv: vec!["--component".into(), "{component}".into()],
+            component_argv: vec!["--component".into(), "{{ component }}".into()],
         };
         let mut bindings = HashMap::new();
         bindings.insert("manager_bin", "rustup");
@@ -224,11 +224,11 @@ mod tests {
         let argv = render_toolchain_argv(
             &spec,
             &[
-                "{manager_bin}".into(),
+                "{{ manager_bin }}".into(),
                 "toolchain".into(),
                 "install".into(),
-                "{toolchain}".into(),
-                "{components}".into(),
+                "{{ toolchain }}".into(),
+                "{{ components }}".into(),
             ],
             &bindings,
         )
@@ -251,9 +251,10 @@ mod tests {
 
     #[test]
     fn render_toolchain_name_expands_host_triple() {
-        let toolchain = render_toolchain_name("stable-{host_triple}").expect("render toolchain");
+        let toolchain =
+            render_toolchain_name("stable-{{ host_triple }}").expect("render toolchain");
 
-        assert_ne!(toolchain, "stable-{host_triple}");
+        assert_ne!(toolchain, "stable-{{ host_triple }}");
         assert!(toolchain.starts_with("stable-"));
     }
 }

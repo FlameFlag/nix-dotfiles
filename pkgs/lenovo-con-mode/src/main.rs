@@ -3,7 +3,7 @@
 mod platform;
 
 use clap::{CommandFactory, Parser, ValueEnum};
-use clap_complete::generate;
+use clap_complete_command::Shell;
 use thiserror::Error;
 
 use crate::platform::{is_supported_lenovo, read_mode, write_mode};
@@ -21,7 +21,7 @@ const WINDOWS_ENERGY_DRV_PATH: &str = platform::WINDOWS_ENERGY_DRV_PATH;
 )]
 struct Cli {
     #[arg(long, value_enum)]
-    completions: Option<CompletionShell>,
+    completions: Option<Shell>,
 
     #[arg(value_enum, default_value_t = Action::Toggle)]
     action: Action,
@@ -35,16 +35,6 @@ enum Action {
     Off,
     Disable,
     Toggle,
-}
-
-#[derive(Debug, Clone, Copy, ValueEnum)]
-enum CompletionShell {
-    Bash,
-    Elvish,
-    Fish,
-    Nushell,
-    Powershell,
-    Zsh,
 }
 
 #[derive(Debug, Error)]
@@ -117,65 +107,13 @@ fn run_lenovo_con_mode(cli: Cli) -> Result<()> {
     Ok(())
 }
 
-fn generate_lenovo_con_mode_completions(shell: CompletionShell) {
+fn generate_lenovo_con_mode_completions(shell: Shell) {
     generate_lenovo_con_mode_completions_to(shell, &mut std::io::stdout());
 }
 
-fn generate_lenovo_con_mode_completions_to(
-    shell: CompletionShell,
-    writer: &mut impl std::io::Write,
-) {
+fn generate_lenovo_con_mode_completions_to(shell: Shell, writer: &mut impl std::io::Write) {
     let mut command = Cli::command();
-    match shell {
-        CompletionShell::Bash => {
-            generate(
-                clap_complete::Shell::Bash,
-                &mut command,
-                "lenovo-con-mode",
-                writer,
-            );
-        }
-        CompletionShell::Elvish => {
-            generate(
-                clap_complete::Shell::Elvish,
-                &mut command,
-                "lenovo-con-mode",
-                writer,
-            );
-        }
-        CompletionShell::Fish => {
-            generate(
-                clap_complete::Shell::Fish,
-                &mut command,
-                "lenovo-con-mode",
-                writer,
-            );
-        }
-        CompletionShell::Nushell => {
-            generate(
-                clap_complete_nushell::Nushell,
-                &mut command,
-                "lenovo-con-mode",
-                writer,
-            );
-        }
-        CompletionShell::Powershell => {
-            generate(
-                clap_complete::Shell::PowerShell,
-                &mut command,
-                "lenovo-con-mode",
-                writer,
-            );
-        }
-        CompletionShell::Zsh => {
-            generate(
-                clap_complete::Shell::Zsh,
-                &mut command,
-                "lenovo-con-mode",
-                writer,
-            );
-        }
-    }
+    shell.generate(&mut command, writer);
 }
 
 const fn state_label(enabled: bool) -> &'static str {
@@ -189,6 +127,7 @@ const fn state_label(enabled: bool) -> &'static str {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use clap::ValueEnum;
 
     #[test]
     fn state_labels_match_old_tool() {
@@ -198,14 +137,7 @@ mod tests {
 
     #[test]
     fn generates_all_lenovo_con_mode_completion_shells() {
-        for shell in [
-            CompletionShell::Bash,
-            CompletionShell::Elvish,
-            CompletionShell::Fish,
-            CompletionShell::Nushell,
-            CompletionShell::Powershell,
-            CompletionShell::Zsh,
-        ] {
+        for &shell in Shell::value_variants() {
             let mut output = Vec::new();
             generate_lenovo_con_mode_completions_to(shell, &mut output);
             assert!(!output.is_empty());

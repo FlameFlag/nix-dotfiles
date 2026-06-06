@@ -11,8 +11,8 @@ mod vscode;
 mod yazi;
 mod zed;
 
-use clap::{Args, CommandFactory, Parser, Subcommand, ValueEnum, ValueHint};
-use clap_complete::{Shell, generate};
+use clap::{Args, CommandFactory, Parser, Subcommand, ValueHint};
+use clap_complete_command::Shell;
 use std::io::Write;
 use std::path::PathBuf;
 
@@ -23,18 +23,18 @@ use dotfiles_common::fs::write_text_if_changed;
 
 const STATIC_COMPLETION_PATHS: &[StaticCompletionPath] = &[
     StaticCompletionPath {
-        shell: CompletionShell::Nushell,
+        shell: Shell::Nu,
         path: "dot_config/nushell/completions/chezmoi-support.nu",
     },
     StaticCompletionPath {
-        shell: CompletionShell::Nushell,
+        shell: Shell::Nu,
         path: "Library/Application Support/nushell/completions/chezmoi-support.nu",
     },
 ];
 
 #[derive(Debug, Clone, Copy)]
 struct StaticCompletionPath {
-    shell: CompletionShell,
+    shell: Shell,
     path: &'static str,
 }
 
@@ -88,17 +88,7 @@ enum CommandName {
     YaziInit,
     RaycastBetaPatch,
     SyncCompletions,
-    Completions { shell: CompletionShell },
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum)]
-enum CompletionShell {
-    Bash,
-    Elvish,
-    Fish,
-    Nushell,
-    Powershell,
-    Zsh,
+    Completions { shell: Shell },
 }
 
 fn main() -> miette::Result<()> {
@@ -133,7 +123,7 @@ impl From<GlobalArgs> for Options {
     }
 }
 
-fn generate_chezmoi_support_completions(shell: CompletionShell) {
+fn generate_chezmoi_support_completions(shell: Shell) {
     generate_chezmoi_support_completions_to(shell, &mut std::io::stdout());
 }
 
@@ -148,57 +138,27 @@ fn sync_completions(options: &Options) -> Result<()> {
     Ok(())
 }
 
-fn generated_completions(shell: CompletionShell) -> String {
+fn generated_completions(shell: Shell) -> String {
     let mut output = Vec::new();
     generate_chezmoi_support_completions_to(shell, &mut output);
     String::from_utf8_lossy(&output).into_owned()
 }
 
-fn generate_chezmoi_support_completions_to(shell: CompletionShell, writer: &mut impl Write) {
+fn generate_chezmoi_support_completions_to(shell: Shell, writer: &mut impl Write) {
     let mut command = Cli::command();
-    match shell {
-        CompletionShell::Bash => {
-            generate(Shell::Bash, &mut command, "chezmoi-support", writer);
-        }
-        CompletionShell::Elvish => {
-            generate(Shell::Elvish, &mut command, "chezmoi-support", writer);
-        }
-        CompletionShell::Fish => {
-            generate(Shell::Fish, &mut command, "chezmoi-support", writer);
-        }
-        CompletionShell::Nushell => {
-            generate(
-                clap_complete_nushell::Nushell,
-                &mut command,
-                "chezmoi-support",
-                writer,
-            );
-        }
-        CompletionShell::Powershell => {
-            generate(Shell::PowerShell, &mut command, "chezmoi-support", writer);
-        }
-        CompletionShell::Zsh => {
-            generate(Shell::Zsh, &mut command, "chezmoi-support", writer);
-        }
-    }
+    shell.generate(&mut command, writer);
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::error::Error;
+    use clap::ValueEnum;
     use std::path::Path;
 
     #[test]
     fn generates_all_chezmoi_support_completion_shells() {
-        for shell in [
-            CompletionShell::Bash,
-            CompletionShell::Elvish,
-            CompletionShell::Fish,
-            CompletionShell::Nushell,
-            CompletionShell::Powershell,
-            CompletionShell::Zsh,
-        ] {
+        for &shell in Shell::value_variants() {
             let mut output = Vec::new();
             generate_chezmoi_support_completions_to(shell, &mut output);
             assert!(!output.is_empty());
@@ -213,10 +173,10 @@ mod tests {
             .and_then(Path::parent)
             .map(|repo| repo.join("dotfiles"))
             .ok_or_else(|| Error::CommandFailed("could not find repository root".into()))?;
-        let generated = generated_completions(CompletionShell::Nushell);
+        let generated = generated_completions(Shell::Nu);
 
         for completion in STATIC_COMPLETION_PATHS {
-            assert_eq!(completion.shell, CompletionShell::Nushell);
+            assert!(matches!(completion.shell, Shell::Nu));
             let path = source_dir.join(completion.path);
             assert_eq!(fs_err::read_to_string(path)?, generated);
         }

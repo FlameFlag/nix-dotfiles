@@ -295,6 +295,14 @@ fn extract_tar<R: Read>(
     let mut archive = tar::Archive::new(reader);
     for entry in archive.entries()? {
         let mut entry = entry?;
+        if strip_components == 0 {
+            if !entry.unpack_in(dest_path)? {
+                return Err(ArchiveError::UnsafePath(
+                    entry.path().unwrap_or_default().into_owned(),
+                ));
+            }
+            continue;
+        }
         let Some(path) = stripped_path(entry.path()?.as_ref(), strip_components) else {
             continue;
         };
@@ -523,7 +531,7 @@ mod tests {
     fn resolves_direct_sources_and_renders_links() -> Result<(), ArchiveError> {
         let source = Source::Direct {
             version: "1.2.3".into(),
-            url: "https://example.invalid/{version}/{platform}/tool.tar.gz".into(),
+            url: "https://example.invalid/{{ version }}/{{ platform }}/tool.tar.gz".into(),
         };
         let resolved = resolve_source(&source, "aarch64-test")?;
         assert_eq!(resolved.version, "1.2.3");
@@ -537,11 +545,11 @@ mod tests {
         bindings.insert("platform", "aarch64-test");
         let links = render_links(
             &[Link {
-                name: "tool-{version}".into(),
-                path: "bin/{platform}/tool".into(),
+                name: "tool-{{ version }}".into(),
+                path: "bin/{{ platform }}/tool".into(),
                 env: vec![crate::catalog::EnvVar {
                     name: "TOOL_VERSION".into(),
-                    value: "{version}".into(),
+                    value: "{{ version }}".into(),
                 }],
             }],
             &bindings,

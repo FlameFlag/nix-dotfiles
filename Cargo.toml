@@ -20,6 +20,7 @@ repository = "https://github.com/euvlok/nix-dotfiles"
 [workspace.dependencies]
 camino = { version = "1.2.2", features = ["serde1"] }
 clap = { version = "4.6.1", features = ["derive", "env"] }
+clap_complete_command = { version = "0.6.1", features = ["nushell"] }
 comfy-table = "7.2.2"
 directories = "6.0.0"
 flate2 = "1.1.9"
@@ -29,10 +30,12 @@ rustls = { version = "0.23.40", default-features = false, features = ["ring"] }
 schemars = { version = "1.2.1", features = ["derive"] }
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.149"
+strum = { version = "0.28.0", features = ["derive"] }
 tar = "0.4.46"
 tempfile = "3.27.0"
 thiserror = "2.0.18"
-tiny_http = "0.12.0"
+minijinja = "2.20.0"
+rouille = "3.6.2"
 toml = "1.1.2"
 toml_edit = "0.25.11"
 url = "2.5.8"

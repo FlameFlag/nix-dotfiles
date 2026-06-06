@@ -7,12 +7,12 @@ mod error;
 mod github;
 
 use clap::{CommandFactory, Parser};
-use clap_complete::generate;
+use clap_complete_command::Shell;
 use dotfiles_common::http::Client;
 use std::io::Write;
 
 use crate::auth::token;
-use crate::cli::{Cli, CompletionShell};
+use crate::cli::Cli;
 use crate::error::Result;
 use crate::github::hide;
 
@@ -76,78 +76,23 @@ fn run_gh_hide_comment(mut cli: Cli) -> Result<i32> {
     }
 }
 
-fn generate_gh_hide_comment_completions(shell: CompletionShell) {
+fn generate_gh_hide_comment_completions(shell: Shell) {
     generate_gh_hide_comment_completions_to(shell, &mut std::io::stdout());
 }
 
-fn generate_gh_hide_comment_completions_to(shell: CompletionShell, writer: &mut impl Write) {
+fn generate_gh_hide_comment_completions_to(shell: Shell, writer: &mut impl Write) {
     let mut command = Cli::command();
-    match shell {
-        CompletionShell::Bash => {
-            generate(
-                clap_complete::Shell::Bash,
-                &mut command,
-                "gh-hide-comment",
-                writer,
-            );
-        }
-        CompletionShell::Elvish => {
-            generate(
-                clap_complete::Shell::Elvish,
-                &mut command,
-                "gh-hide-comment",
-                writer,
-            );
-        }
-        CompletionShell::Fish => {
-            generate(
-                clap_complete::Shell::Fish,
-                &mut command,
-                "gh-hide-comment",
-                writer,
-            );
-        }
-        CompletionShell::Nushell => {
-            generate(
-                clap_complete_nushell::Nushell,
-                &mut command,
-                "gh-hide-comment",
-                writer,
-            );
-        }
-        CompletionShell::Powershell => {
-            generate(
-                clap_complete::Shell::PowerShell,
-                &mut command,
-                "gh-hide-comment",
-                writer,
-            );
-        }
-        CompletionShell::Zsh => {
-            generate(
-                clap_complete::Shell::Zsh,
-                &mut command,
-                "gh-hide-comment",
-                writer,
-            );
-        }
-    }
+    shell.generate(&mut command, writer);
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use clap::ValueEnum;
 
     #[test]
     fn generates_all_gh_hide_comment_completion_shells() {
-        for shell in [
-            CompletionShell::Bash,
-            CompletionShell::Elvish,
-            CompletionShell::Fish,
-            CompletionShell::Nushell,
-            CompletionShell::Powershell,
-            CompletionShell::Zsh,
-        ] {
+        for &shell in Shell::value_variants() {
             let mut output = Vec::new();
             generate_gh_hide_comment_completions_to(shell, &mut output);
             assert!(!output.is_empty());

@@ -9,6 +9,7 @@ repository.workspace = true
 duct = { version = "1.1.1", features = ["timeout"] }
 fs-err.workspace = true
 fs-more = "0.8.1"
+minijinja.workspace = true
 reqwest.workspace = true
 rustls.workspace = true
 serde.workspace = true

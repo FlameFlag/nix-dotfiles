@@ -1,7 +1,7 @@
-use std::net::SocketAddr;
+use std::io::Read;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use tiny_http::{Method, Request, Server};
+use rouille::{Request, Response, Server};
 use url::Url;
 
 use crate::app::App;
@@ -12,57 +12,57 @@ use crate::response::{internal_error_response, not_found_response};
 const REQUEST_URL_BASE: &str = "http://http-fixture.local/";
 
 pub(crate) fn serve(_cli: &Cli, app: &App) -> Result<()> {
-    let server = make_server(app.listen)?;
-
     println!("http-fixture listening on http://{}", app.listen);
     for route in &app.routes {
         println!("{}", route.describe());
     }
 
-    for request in server.incoming_requests() {
-        handle_request(request, app);
-    }
-
+    make_server(app)?.run();
     Ok(())
 }
 
-fn make_server(listen: SocketAddr) -> Result<Server> {
-    Server::http(listen).map_err(|source| Error::Bind {
-        addr: listen,
-        source,
+fn make_server(app: &App) -> Result<Server<impl Send + Sync + 'static + Fn(&Request) -> Response>> {
+    let listen = app.listen;
+    let routes = app.routes.clone();
+    Server::new(listen, move |request| handle_request(request, &routes)).map_err(|source| {
+        Error::Bind {
+            addr: listen,
+            source,
+        }
     })
 }
 
-fn handle_request(mut request: Request, app: &App) {
-    let method = request.method().clone();
-    let url = request.url().to_owned();
+fn handle_request(request: &Request, routes: &[crate::route::Route]) -> Response {
+    let method = request.method().to_owned();
+    let url = request.raw_url().to_owned();
     let path = request_path(&url);
-    let mut body = String::new();
-    if let Err(err) = request.as_reader().read_to_string(&mut body) {
+    let body = read_body(request).unwrap_or_else(|err| {
         eprintln!("failed to read request body: {err}");
-    }
+        String::new()
+    });
 
     log_request(&method, &url, &body);
 
-    let response = app
-        .routes
+    match routes
         .iter()
         .find(|route| route.matches(&method, &path))
-        .map_or_else(not_found_response, |route| route.to_response());
-
-    match response {
-        Ok(response) => {
-            if let Err(err) = request.respond(response) {
-                eprintln!("failed to write response: {err}");
-            }
-        }
+        .map_or_else(not_found_response, |route| route.to_response())
+    {
+        Ok(response) => response,
         Err(err) => {
             eprintln!("failed to build response: {err}");
-            if let Err(response_err) = request.respond(internal_error_response()) {
-                eprintln!("failed to write response: {response_err}");
-            }
+            internal_error_response()
         }
     }
+}
+
+fn read_body(request: &Request) -> std::io::Result<String> {
+    let Some(mut body_reader) = request.data() else {
+        return Ok(String::new());
+    };
+    let mut body = String::new();
+    body_reader.read_to_string(&mut body)?;
+    Ok(body)
 }
 
 fn request_path(url: &str) -> String {
@@ -79,7 +79,7 @@ fn request_path(url: &str) -> String {
     url.split_once('?').map_or(url, |(path, _)| path).to_owned()
 }
 
-fn log_request(method: &Method, url: &str, body: &str) {
+fn log_request(method: &str, url: &str, body: &str) {
     const MAX_LOGGED_BODY_CHARS: usize = 500;
 
     let timestamp = SystemTime::now()

@@ -1,10 +1,8 @@
-use tiny_http::{Method, StatusCode};
-
 use crate::config::RouteConfig;
 use crate::error::{Error, Result};
 use crate::response::{Body, FixtureHttpResponse, FixtureResponse};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub(crate) struct Route {
     name: Option<String>,
     method: Option<String>,
@@ -12,7 +10,7 @@ pub(crate) struct Route {
     response: FixtureResponse,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 enum PathMatcher {
     Exact(String),
     Prefix(String),
@@ -67,7 +65,7 @@ impl Route {
             method: method.map(|method| method.to_ascii_uppercase()),
             matcher,
             response: FixtureResponse {
-                status: StatusCode(status.unwrap_or(200)),
+                status: status.unwrap_or(200),
                 content_type,
                 headers,
                 body,
@@ -75,11 +73,11 @@ impl Route {
         })
     }
 
-    pub(crate) fn matches(&self, method: &Method, path: &str) -> bool {
+    pub(crate) fn matches(&self, method: &str, path: &str) -> bool {
         let method_matches = self
             .method
             .as_ref()
-            .is_none_or(|configured| configured.eq_ignore_ascii_case(&method.to_string()));
+            .is_none_or(|configured| configured.eq_ignore_ascii_case(method));
         method_matches && self.matcher.matches(path)
     }
 
@@ -112,5 +110,72 @@ impl PathMatcher {
             Self::Prefix(path) => format!("{path}*"),
             Self::Suffix(path) => format!("*{path}"),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn matches_exact_prefix_suffix_and_methods() -> Result<()> {
+        let exact = Route::try_from_config(
+            0,
+            RouteConfig {
+                name: None,
+                method: Some("GET".into()),
+                path: Some("/exact".into()),
+                path_prefix: None,
+                path_suffix: None,
+                status: None,
+                content_type: None,
+                headers: Default::default(),
+                body: None,
+                body_html: None,
+                body_json: None,
+            },
+        )?;
+        assert!(exact.matches("GET", "/exact"));
+        assert!(!exact.matches("POST", "/exact"));
+        assert!(!exact.matches("GET", "/exactly"));
+
+        let prefix = Route::try_from_config(
+            1,
+            RouteConfig {
+                name: None,
+                method: None,
+                path: None,
+                path_prefix: Some("/assets/".into()),
+                path_suffix: None,
+                status: None,
+                content_type: None,
+                headers: Default::default(),
+                body: None,
+                body_html: None,
+                body_json: Some(json!({ "ok": true })),
+            },
+        )?;
+        assert!(prefix.matches("GET", "/assets/app.js"));
+
+        let suffix = Route::try_from_config(
+            2,
+            RouteConfig {
+                name: None,
+                method: None,
+                path: None,
+                path_prefix: None,
+                path_suffix: Some(".html".into()),
+                status: None,
+                content_type: None,
+                headers: Default::default(),
+                body: None,
+                body_html: Some("<h1>ok</h1>".into()),
+                body_json: None,
+            },
+        )?;
+        assert!(suffix.matches("GET", "/index.html"));
+        assert!(!suffix.matches("GET", "/index.json"));
+        Ok(())
     }
 }

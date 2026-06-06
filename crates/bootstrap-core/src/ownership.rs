@@ -131,7 +131,7 @@ mod tests {
             update_argv: vec!["demo".into(), "update".into()],
             active_argv: vec!["demo".into(), "active".into()],
             default_argv: vec!["demo".into(), "default".into()],
-            component_argv: vec!["--component".into(), "{component}".into()],
+            component_argv: vec!["--component".into(), "{{ component }}".into()],
         }
     }
 

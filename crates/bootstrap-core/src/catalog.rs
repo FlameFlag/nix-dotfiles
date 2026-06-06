@@ -217,9 +217,20 @@ fn default_version_argv(name: &str) -> Vec<String> {
 /// Install phases run in declaration order; later phases may rely on binaries
 /// from earlier phases, but not the reverse.
 #[derive(
-    Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, JsonSchema,
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Serialize,
+    Deserialize,
+    JsonSchema,
+    strum::Display,
 )]
 #[serde(rename_all = "snake_case")]
+#[strum(serialize_all = "snake_case")]
 pub enum Phase {
     Prerequisites,
     Archives,
@@ -228,8 +239,9 @@ pub enum Phase {
 }
 
 /// Installation strategy for a catalog entry.
-#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, garde::Validate)]
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, garde::Validate, strum::Display)]
 #[serde(tag = "type", rename_all = "snake_case")]
+#[strum(serialize_all = "kebab-case")]
 pub enum Action {
     /// A pre-bootstrap binary that must already be available.
     Required,
@@ -352,7 +364,7 @@ pub enum Source {
 #[garde(allow_unvalidated)]
 pub struct ArchivePlatform {
     pub when: Predicate,
-    /// Template value exposed as `{platform}` in source URLs and link paths.
+    /// Template value exposed as `{{ platform }}` in source URLs and link paths.
     #[garde(length(min = 1))]
     pub platform: String,
     /// Per-platform source override.
@@ -492,7 +504,7 @@ pub struct PackageAction {
     #[serde(default)]
     #[garde(length(min = 1))]
     pub name: String,
-    /// Install command; `{package}` expands to `name`.
+    /// Install command; `{{ package }}` expands to `name`.
     #[serde(default)]
     #[garde(length(min = 1))]
     pub install_argv: Vec<String>,
@@ -516,9 +528,16 @@ impl PackageAction {
 }
 
 fn default_uv_tool_install_argv() -> Vec<String> {
-    ["uv", "tool", "install", "--upgrade", "--force", "{package}"]
-        .map(str::to_owned)
-        .to_vec()
+    [
+        "uv",
+        "tool",
+        "install",
+        "--upgrade",
+        "--force",
+        "{{ package }}",
+    ]
+    .map(str::to_owned)
+    .to_vec()
 }
 
 /// Package managers whose installed-file inventory can be queried.
@@ -533,7 +552,7 @@ pub enum Inventory {
 pub struct BuildAction {
     /// Repository-relative build directory.
     pub path: String,
-    /// Build command; supports `{repo_dir}`, `{build_dir}`, `{prefix}`, and `{tool}`.
+    /// Build command; supports `{{ repo_dir }}`, `{{ build_dir }}`, `{{ prefix }}`, and `{{ tool }}`.
     #[serde(default)]
     #[garde(length(min = 1))]
     pub argv: Vec<String>,
@@ -556,9 +575,9 @@ fn default_cargo_install_argv() -> Vec<String> {
         "cargo",
         "install",
         "--path",
-        "{build_dir}",
+        "{{ build_dir }}",
         "--root",
-        "{prefix}",
+        "{{ prefix }}",
         "--force",
         "--locked",
     ]
@@ -627,7 +646,7 @@ impl SourceBuildAction {
 #[garde(allow_unvalidated)]
 pub struct SourceBuildPlatform {
     pub when: Predicate,
-    /// Template value exposed as `{platform}` in source URLs and link paths.
+    /// Template value exposed as `{{ platform }}` in source URLs and link paths.
     #[garde(length(min = 1))]
     pub platform: String,
     #[garde(length(min = 1))]
@@ -660,7 +679,7 @@ pub struct DownloadCommand {
     /// Local file name for the downloaded executable.
     #[serde(default)]
     pub file: String,
-    /// Command to run; supports `{file}`, `{toolchain}`, and `{components}`.
+    /// Command to run; supports `{{ file }}`, `{{ toolchain }}`, and `{{ components }}`.
     #[serde(default)]
     pub argv: Vec<String>,
 }

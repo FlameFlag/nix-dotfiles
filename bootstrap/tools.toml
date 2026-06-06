@@ -4,14 +4,14 @@
 # - when accepts "os" or "os-arch" strings, for example "linux-x86_64"
 # - archive/source_build defaults are inherited by platform rows
 # - package defaults to "uv tool install --upgrade --force"
-# - build defaults to "cargo install --path {build_dir} --root {prefix} --force --locked"
+# - build defaults to "cargo install --path {{ build_dir }} --root {{ prefix }} --force --locked"
 
 [[tools]]
 name = "chezmoi"
 
 [tools.action]
 type = "archive"
-source = { type = "github_latest", repo = "twpayne/chezmoi", tag_prefix = "v", asset = "chezmoi_{version}_{platform}" }
+source = { type = "github_latest", repo = "twpayne/chezmoi", tag_prefix = "v", asset = "chezmoi_{{ version }}_{{ platform }}" }
 links = ["chezmoi"]
 platforms = [
   { when = "macos-aarch64", platform = "darwin_arm64.tar.gz" },
@@ -31,14 +31,14 @@ type = "source_build"
 version = "2.54.0"
 kind = "tar_xz"
 strip_components = 1
-argv = ["make", "prefix={prefix}", "NO_GETTEXT=YesPlease", "NO_TCLTK=YesPlease", "NO_PERL=YesPlease", "NO_PYTHON=YesPlease", "NO_INSTALL_HARDLINKS=YesPlease", "-j{jobs}", "all", "install"]
+argv = ["make", "prefix={{ prefix }}", "NO_GETTEXT=YesPlease", "NO_TCLTK=YesPlease", "NO_PERL=YesPlease", "NO_PYTHON=YesPlease", "NO_INSTALL_HARDLINKS=YesPlease", "-j{{ jobs }}", "all", "install"]
 sandbox_home = true
 links = [{ name = "git", path = "bin/git" }]
 platforms = [
-  { when = "macos", platform = "macos", url = "https://www.kernel.org/pub/software/scm/git/git-{version}.tar.xz", archive_file = "git-{version}.tar.xz" },
-  { when = "linux", platform = "linux", url = "https://www.kernel.org/pub/software/scm/git/git-{version}.tar.xz", archive_file = "git-{version}.tar.xz" },
-  { when = "windows-x86_64", platform = "windows-amd64", url = "https://github.com/git-for-windows/git/releases/download/v{version}.windows.1/MinGit-{version}-64-bit.zip", archive_file = "MinGit-{version}-64-bit.zip", kind = "zip", strip_components = 0, argv = [], sandbox_home = false, links = [{ name = "git.cmd", path = "mingw64/bin/git.exe" }] },
-  { when = "windows-aarch64", platform = "windows-arm64", url = "https://github.com/git-for-windows/git/releases/download/v{version}.windows.1/MinGit-{version}-arm64.zip", archive_file = "MinGit-{version}-arm64.zip", kind = "zip", strip_components = 0, argv = [], sandbox_home = false, links = [{ name = "git.cmd", path = "clangarm64/bin/git.exe" }] },
+  { when = "macos", platform = "macos", url = "https://www.kernel.org/pub/software/scm/git/git-{{ version }}.tar.xz", archive_file = "git-{{ version }}.tar.xz" },
+  { when = "linux", platform = "linux", url = "https://www.kernel.org/pub/software/scm/git/git-{{ version }}.tar.xz", archive_file = "git-{{ version }}.tar.xz" },
+  { when = "windows-x86_64", platform = "windows-amd64", url = "https://github.com/git-for-windows/git/releases/download/v{{ version }}.windows.1/MinGit-{{ version }}-64-bit.zip", archive_file = "MinGit-{{ version }}-64-bit.zip", kind = "zip", strip_components = 0, argv = [], sandbox_home = false, links = [{ name = "git.cmd", path = "mingw64/bin/git.exe" }] },
+  { when = "windows-aarch64", platform = "windows-arm64", url = "https://github.com/git-for-windows/git/releases/download/v{{ version }}.windows.1/MinGit-{{ version }}-arm64.zip", archive_file = "MinGit-{{ version }}-arm64.zip", kind = "zip", strip_components = 0, argv = [], sandbox_home = false, links = [{ name = "git.cmd", path = "clangarm64/bin/git.exe" }] },
 ]
 
 [[tools]]
@@ -49,14 +49,14 @@ bins = ["git-lfs"]
 type = "archive"
 kind = "tar_gz"
 strip_components = 1
-source = { type = "github_latest", repo = "git-lfs/git-lfs", tag_prefix = "v", asset = "git-lfs-{platform}-v{version}.tar.gz" }
+source = { type = "github_latest", repo = "git-lfs/git-lfs", tag_prefix = "v", asset = "git-lfs-{{ platform }}-v{{ version }}.tar.gz" }
 links = ["git-lfs"]
 platforms = [
-  { when = "macos-aarch64", platform = "darwin-arm64", kind = "zip", source = { type = "github_latest", repo = "git-lfs/git-lfs", tag_prefix = "v", asset = "git-lfs-{platform}-v{version}.zip" } },
+  { when = "macos-aarch64", platform = "darwin-arm64", kind = "zip", source = { type = "github_latest", repo = "git-lfs/git-lfs", tag_prefix = "v", asset = "git-lfs-{{ platform }}-v{{ version }}.zip" } },
   { when = "linux-aarch64", platform = "linux-arm64" },
   { when = "linux-x86_64", platform = "linux-amd64" },
-  { when = "windows-aarch64", platform = "windows-arm64", kind = "zip", source = { type = "github_latest", repo = "git-lfs/git-lfs", tag_prefix = "v", asset = "git-lfs-{platform}-v{version}.zip" }, links = [{ name = "git-lfs", path = "git-lfs.exe" }] },
-  { when = "windows-x86_64", platform = "windows-amd64", kind = "zip", source = { type = "github_latest", repo = "git-lfs/git-lfs", tag_prefix = "v", asset = "git-lfs-{platform}-v{version}.zip" }, links = [{ name = "git-lfs", path = "git-lfs.exe" }] },
+  { when = "windows-aarch64", platform = "windows-arm64", kind = "zip", source = { type = "github_latest", repo = "git-lfs/git-lfs", tag_prefix = "v", asset = "git-lfs-{{ platform }}-v{{ version }}.zip" }, links = [{ name = "git-lfs", path = "git-lfs.exe" }] },
+  { when = "windows-x86_64", platform = "windows-amd64", kind = "zip", source = { type = "github_latest", repo = "git-lfs/git-lfs", tag_prefix = "v", asset = "git-lfs-{{ platform }}-v{{ version }}.zip" }, links = [{ name = "git-lfs", path = "git-lfs.exe" }] },
 ]
 
 [[tools]]
@@ -67,13 +67,13 @@ bins = ["uv", "uvx"]
 type = "archive"
 kind = "tar_gz"
 strip_components = 1
-source = { type = "github_latest", repo = "astral-sh/uv", tag_prefix = "v", asset = "uv-{platform}.tar.gz" }
+source = { type = "github_latest", repo = "astral-sh/uv", tag_prefix = "v", asset = "uv-{{ platform }}.tar.gz" }
 links = ["uv", "uvx"]
 platforms = [
   { when = "macos-aarch64", platform = "aarch64-apple-darwin" },
   { when = "linux-aarch64", platform = "aarch64-unknown-linux-musl" },
   { when = "linux-x86_64", platform = "x86_64-unknown-linux-musl" },
-  { when = "windows-x86_64", platform = "x86_64-pc-windows-msvc", kind = "zip", strip_components = 0, source = { type = "github_latest", repo = "astral-sh/uv", tag_prefix = "v", asset = "uv-{platform}.zip" }, links = [{ name = "uv", path = "uv.exe" }, { name = "uvx", path = "uvx.exe" }] },
+  { when = "windows-x86_64", platform = "x86_64-pc-windows-msvc", kind = "zip", strip_components = 0, source = { type = "github_latest", repo = "astral-sh/uv", tag_prefix = "v", asset = "uv-{{ platform }}.zip" }, links = [{ name = "uv", path = "uv.exe" }, { name = "uvx", path = "uvx.exe" }] },
 ]
 
 [[tools]]
@@ -83,18 +83,18 @@ bins = ["rustup", "cargo", "rustc", "rustfmt", "cargo-clippy", "rust-analyzer"]
 [tools.action]
 type = "toolchain"
 manager_bin = "rustup"
-name = "stable-{host_triple}"
+name = "stable-{{ host_triple }}"
 name_env = "BOOTSTRAP_RUST_TOOLCHAIN"
 bin_dir = { env_var = "CARGO_HOME", home_relative = ".cargo/bin" }
 components = ["rustfmt", "clippy", "rust-analyzer", "rust-src"]
-update_argv = ["{manager_bin}", "toolchain", "install", "{toolchain}", "--profile", "minimal", "--force-non-host", "{components}"]
-active_argv = ["{manager_bin}", "show", "active-toolchain"]
-default_argv = ["{manager_bin}", "default", "{toolchain}", "--force-non-host"]
-component_argv = ["--component", "{component}"]
+update_argv = ["{{ manager_bin }}", "toolchain", "install", "{{ toolchain }}", "--profile", "minimal", "--force-non-host", "{{ components }}"]
+active_argv = ["{{ manager_bin }}", "show", "active-toolchain"]
+default_argv = ["{{ manager_bin }}", "default", "{{ toolchain }}", "--force-non-host"]
+component_argv = ["--component", "{{ component }}"]
 
 [tools.action.install]
 file = "rustup-init"
-argv = ["{file}", "-y", "--profile", "minimal", "--default-toolchain", "{toolchain}", "{components}"]
+argv = ["{{ file }}", "-y", "--profile", "minimal", "--default-toolchain", "{{ toolchain }}", "{{ components }}"]
 platforms = [
   { when = "macos-aarch64", url = "https://static.rust-lang.org/rustup/dist/aarch64-apple-darwin/rustup-init" },
   { when = "linux-aarch64", url = "https://static.rust-lang.org/rustup/dist/aarch64-unknown-linux-gnu/rustup-init" },
@@ -111,13 +111,13 @@ bins = ["node", "npm", "npx"]
 type = "archive"
 kind = "tar_xz"
 strip_components = 1
-source = { type = "version_index", index_url = "https://nodejs.org/dist/index.json", url = "https://nodejs.org/dist/{version}/node-{version}-{platform}.tar.xz" }
+source = { type = "version_index", index_url = "https://nodejs.org/dist/index.json", url = "https://nodejs.org/dist/{{ version }}/node-{{ version }}-{{ platform }}.tar.xz" }
 links = [{ name = "node", path = "bin/node" }, { name = "npm", path = "bin/npm" }, { name = "npx", path = "bin/npx" }]
 platforms = [
   { when = "macos-aarch64", platform = "darwin-arm64" },
   { when = "linux-aarch64", platform = "linux-arm64" },
   { when = "linux-x86_64", platform = "linux-x64" },
-  { when = "windows-x86_64", platform = "win-x64", kind = "zip", source = { type = "version_index", index_url = "https://nodejs.org/dist/index.json", url = "https://nodejs.org/dist/{version}/node-{version}-{platform}.zip" }, links = [{ name = "node", path = "node.exe" }, { name = "npm", path = "npm.cmd" }, { name = "npx", path = "npx.cmd" }] },
+  { when = "windows-x86_64", platform = "win-x64", kind = "zip", source = { type = "version_index", index_url = "https://nodejs.org/dist/index.json", url = "https://nodejs.org/dist/{{ version }}/node-{{ version }}-{{ platform }}.zip" }, links = [{ name = "node", path = "node.exe" }, { name = "npm", path = "npm.cmd" }, { name = "npx", path = "npx.cmd" }] },
 ]
 
 [[tools]]
@@ -127,13 +127,13 @@ bins = ["bun", "bunx"]
 [tools.action]
 type = "archive"
 kind = "zip"
-source = { type = "github_latest", repo = "oven-sh/bun", tag_prefix = "bun-v", asset = "bun-{platform}.zip" }
-links = [{ name = "bun", path = "bun-{platform}/bun" }, { name = "bunx", path = "bun-{platform}/bun" }]
+source = { type = "github_latest", repo = "oven-sh/bun", tag_prefix = "bun-v", asset = "bun-{{ platform }}.zip" }
+links = [{ name = "bun", path = "bun-{{ platform }}/bun" }, { name = "bunx", path = "bun-{{ platform }}/bun" }]
 platforms = [
   { when = "macos-aarch64", platform = "darwin-aarch64" },
   { when = "linux-aarch64", platform = "linux-aarch64-musl" },
   { when = "linux-x86_64", platform = "linux-x64-musl" },
-  { when = "windows-x86_64", platform = "windows-x64", links = [{ name = "bun", path = "bun-{platform}/bun.exe" }, { name = "bunx", path = "bun-{platform}/bun.exe" }] },
+  { when = "windows-x86_64", platform = "windows-x64", links = [{ name = "bun", path = "bun-{{ platform }}/bun.exe" }, { name = "bunx", path = "bun-{{ platform }}/bun.exe" }] },
 ]
 
 [[tools]]
@@ -143,7 +143,7 @@ bins = [{ name = "code", version_argv = ["code", "--version"] }]
 
 [tools.action]
 type = "archive"
-source = { type = "direct", version = "latest", url = "https://update.code.visualstudio.com/latest/{platform}/stable" }
+source = { type = "direct", version = "latest", url = "https://update.code.visualstudio.com/latest/{{ platform }}/stable" }
 platforms = [
   { when = "macos-aarch64", platform = "darwin-arm64", kind = "zip", links = [{ name = "code", path = "Visual Studio Code.app/Contents/Resources/app/bin/code" }], app_links = [{ name = "Visual Studio Code.app", path = "Visual Studio Code.app" }] },
   { when = "linux-aarch64", platform = "linux-arm64", kind = "tar_gz", strip_components = 1, links = [{ name = "code", path = "bin/code" }] },
