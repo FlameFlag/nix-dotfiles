@@ -2,4 +2,4 @@
 
 [ "$(uname -s 2>/dev/null)" = "Darwin" ] || exit 0
 
-exec chezmoi-support raycast-window-management "$@"
+exec chezmoi-support raycast-beta-patch "$@"

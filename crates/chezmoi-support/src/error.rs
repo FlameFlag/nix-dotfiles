@@ -9,8 +9,6 @@ pub enum Error {
     #[error(transparent)]
     Process(#[from] dotfiles_common::process::ProcessError),
     #[error(transparent)]
-    Json(#[from] serde_json::Error),
-    #[error(transparent)]
     Toml(#[from] toml::de::Error),
     #[error("environment variable {0} is required")]
     #[diagnostic(help("set the variable in the environment before running this helper"))]

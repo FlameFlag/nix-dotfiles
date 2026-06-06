@@ -86,7 +86,7 @@ enum CommandName {
     InstallVsExtensions,
     ZedInstallCatppuccinTheme,
     YaziInit,
-    RaycastWindowManagement,
+    RaycastBetaPatch,
     SyncCompletions,
     Completions { shell: CompletionShell },
 }
@@ -114,7 +114,7 @@ fn run_chezmoi_support(command: CommandName, options: Options) -> Result<()> {
         CommandName::InstallVsExtensions => vscode::install_vs_extensions(&options),
         CommandName::ZedInstallCatppuccinTheme => zed::install_catppuccin_theme(&options),
         CommandName::YaziInit => yazi::install_plugins(&options),
-        CommandName::RaycastWindowManagement => raycast::window_management(&options),
+        CommandName::RaycastBetaPatch => raycast::beta_patch(&options),
         CommandName::SyncCompletions => sync_completions(&options),
         CommandName::Completions { shell } => {
             generate_chezmoi_support_completions(shell);

@@ -24,10 +24,6 @@ pub fn command_output(argv: &[String]) -> Result<Output> {
     process::capture_with_env(argv, std::iter::empty::<(String, String)>()).map_err(Into::into)
 }
 
-pub fn command_output_with_stdin(argv: &[String], stdin: impl Into<Vec<u8>>) -> Result<Output> {
-    process::capture_with_stdin(argv, stdin).map_err(Into::into)
-}
-
 pub fn run_command(argv: &[String]) -> Result<()> {
     process::run(argv).map_err(Into::into)
 }

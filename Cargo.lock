@@ -491,7 +491,6 @@ dependencies = [
  "hex",
  "miette",
  "serde",
- "serde_json",
  "sha2",
  "tar",
  "tempfile",

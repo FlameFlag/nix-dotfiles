@@ -44,7 +44,7 @@ module completions {
     --help(-h)                # Print help
   ]
 
-  export extern "chezmoi-support raycast-window-management" [
+  export extern "chezmoi-support raycast-beta-patch" [
     --source-dir: path        # Chezmoi source directory
     --home-dir: path          # Home directory used by chezmoi
     --os: string              # Chezmoi OS name
@@ -89,7 +89,7 @@ module completions {
   export extern "chezmoi-support help yazi-init" [
   ]
 
-  export extern "chezmoi-support help raycast-window-management" [
+  export extern "chezmoi-support help raycast-beta-patch" [
   ]
 
   export extern "chezmoi-support help sync-completions" [

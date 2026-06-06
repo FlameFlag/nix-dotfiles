@@ -8,7 +8,6 @@ use crate::error::{Error, Result};
 pub struct Context {
     pub home_dir: PathBuf,
     pub source_dir: PathBuf,
-    pub os: Os,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -40,7 +39,14 @@ pub fn context_with_options(options: &Options) -> Result<Context> {
         .or_else(|| env_path("CHEZMOI_SOURCE_DIR"))
         .map(Ok)
         .unwrap_or_else(infer_source_dir)?;
-    let os = Os::from_name(
+    Ok(Context {
+        home_dir,
+        source_dir,
+    })
+}
+
+pub fn os_with_options(options: &Options) -> Os {
+    Os::from_name(
         &options
             .os
             .clone()
@@ -50,12 +56,7 @@ pub fn context_with_options(options: &Options) -> Result<Context> {
                     .filter(|value| !value.trim().is_empty())
             })
             .unwrap_or_else(host_os_name),
-    );
-    Ok(Context {
-        home_dir,
-        source_dir,
-        os,
-    })
+    )
 }
 
 fn env_path(name: &'static str) -> Option<PathBuf> {
@@ -135,7 +136,7 @@ mod tests {
     fn infers_source_dir_from_inside_source_dir() -> Result<()> {
         let temp = tempfile::tempdir()?;
         let dotfiles = temp.path().join("dotfiles");
-        let nested = dotfiles.join("dot_config/raycast");
+        let nested = dotfiles.join("dot_config/nushell");
         fs_err::create_dir_all(&nested)?;
         fs_err::write(dotfiles.join(".chezmoiignore"), "")?;
 
