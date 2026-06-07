@@ -110,9 +110,25 @@ cx() {
 # Nix
 alias update="nix flake update --flake \$(readlink -f /etc/nixos/)"
 {{- if eq .chezmoi.os "darwin" }}
-alias rebuild="nh darwin switch \$(readlink -f /etc/nixos/)"
+rebuild() {
+  nh darwin switch "$(readlink -f /etc/nixos/)" "$@"
+}
+check() {
+  free darwin-rebuild check --flake "$(readlink -f /etc/nixos/)" "$@"
+}
+micfix() {
+  free killall coreaudiod "$@"
+}
 {{- else }}
-alias rebuild="nh os switch \$(readlink -f /etc/nixos/)"
+rebuild() {
+  free nh os switch "$(readlink -f /etc/nixos/)" "$@"
+}
+check() {
+  nix flake check "$(readlink -f /etc/nixos/)" "$@"
+}
+micfix() {
+  systemctl --user restart pipewire pipewire-pulse wireplumber "$@"
+}
 {{- end }}
 alias cza="chezmoi apply --force"
 

@@ -60,10 +60,23 @@ if $atuin_init != null {
 }
 
 {{- if eq .chezmoi.os "darwin" }}
-alias rebuild = nh darwin switch (readlink -f /etc/nixos/)
-alias check = sudo darwin-rebuild check --flake (readlink -f /etc/nixos/)
-alias micfix = sudo killall coreaudiod
+def --wrapped rebuild [...args] {
+    ^nh darwin switch (readlink -f /etc/nixos/) ...$args
+}
+def --wrapped check [...args] {
+    free darwin-rebuild check --flake (readlink -f /etc/nixos/) ...$args
+}
+def --wrapped micfix [...args] {
+    free killall coreaudiod ...$args
+}
 {{- else }}
-alias rebuild = nh os switch (readlink -f /etc/nixos/)
-alias check = nix flake check (readlink -f /etc/nixos/)
+def --wrapped rebuild [...args] {
+    free nh os switch (readlink -f /etc/nixos/) ...$args
+}
+def --wrapped check [...args] {
+    nix flake check (readlink -f /etc/nixos/) ...$args
+}
+def --wrapped micfix [...args] {
+    systemctl --user restart pipewire pipewire-pulse wireplumber ...$args
+}
 {{- end }}
