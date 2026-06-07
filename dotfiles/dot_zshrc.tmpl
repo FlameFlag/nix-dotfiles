@@ -21,7 +21,6 @@ DISABLE_UNTRACKED_FILES_DIRTY="true"  # Faster git status in prompt
 plugins=(
   git
   gh
-  fzf
   rust
   nmap
   rsync
@@ -40,6 +39,25 @@ plugins=(
 fpath=("$HOME/.cache/zsh/completions" $fpath)
 
 source $ZSH/oh-my-zsh.sh
+
+# Load fzf's native zsh integration without restoring the special zle option.
+_fzf_init() {
+  (( ${+commands[fzf]} )) || return
+
+  local init
+  init="$(fzf --zsh | sed \
+    -e '/^  eval \$__fzf_key_bindings_options$/i\
+  __fzf_key_bindings_options=${__fzf_key_bindings_options/ zle on/}\
+  __fzf_key_bindings_options=${__fzf_key_bindings_options/ zle off/}' \
+    -e '/^  eval \$__fzf_completion_options$/i\
+  __fzf_completion_options=${__fzf_completion_options/ zle on/}\
+  __fzf_completion_options=${__fzf_completion_options/ zle off/}' \
+  )" || return
+
+  eval "$init"
+}
+_fzf_init
+unset -f _fzf_init
 
 # Source pre-generated startup hooks to keep shell startup fast.
 [[ -r "$HOME/.cache/starship/init.zsh" ]] && source "$HOME/.cache/starship/init.zsh"
