@@ -120,7 +120,7 @@ pub fn nushell_init() -> Result<()> {
     write_command_text_if_available(
         "zoxide",
         &home_dir.join(".cache/zoxide/init.nu"),
-        &process::argv(["zoxide", "init", "nushell", "--cmd", "cd"]),
+        &process::argv(["zoxide", "init", "nushell", "--cmd", "z"]),
     )?;
     let atuin = home_dir.join(".local/share/atuin/init.nu");
     write_command_text_if_available(

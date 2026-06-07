@@ -26,7 +26,8 @@ def --wrapped cx [...args] {
 alias update = nix flake update --flake (readlink -f /etc/nixos/)
 
 alias cza = chezmoi apply --force
-alias dc = cd
+alias cd = z
+alias dc = z
 
 def --env yy [...args] {
     let tmp = (mktemp --tmpdir "yazi-cwd.XXXXX")
