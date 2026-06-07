@@ -1,6 +1,6 @@
 #!/bin/sh
 # Stable Ghostty entrypoint. GUI-launched Ghostty doesn't reliably inherit the
-# interactive shell PATH, and the managed zellij-auto-theme symlink can be absent
+# interactive shell PATH, and managed tool symlinks can be absent
 # briefly during bootstrap/reinstall.
 set -eu
 
@@ -8,12 +8,12 @@ HOME_DIR={{ .chezmoi.homeDir | quote }}
 PATH="$HOME_DIR/.local/bin:$HOME_DIR/.cargo/bin:$HOME_DIR/.bun/bin:$HOME_DIR/.bun/install/global/node_modules/.bin:/run/wrappers/bin:/run/current-system/sw/bin:/nix/var/nix/profiles/default/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
 export PATH
 
-if [ -x "$HOME_DIR/.local/bin/zellij-auto-theme" ]; then
-  exec "$HOME_DIR/.local/bin/zellij-auto-theme"
+if [ -x "$HOME_DIR/.local/bin/zellij-theme-run" ]; then
+  exec "$HOME_DIR/.local/bin/zellij-theme-run" zellij
 fi
 
-if command -v zellij-auto-theme >/dev/null 2>&1; then
-  exec zellij-auto-theme
+if command -v zellij-theme-run >/dev/null 2>&1; then
+  exec zellij-theme-run zellij
 fi
 
 if command -v zellij >/dev/null 2>&1; then

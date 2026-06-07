@@ -1,10 +1,10 @@
 #!/usr/bin/env sh
 set -eu
 
-if command -v btop-auto-theme >/dev/null 2>&1; then
-  BTOP_AUTO_THEME_WRAPPER="$(command -v -- "$0" 2>/dev/null || printf '%s\n' "$0")"
-  export BTOP_AUTO_THEME_WRAPPER
-  exec btop-auto-theme "$@"
+if command -v zellij-theme-run >/dev/null 2>&1; then
+  ZELLIJ_THEME_RUN_WRAPPER="$(command -v -- "$0" 2>/dev/null || printf '%s\n' "$0")"
+  export ZELLIJ_THEME_RUN_WRAPPER
+  exec zellij-theme-run btop "$@"
 fi
 
 self_dir="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"

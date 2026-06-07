@@ -19,7 +19,9 @@ alias mp4-cut = yt-dlp-script mp4-cut
 
 alias cc = claude --allow-dangerously-skip-permissions
 alias oo = opencode
-alias cx = codex-zellij-theme --dangerously-bypass-approvals-and-sandbox --dangerously-bypass-hook-trust
+def --wrapped cx [...args] {
+    zellij-theme-run codex --dangerously-bypass-approvals-and-sandbox --dangerously-bypass-hook-trust ...$args
+}
 
 alias update = nix flake update --flake (readlink -f /etc/nixos/)
 
