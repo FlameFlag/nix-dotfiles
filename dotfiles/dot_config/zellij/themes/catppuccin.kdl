@@ -1,5 +1,5 @@
 themes {
-  catppuccin-latte {
+  catppuccin-latte-pink {
     bg "#acb0be" // Surface2
     fg "#4c4f69" // Text
     red "#d20f39"
@@ -13,7 +13,7 @@ themes {
     white "#4c4f69" // Text
   }
 
-  catppuccin-frappe {
+  catppuccin-frappe-pink {
     bg "#626880" // Surface2
     fg "#c6d0f5" // Text
     red "#e78284"
