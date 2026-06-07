@@ -26,11 +26,11 @@ export default function (pi: ExtensionAPI) {
 	let intervalId: ReturnType<typeof setInterval> | null = null;
 
 	pi.on("session_start", async (_event, ctx) => {
-		let currentTheme = (await isDarkMode()) ? "catppuccin-frappe" : "catppuccin-latte";
+		let currentTheme = (await isDarkMode()) ? "catppuccin-frappe-pink" : "catppuccin-latte-pink";
 		ctx.ui.setTheme(currentTheme);
 
 		intervalId = setInterval(async () => {
-			const nextTheme = (await isDarkMode()) ? "catppuccin-frappe" : "catppuccin-latte";
+			const nextTheme = (await isDarkMode()) ? "catppuccin-frappe-pink" : "catppuccin-latte-pink";
 			if (nextTheme !== currentTheme) {
 				currentTheme = nextTheme;
 				ctx.ui.setTheme(currentTheme);

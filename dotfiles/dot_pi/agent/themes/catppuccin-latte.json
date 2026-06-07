@@ -1,6 +1,6 @@
 {
 	"$schema": "https://raw.githubusercontent.com/badlogic/pi-mono/main/packages/coding-agent/src/modes/interactive/theme/theme-schema.json",
-	"name": "catppuccin-latte",
+	"name": "catppuccin-latte-pink",
 	"vars": {
 		"rosewater": "#dc8a78",
 		"flamingo": "#dd7878",
@@ -31,7 +31,7 @@
 	},
 	"colors": {
 		"accent": "pink",
-		"border": "blue",
+		"border": "pink",
 		"borderAccent": "pink",
 		"borderMuted": "surface1",
 		"success": "green",
@@ -49,8 +49,8 @@
 		"customMessageText": "text",
 		"customMessageLabel": "mauve",
 		"toolPendingBg": "mantle",
-		"toolSuccessBg": "#dfe8d7",
-		"toolErrorBg": "#ead7dd",
+		"toolSuccessBg": "surface0",
+		"toolErrorBg": "surface0",
 		"toolTitle": "pink",
 		"toolOutput": "subtext0",
 
@@ -90,7 +90,7 @@
 	},
 	"export": {
 		"pageBg": "#eff1f5",
-		"cardBg": "#ffffff",
-		"infoBg": "#f2e7d5"
+		"cardBg": "#eff1f5",
+		"infoBg": "#ccd0da"
 	}
 }

@@ -1,6 +1,6 @@
 {
 	"$schema": "https://raw.githubusercontent.com/badlogic/pi-mono/main/packages/coding-agent/src/modes/interactive/theme/theme-schema.json",
-	"name": "catppuccin-frappe",
+	"name": "catppuccin-frappe-pink",
 	"vars": {
 		"rosewater": "#f2d5cf",
 		"flamingo": "#eebebe",
@@ -30,7 +30,7 @@
 	},
 	"colors": {
 		"accent": "pink",
-		"border": "blue",
+		"border": "pink",
 		"borderAccent": "pink",
 		"borderMuted": "surface1",
 		"success": "green",
@@ -48,8 +48,8 @@
 		"customMessageText": "text",
 		"customMessageLabel": "mauve",
 		"toolPendingBg": "mantle",
-		"toolSuccessBg": "#34463b",
-		"toolErrorBg": "#46343c",
+		"toolSuccessBg": "surface0",
+		"toolErrorBg": "surface0",
 		"toolTitle": "pink",
 		"toolOutput": "subtext0",
 
@@ -90,6 +90,6 @@
 	"export": {
 		"pageBg": "#292c3c",
 		"cardBg": "#303446",
-		"infoBg": "#413a3c"
+		"infoBg": "#414559"
 	}
 }
