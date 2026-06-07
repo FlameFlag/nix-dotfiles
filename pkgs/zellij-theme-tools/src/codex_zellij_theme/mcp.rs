@@ -25,7 +25,8 @@ pub(super) fn prune_unreachable_local_mcp_servers(doc: &mut DocumentMut) {
 }
 
 fn pruning_enabled() -> bool {
-    std::env::var("CODEX_ZELLIJ_THEME_PRUNE_UNREACHABLE_MCP")
+    std::env::var("ZELLIJ_THEME_RUN_PRUNE_UNREACHABLE_MCP")
+        .or_else(|_| std::env::var("CODEX_ZELLIJ_THEME_PRUNE_UNREACHABLE_MCP"))
         .map(|value| {
             let value = value.trim();
             !value.eq_ignore_ascii_case("0") && !value.eq_ignore_ascii_case("false")

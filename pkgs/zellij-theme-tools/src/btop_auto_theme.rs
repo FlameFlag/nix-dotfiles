@@ -4,24 +4,18 @@ use std::path::{Path, PathBuf};
 
 use directories::BaseDirs;
 
-use crate::{Error, FRAPPE, LATTE, Result, Theme, detect_theme, run_inherit, wants_version_arg};
+use crate::{Error, FRAPPE, LATTE, Result, Theme, detect_theme, run_inherit};
 
 const DARK_THEME: &str = "catppuccin_frappe_pink";
 const LIGHT_THEME: &str = "catppuccin_latte_pink";
 
-/// Runs `btop-auto-theme`.
+/// Runs the btop profile for `zellij-theme-run`.
 ///
 /// # Errors
 ///
 /// Returns an error if config generation fails or the real btop executable
 /// cannot be found or executed.
-pub fn run() -> Result<i32> {
-    if wants_version_arg() && std::env::var_os("BTOP_AUTO_THEME_WRAPPER").is_none() {
-        println!("btop-auto-theme {}", env!("CARGO_PKG_VERSION"));
-        return Ok(0);
-    }
-
-    let args: Vec<OsString> = std::env::args_os().skip(1).collect();
+pub fn run_with_args(args: Vec<OsString>) -> Result<i32> {
     let btop = find_btop()?;
     let base_config_path = config_arg(&args).unwrap_or_else(default_config_path);
     let base_config = read_base_config(&base_config_path)?;
@@ -29,7 +23,7 @@ pub fn run() -> Result<i32> {
     let themed_config = with_color_theme(&base_config, theme);
 
     let mut config = tempfile::Builder::new()
-        .prefix("btop-auto-theme-")
+        .prefix("zellij-theme-run-btop-")
         .suffix(".conf")
         .tempfile()?;
     config.write_all(themed_config.as_bytes())?;
@@ -127,7 +121,9 @@ fn find_btop() -> Result<PathBuf> {
 
 fn skip_paths() -> Vec<PathBuf> {
     let mut paths = Vec::new();
-    if let Some(wrapper) = std::env::var_os("BTOP_AUTO_THEME_WRAPPER") {
+    if let Some(wrapper) = std::env::var_os("ZELLIJ_THEME_RUN_WRAPPER")
+        .or_else(|| std::env::var_os("BTOP_AUTO_THEME_WRAPPER"))
+    {
         paths.push(PathBuf::from(wrapper));
     }
     if let Ok(exe) = std::env::current_exe() {

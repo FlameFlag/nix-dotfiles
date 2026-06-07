@@ -32,7 +32,7 @@ fn create_trust_overlay_in(
 }
 
 fn codex_overlay_root() -> Result<PathBuf> {
-    Ok(home_dir()?.join(".cache/codex-zellij-theme"))
+    Ok(home_dir()?.join(".cache/zellij-theme-run/codex"))
 }
 
 fn codex_home() -> Result<PathBuf> {

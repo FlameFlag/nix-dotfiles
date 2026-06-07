@@ -6,18 +6,11 @@ license.workspace = true
 repository.workspace = true
 
 [[bin]]
-name = "codex-zellij-theme"
-path = "src/bin/codex-zellij-theme.rs"
-
-[[bin]]
-name = "zellij-auto-theme"
-path = "src/bin/zellij-auto-theme.rs"
-
-[[bin]]
-name = "btop-auto-theme"
-path = "src/bin/btop-auto-theme.rs"
+name = "zellij-theme-run"
+path = "src/main.rs"
 
 [dependencies]
+clap.workspace = true
 dark-light = "2.0.0"
 directories.workspace = true
 duct = "1.1.1"

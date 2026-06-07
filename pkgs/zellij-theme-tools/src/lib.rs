@@ -14,6 +14,7 @@ use thiserror::Error;
 
 pub mod btop_auto_theme;
 pub mod codex_zellij_theme;
+pub mod program;
 pub mod zellij_auto_theme;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -29,7 +30,7 @@ pub struct Theme {
 }
 
 pub const FRAPPE: Theme = Theme {
-    name: "catppuccin-frappe",
+    name: "catppuccin-frappe-pink",
     colors: Colors {
         fg: "#c6d0f5",
         bg: "#303446",
@@ -37,7 +38,7 @@ pub const FRAPPE: Theme = Theme {
 };
 
 pub const LATTE: Theme = Theme {
-    name: "catppuccin-latte",
+    name: "catppuccin-latte-pink",
     colors: Colors {
         fg: "#4c4f69",
         bg: "#eff1f5",
@@ -75,13 +76,6 @@ pub fn exit_with_result(result: Result<i32>) -> ! {
             std::process::exit(1);
         }
     }
-}
-
-#[must_use]
-pub fn wants_version_arg() -> bool {
-    std::env::args_os()
-        .skip(1)
-        .any(|arg| arg == "--version" || arg == "-V")
 }
 
 #[must_use]
@@ -429,7 +423,8 @@ pub fn codex_bin() -> Result<PathBuf> {
     let home = home_dir()?;
     codex_bin_from(
         &home,
-        std::env::var_os("CODEX_ZELLIJ_THEME_CODEX_BIN"),
+        std::env::var_os("ZELLIJ_THEME_RUN_CODEX_BIN")
+            .or_else(|| std::env::var_os("CODEX_ZELLIJ_THEME_CODEX_BIN")),
         || which::which("codex").ok(),
     )
 }

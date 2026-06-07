@@ -3997,6 +3997,7 @@ dependencies = [
 name = "zellij-theme-tools"
 version = "0.1.0"
 dependencies = [
+ "clap",
  "dark-light",
  "directories",
  "duct",
