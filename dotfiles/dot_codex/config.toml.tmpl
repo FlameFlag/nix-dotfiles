@@ -1,5 +1,7 @@
 model = "gpt-5.5"
 model_reasoning_effort = "high"
+approval_policy = "never"
+sandbox_mode = "danger-full-access"
 suppress_unstable_features_warning = true
 
 [features]
@@ -13,6 +15,13 @@ notification_condition = "always"
 show_tooltips = false
 status_line = ["model-with-reasoning", "project-name", "context-remaining", "five-hour-limit", "weekly-limit"]
 status_line_use_colors = true
+
+[mcp_servers.system-run]
+command = "system-run-mcp"
+startup_timeout_sec = 10
+tool_timeout_sec = 1800
+enabled_tools = ["system-run"]
+default_tools_approval_mode = "approve"
 
 [mcp_servers.ghidra]
 url = "http://127.0.0.1:8090/mcp"

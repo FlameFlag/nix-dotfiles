@@ -51,6 +51,7 @@
             bootstrap
             chezmoi-support
             dis
+            system-run-mcp
             gh-hide-comment
             http-fixture
             kanata

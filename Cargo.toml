@@ -5,6 +5,7 @@ members = [
     "crates/chezmoi",
     "crates/common",
     "packages/gh-hide-comment",
+    "packages/system-run-mcp",
     "packages/http-fixture",
     "packages/lenovo-con-mode",
     "packages/lsp-diagnostic-filter",
@@ -26,6 +27,7 @@ directories = "6.0.0"
 flate2 = "1.1.9"
 fs-err = "3.3.0"
 reqwest = { version = "0.13.3", default-features = false, features = ["blocking", "json", "rustls-no-provider"] }
+rmcp = { version = "1.7.0", default-features = false, features = ["macros", "server", "transport-io"] }
 rustls = { version = "0.23.40", default-features = false, features = ["ring"] }
 schemars = { version = "1.2.1", features = ["derive"] }
 serde = { version = "1.0.228", features = ["derive"] }
@@ -34,6 +36,8 @@ strum = { version = "0.28.0", features = ["derive"] }
 tar = "0.4.46"
 tempfile = "3.27.0"
 thiserror = "2.0.18"
+tokio = { version = "1.52.3", default-features = false, features = ["io-std", "macros", "rt-multi-thread"] }
+tokio-util = "0.7"
 minijinja = "2.20.0"
 rouille = "3.6.2"
 toml = "1.1.2"

@@ -1,5 +1,18 @@
-{ config, pkgs, ... }:
 {
+  config,
+  pkgs,
+  ...
+}:
+let
+  systemRunnerLink = "/Users/${config.system.primaryUser}/.local/bin/system-runner";
+  systemRunnerTarget = "/Users/${config.system.primaryUser}/.local/opt/system-run-mcp/latest/bin/system-runner";
+in
+{
+  security.sudo.extraConfig = ''
+    Cmnd_Alias SYSTEM_RUNNER = ${systemRunnerLink}, ${systemRunnerTarget}
+    ${config.system.primaryUser} ALL=(ALL) NOPASSWD: SYSTEM_RUNNER
+  '';
+
   users.users.${config.system.primaryUser} = {
     name = config.system.primaryUser;
     home = "/Users/${config.system.primaryUser}";

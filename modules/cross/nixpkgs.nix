@@ -32,6 +32,7 @@
                   (repoRoot + /Cargo.toml)
                   (repoRoot + /bootstrap)
                   (repoRoot + /crates)
+                  (repoRoot + /packages/system-run-mcp)
                   (repoRoot + /packages/gh-hide-comment)
                   (repoRoot + /packages/http-fixture)
                   (repoRoot + /packages/lenovo-con-mode)
@@ -98,6 +99,14 @@
             meta = {
               description = "Hide GitHub comments from the command line";
               mainProgram = "gh-hide-comment";
+            };
+          };
+          system-run-mcp = cargoWorkspacePackage {
+            package = "system-run-mcp";
+            meta = {
+              description = "MCP server that runs commands through the local system runner";
+              mainProgram = "system-run-mcp";
+              platforms = final.lib.platforms.linux ++ final.lib.platforms.darwin;
             };
           };
           ghidra-mcp-headless = final.eupkgs.ghidra-mcp-headless;
