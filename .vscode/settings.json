@@ -1,4 +1,9 @@
 {
+  "window.autoDetectColorScheme": true,
+  "workbench.preferredDarkColorTheme": "Catppuccin Frappé",
+  "workbench.preferredLightColorTheme": "Catppuccin Latte",
+  "workbench.colorTheme": "Catppuccin Frappé",
+  "workbench.iconTheme": "catppuccin-frappe",
   "files.associations": {
     "*.bash.tmpl": "shellscript",
     "*.fish.tmpl": "fish",
