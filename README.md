@@ -9,15 +9,15 @@
   <a href="https://github.com/nix-darwin/nix-darwin"><img alt="nix-darwin" src="https://img.shields.io/badge/nix--darwin-8caaee?style=for-the-badge&logo=apple&logoColor=232634&labelColor=c6d0f5"></a>
   <a href="https://www.chezmoi.io/"><img alt="chezmoi" src="https://img.shields.io/badge/chezmoi-a6d189?style=for-the-badge&logo=homeassistant&logoColor=232634&labelColor=414559"></a>
   <a href="https://www.rust-lang.org/"><img alt="Rust bootstrap" src="https://img.shields.io/badge/Rust_bootstrap-ef9f76?style=for-the-badge&logo=rust&logoColor=232634&labelColor=414559"></a>
-  <a href="https://catppuccin.com/"><img alt="Catppuccin" src="https://img.shields.io/badge/Catppuccin-Frappe-ca9ee6?style=for-the-badge&logoColor=232634&labelColor=414559"></a>
+  <a href="https://catppuccin.com/"><img alt="Catppuccin" src="https://img.shields.io/badge/Catppuccin-Frappe-f4b8e4?style=for-the-badge&logoColor=232634&labelColor=414559"></a>
 </p>
 
 <p align="center">
-  <a href="https://getfedora.org/"><img alt="Fedora" src="https://img.shields.io/badge/Fedora-4E9ED3?style=flat-square&logo=fedora&logoColor=white"></a>
-  <a href="https://fedoraproject.org/atomic-desktops/kinoite/"><img alt="Fedora Kinoite" src="https://img.shields.io/badge/Fedora%20Kinoite-4E9ED3?style=flat-square&logo=fedora&logoColor=white"></a>
-  <a href="https://www.alpinelinux.org/"><img alt="Alpine Linux" src="https://img.shields.io/badge/Alpine%20Linux-0D597F?style=flat-square&logo=alpinelinux&logoColor=white"></a>
-  <a href="https://www.apple.com/os/macos/"><img alt="macOS" src="https://img.shields.io/badge/macOS-000000?style=flat-square&logo=apple&logoColor=F0F0F0"></a>
-  <a href="https://www.microsoft.com/windows/"><img alt="Windows" src="https://img.shields.io/badge/Windows-0078D4?style=flat-square&logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA4OCA4OCI+PHBhdGggZmlsbD0id2hpdGUiIGQ9Ik0wIDEyLjQgMzYgNy41djM0LjdIMFYxMi40Wm00MC01LjVMODggMHY0Mi4ySDQwVjYuOVpNMCA0Ni4yaDM2djM0LjdMMCA3NlY0Ni4yWm00MCAwaDQ4Vjg4bC00OC02LjZWNDYuMloiLz48L3N2Zz4=&logoColor=white"></a>
+  <a href="https://getfedora.org/"><img alt="Fedora" src="https://img.shields.io/badge/Fedora-8caaee?style=flat-square&logo=fedora&logoColor=232634"></a>
+  <a href="https://fedoraproject.org/atomic-desktops/kinoite/"><img alt="Fedora Kinoite" src="https://img.shields.io/badge/Fedora%20Kinoite-99d1db?style=flat-square&logo=fedora&logoColor=232634"></a>
+  <a href="https://www.alpinelinux.org/"><img alt="Alpine Linux" src="https://img.shields.io/badge/Alpine%20Linux-81c8be?style=flat-square&logo=alpinelinux&logoColor=232634"></a>
+  <a href="https://www.apple.com/os/macos/"><img alt="macOS" src="https://img.shields.io/badge/macOS-f4b8e4?style=flat-square&logo=apple&logoColor=232634"></a>
+  <a href="https://www.microsoft.com/windows/"><img alt="Windows" src="https://img.shields.io/badge/Windows-8caaee?style=flat-square&logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA4OCA4OCI+PHBhdGggZmlsbD0iIzIzMjYzNCIgZD0iTTAgMTIuNCAzNiA3LjV2MzQuN0gwVjEyLjRabTQwLTUuNUw4OCAwdjQyLjJINDBWNi45Wk0wIDQ2LjJoMzZ2MzQuN0wwIDc2VjQ2LjJabTQwIDBoNDhWODhsLTQ4LTYuNlY0Ni4yWiIvPjwvc3ZnPg==&logoColor=232634"></a>
 </p>
 
 > [!IMPORTANT]
