@@ -191,7 +191,7 @@ platforms = ["macos", "linux", "windows"]
 
 [tools.action]
 type = "build"
-path = "crates/bootstrap-cli"
+path = "crates/boot-cli"
 
 [[tools]]
 name = "gh-hide-comment"
@@ -199,7 +199,7 @@ platforms = ["macos", "linux", "windows"]
 
 [tools.action]
 type = "build"
-path = "pkgs/gh-hide-comment"
+path = "packages/gh-hide-comment"
 
 [[tools]]
 name = "zellij-theme-tools"
@@ -208,7 +208,7 @@ bins = ["zellij-theme-run"]
 
 [tools.action]
 type = "build"
-path = "pkgs/zellij-theme-tools"
+path = "packages/zellij-theme-tools"
 
 [[tools]]
 name = "chezmoi-support"
@@ -216,7 +216,7 @@ platforms = ["macos", "linux", "windows"]
 
 [tools.action]
 type = "build"
-path = "crates/chezmoi-support"
+path = "crates/chezmoi"
 
 [[tools]]
 name = "lenovo-con-mode"
@@ -225,4 +225,4 @@ requires = ["lenovo_laptop"]
 
 [tools.action]
 type = "build"
-path = "pkgs/lenovo-con-mode"
+path = "packages/lenovo-con-mode"

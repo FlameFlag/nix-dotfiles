@@ -29,7 +29,7 @@
         "x86_64-linux"
       ];
       forAllSystems = inputs.nixpkgs.lib.genAttrs systems;
-      commonNixpkgs = import ./modules/common/nixpkgs.nix { inherit inputs; };
+      commonNixpkgs = import ./modules/cross/nixpkgs.nix { inherit inputs; };
       mkPkgs =
         system:
         import inputs.nixpkgs {

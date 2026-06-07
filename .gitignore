@@ -18,6 +18,9 @@ result
 !/.vscode/
 !/.vscode/settings.json
 **/packages/
+!/packages/
+!/packages/**
+/packages/**/.DS_Store
 node_modules/
 
 # Python

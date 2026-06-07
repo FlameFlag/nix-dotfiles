@@ -1,7 +1,7 @@
 _: {
   imports = [
-    ../common
-    ../common/nixcord
+    ../cross
+    ../cross/nixcord
     ./gnome.nix
     ./ghidra-mcp.nix
     ./hardware.nix

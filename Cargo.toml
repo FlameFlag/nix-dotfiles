@@ -1,14 +1,14 @@
 [workspace]
 members = [
-    "crates/bootstrap-cli",
-    "crates/bootstrap-core",
-    "crates/chezmoi-support",
-    "crates/dotfiles-common",
-    "pkgs/gh-hide-comment",
-    "pkgs/http-fixture",
-    "pkgs/lenovo-con-mode",
-    "pkgs/lsp-diagnostic-filter",
-    "pkgs/zellij-theme-tools",
+    "crates/boot-cli",
+    "crates/boot-core",
+    "crates/chezmoi",
+    "crates/common",
+    "packages/gh-hide-comment",
+    "packages/http-fixture",
+    "packages/lenovo-con-mode",
+    "packages/lsp-diagnostic-filter",
+    "packages/zellij-theme-tools",
 ]
 resolver = "3"
 

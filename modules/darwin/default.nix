@@ -1,7 +1,7 @@
 _: {
   imports = [
-    ../common
-    ../common/nixcord
+    ../cross
+    ../cross/nixcord
     ./fonts.nix
     ./ghidra-mcp.nix
     ./kanata.nix

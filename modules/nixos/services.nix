@@ -5,7 +5,7 @@
   ...
 }:
 let
-  paidFonts = (pkgs.callPackage ../../pkgs/paid-fonts/build-font.nix { }).packages;
+  paidFonts = (pkgs.callPackage ../../packages/paid-fonts/build-font.nix { }).packages;
 in
 {
   services = {
