@@ -2,7 +2,7 @@ use std::ffi::OsString;
 
 use clap::{Parser, ValueEnum};
 
-use crate::{Result, btop_auto_theme, codex_zellij_theme, zellij_auto_theme};
+use crate::{Result, btop_auto_theme, codex_zellij_theme, helix_auto_theme, zellij_auto_theme};
 
 #[derive(Debug, Parser)]
 #[command(name = "zellij-theme-run", version)]
@@ -17,6 +17,7 @@ struct Cli {
 enum Program {
     Codex,
     Btop,
+    Helix,
     Zellij,
 }
 
@@ -25,6 +26,7 @@ impl Program {
         match self {
             Self::Codex => codex_zellij_theme::run_with_args(args),
             Self::Btop => btop_auto_theme::run_with_args(args),
+            Self::Helix => helix_auto_theme::run_with_args(args),
             Self::Zellij => zellij_auto_theme::run_with_args(args),
         }
     }
@@ -64,6 +66,12 @@ mod tests {
                 .expect("btop profile should parse")
                 .program,
             Program::Btop
+        );
+        assert_eq!(
+            Cli::try_parse_from(["zellij-theme-run", "helix"])
+                .expect("helix profile should parse")
+                .program,
+            Program::Helix
         );
         assert_eq!(
             Cli::try_parse_from(["zellij-theme-run", "zellij"])

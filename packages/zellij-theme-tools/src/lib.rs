@@ -10,6 +10,7 @@ mod zellij;
 
 pub mod btop_auto_theme;
 pub mod codex_zellij_theme;
+pub mod helix_auto_theme;
 pub mod program;
 pub mod zellij_auto_theme;
 
@@ -51,6 +52,8 @@ pub enum Error {
     CodexNotFound,
     #[error("btop executable not found")]
     BtopNotFound,
+    #[error("helix executable not found")]
+    HelixNotFound,
     #[error(transparent)]
     Toml(#[from] toml_edit::TomlError),
     #[error("invalid Codex config TOML shape")]
