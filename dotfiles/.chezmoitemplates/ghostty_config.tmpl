@@ -26,6 +26,8 @@ keybind = clear
 {{- if eq .chezmoi.os "darwin" }}
 keybind = super+left=text:\x01
 keybind = super+right=text:\x05
+keybind = super+alt+left=text:\x1b[1;11D
+keybind = super+alt+right=text:\x1b[1;11C
 keybind = super+0=reset_font_size
 keybind = super+equal=increase_font_size:1
 keybind = super+shift+equal=increase_font_size:1
@@ -38,6 +40,8 @@ keybind = super+,=reload_config
 {{- end }}
 keybind = ctrl+left=text:\x01
 keybind = ctrl+right=text:\x05
+keybind = ctrl+alt+left=text:\x1b[1;7D
+keybind = ctrl+alt+right=text:\x1b[1;7C
 keybind = alt+left=text:\x1b\x62
 keybind = alt+right=text:\x1b\x66
 keybind = ctrl+0=reset_font_size

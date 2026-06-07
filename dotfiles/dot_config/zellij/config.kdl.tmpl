@@ -6,7 +6,7 @@ copy_command "{{ if eq .chezmoi.os "darwin" }}pbcopy{{ else }}wl-copy{{ end }}"
 copy_clipboard "system"
 copy_on_select false
 scrollback_editor "hx"
-mirror_session true
+mirror_session false
 show_startup_tips false
 on_force_close "quit"
 
@@ -57,6 +57,8 @@ keybinds clear-defaults=true {
         bind "{{ if eq .chezmoi.os "darwin" }}Super{{ else }}Ctrl{{ end }} 9" { GoToTab 9; }
         bind "{{ if eq .chezmoi.os "darwin" }}Super{{ else }}Ctrl{{ end }} Left" { GoToPreviousTab; }
         bind "{{ if eq .chezmoi.os "darwin" }}Super{{ else }}Ctrl{{ end }} Right" { GoToNextTab; }
+        bind "Super Alt Left" "Ctrl Alt Left" { GoToPreviousTab; }
+        bind "Super Alt Right" "Ctrl Alt Right" { GoToNextTab; }
         bind "Alt C" { Copy; }
         bind "{{ if eq .chezmoi.os "darwin" }}Super{{ else }}Ctrl{{ end }} Shift Backspace" { CloseFocus; }
         bind "{{ if eq .chezmoi.os "darwin" }}Super{{ else }}Ctrl{{ end }} Shift S" { SwitchToMode "Pane"; }
@@ -187,5 +189,7 @@ keybinds clear-defaults=true {
         bind "{{ if eq .chezmoi.os "darwin" }}Super{{ else }}Ctrl{{ end }} 9" { GoToTab 9; SwitchToMode "Normal"; }
         bind "{{ if eq .chezmoi.os "darwin" }}Super{{ else }}Ctrl{{ end }} Left" { GoToPreviousTab; SwitchToMode "Normal"; }
         bind "{{ if eq .chezmoi.os "darwin" }}Super{{ else }}Ctrl{{ end }} Right" { GoToNextTab; SwitchToMode "Normal"; }
+        bind "Super Alt Left" "Ctrl Alt Left" { GoToPreviousTab; SwitchToMode "Normal"; }
+        bind "Super Alt Right" "Ctrl Alt Right" { GoToNextTab; SwitchToMode "Normal"; }
     }
 }

@@ -19,9 +19,9 @@ fi
 if command -v zellij >/dev/null 2>&1; then
   exec zellij options \
     --default-layout compact \
-    --attach-to-session true \
-    --on-force-close quit \
-    --session-name "${USER:-flame}"
+    --attach-to-session false \
+    --mirror-session false \
+    --on-force-close quit
 fi
 
 exec "${SHELL:-/bin/zsh}" -l
