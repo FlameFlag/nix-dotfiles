@@ -26,12 +26,13 @@ comfy-table = "7.2.2"
 directories = "6.0.0"
 flate2 = "1.1.9"
 fs-err = "3.3.0"
-reqwest = { version = "0.13.3", default-features = false, features = ["blocking", "json", "rustls-no-provider"] }
+indexmap = "2.12.1"
+reqwest = { version = "0.13.4", default-features = false, features = ["blocking", "json", "rustls-no-provider"] }
 rmcp = { version = "1.7.0", default-features = false, features = ["macros", "server", "transport-io"] }
 rustls = { version = "0.23.40", default-features = false, features = ["ring"] }
 schemars = { version = "1.2.1", features = ["derive"] }
 serde = { version = "1.0.228", features = ["derive"] }
-serde_json = "1.0.149"
+serde_json = "1.0.150"
 strum = { version = "0.28.0", features = ["derive"] }
 tar = "0.4.46"
 tempfile = "3.27.0"
@@ -41,7 +42,7 @@ tokio-util = "0.7"
 minijinja = "2.20.0"
 rouille = "3.6.2"
 toml = "1.1.2"
-toml_edit = "0.25.11"
+toml_edit = "0.25.12"
 url = "2.5.8"
 walkdir = "2.5.0"
 which = "8.0.2"
