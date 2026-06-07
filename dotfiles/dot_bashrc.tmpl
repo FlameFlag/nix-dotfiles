@@ -96,8 +96,20 @@ alias mp4-cut="_yt_dlp_script mp4-cut"
 # Agents Aliases
 alias cc="claude --allow-dangerously-skip-permissions"
 alias oo="opencode"
+free() {
+  local runner
+  runner="$(command -v system-runner)"
+  if [[ -z "$runner" ]]; then
+    printf '%s\n' "free: system-runner is not installed yet; run bootstrap first" >&2
+    return 127
+  fi
+  sudo -n "$runner" "$@"
+}
+f() {
+  free "$@"
+}
 cx() {
-  zellij-theme-run codex --dangerously-bypass-approvals-and-sandbox --dangerously-bypass-hook-trust "$@"
+  zellij-theme-run codex "$@"
 }
 
 # Nix
