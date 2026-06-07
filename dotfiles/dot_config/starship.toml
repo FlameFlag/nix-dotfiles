@@ -7,7 +7,7 @@ right_format = "$cmd_duration$time"
 [character]
 error_symbol = "[✗](bold red)"
 success_symbol = "[➜](bold green)"
-vimcmd_symbol = "[V](bold red)"
+vimcmd_symbol = "[V](bold pink)"
 
 [directory]
 fish_style_pwd_dir_length = 1
@@ -20,12 +20,12 @@ disabled = false
 format = "inside \\( $state\\) "
 impure_msg = "[impure shell](bold red)"
 pure_msg = "[pure shell](bold green)"
-style = "bold blue"
+style = "bold pink"
 unknown_msg = "[unknown shell](bold yellow)"
 
 [os]
 disabled = false
-style = "bold blue"
+style = "bold pink"
 
 [os.symbols]
 Linux = " "
@@ -67,16 +67,16 @@ fish_indicator = "λ"
 format = "\\[[$indicator]($style)\\] "
 nu_indicator = "λ"
 powershell_indicator = ">_"
-style = "cyan bold"
+style = "pink bold"
 zsh_indicator = "%"
 
 [sudo]
 disabled = false
-style = "bold red"
+style = "bold pink"
 symbol = " "
 
 [time]
 disabled = false
 format = "at [$time]($style) "
-style = "bold blue"
+style = "bold pink"
 time_format = "%X"
