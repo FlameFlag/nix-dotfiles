@@ -58,10 +58,7 @@
         {
           gh = final.unstable.gh;
           yt-dlp = final.eupkgs.yt-dlp;
-          lldb-mcp-launcher = final.callPackage ../../pkgs/lldb-mcp-launcher.nix {
-            lldb = final.unstable.llvmPackages_22.lldb;
-            python3 = final.unstable.python3;
-          };
+          lldb-mcp-launcher = final.eupkgs.lldb-mcp-launcher;
           kanata =
             let
               version = "1.12.0-prerelease-2";
@@ -103,14 +100,7 @@
               mainProgram = "gh-hide-comment";
             };
           };
-          ghidra-mcp-headless = final.callPackage ../../pkgs/ghidra-mcp-headless.nix {
-            inherit (final.unstable)
-              ghidra
-              jdk21
-              maven
-              python313
-              ;
-          };
+          ghidra-mcp-headless = final.eupkgs.ghidra-mcp-headless;
           lenovo-con-mode = cargoWorkspacePackage {
             package = "lenovo-con-mode";
             meta = {
