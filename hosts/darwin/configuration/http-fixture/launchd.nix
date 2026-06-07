@@ -24,7 +24,7 @@ in
       // {
         Label = "org.nixos.http-fixture";
         ProgramArguments = [
-          (lib.meta.getExe pkgs.http-fixture)
+          "/Users/${settings.user}/.local/bin/http-fixture"
           "--config"
           settings.configFile
         ];

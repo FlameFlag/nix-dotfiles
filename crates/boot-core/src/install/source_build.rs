@@ -43,6 +43,8 @@ pub(super) fn install_source_build(
     let mut bindings = HashMap::new();
     let source_text = source_dir.to_string_lossy();
     let install_dir_text = install_dir.to_string_lossy();
+    let repo_dir_text = ctx.repo_dir.to_string_lossy();
+    bindings.insert("repo_dir", repo_dir_text.as_ref());
     bindings.insert("source_dir", source_text.as_ref());
     bindings.insert("prefix", install_dir_text.as_ref());
     bindings.insert("install_dir", install_dir_text.as_ref());

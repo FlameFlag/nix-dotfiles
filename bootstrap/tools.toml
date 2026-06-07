@@ -22,6 +22,22 @@ platforms = [
 ]
 
 [[tools]]
+name = "powershell"
+platforms = ["windows"]
+phase = "prerequisites"
+bins = [{ name = "pwsh", version_argv = ["pwsh", "-NoProfile", "-Command", "$PSVersionTable.PSVersion.ToString()"] }]
+
+[tools.action]
+type = "archive"
+kind = "zip"
+source = { type = "github_latest", repo = "PowerShell/PowerShell", tag_prefix = "v", asset = "PowerShell-{{ version }}-{{ platform }}.zip" }
+links = [{ name = "pwsh.cmd", path = "pwsh.exe" }]
+platforms = [
+  { when = "windows-aarch64", platform = "win-arm64" },
+  { when = "windows-x86_64", platform = "win-x64" },
+]
+
+[[tools]]
 name = "git"
 platforms = ["macos", "linux", "windows"]
 phase = "archives"
@@ -37,8 +53,11 @@ links = [{ name = "git", path = "bin/git" }]
 platforms = [
   { when = "macos", platform = "macos", url = "https://www.kernel.org/pub/software/scm/git/git-{{ version }}.tar.xz", archive_file = "git-{{ version }}.tar.xz" },
   { when = "linux", platform = "linux", url = "https://www.kernel.org/pub/software/scm/git/git-{{ version }}.tar.xz", archive_file = "git-{{ version }}.tar.xz" },
-  { when = "windows-x86_64", platform = "windows-amd64", url = "https://github.com/git-for-windows/git/releases/download/v{{ version }}.windows.1/MinGit-{{ version }}-64-bit.zip", archive_file = "MinGit-{{ version }}-64-bit.zip", kind = "zip", strip_components = 0, argv = [], sandbox_home = false, links = [{ name = "git.cmd", path = "mingw64/bin/git.exe" }] },
-  { when = "windows-aarch64", platform = "windows-arm64", url = "https://github.com/git-for-windows/git/releases/download/v{{ version }}.windows.1/MinGit-{{ version }}-arm64.zip", archive_file = "MinGit-{{ version }}-arm64.zip", kind = "zip", strip_components = 0, argv = [], sandbox_home = false, links = [{ name = "git.cmd", path = "clangarm64/bin/git.exe" }] },
+  # Git for Windows is built with the MSYS2-based Git for Windows SDK. Bootstrap
+  # downloads the minimal SDK into the source-build temp dir, builds Git into
+  # the managed prefix, then drops the SDK when the temp dir is removed.
+  { when = "windows-x86_64", platform = "x86_64", url = "https://github.com/git-for-windows/git/archive/refs/tags/v{{ version }}.windows.1.tar.gz", archive_file = "git-for-windows-{{ version }}.tar.gz", kind = "tar_gz", argv = ["pwsh", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "{{ repo_dir }}/bootstrap/build-git-for-windows.ps1", "-SourceDir", "{{ source_dir }}", "-Prefix", "{{ prefix }}", "-Architecture", "{{ platform }}", "-Jobs", "{{ jobs }}"], sandbox_home = false, links = [{ name = "git.cmd", path = "bin/git.exe" }] },
+  { when = "windows-aarch64", platform = "aarch64", url = "https://github.com/git-for-windows/git/archive/refs/tags/v{{ version }}.windows.1.tar.gz", archive_file = "git-for-windows-{{ version }}.tar.gz", kind = "tar_gz", argv = ["pwsh", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "{{ repo_dir }}/bootstrap/build-git-for-windows.ps1", "-SourceDir", "{{ source_dir }}", "-Prefix", "{{ prefix }}", "-Architecture", "{{ platform }}", "-Jobs", "{{ jobs }}"], sandbox_home = false, links = [{ name = "git.cmd", path = "bin/git.exe" }] },
 ]
 
 [[tools]]
@@ -196,15 +215,46 @@ path = "crates/boot-cli"
 [[tools]]
 name = "gh-hide-comment"
 platforms = ["macos", "linux", "windows"]
+bins = [{ name = "gh-hide-comment", version_argv = ["gh-hide-comment", "--version"] }]
 
 [tools.action]
 type = "build"
 path = "packages/gh-hide-comment"
 
 [[tools]]
+name = "system-run-mcp"
+platforms = ["macos", "linux"]
+bins = [
+  { name = "system-run-mcp", version_argv = ["system-run-mcp", "--version"] },
+  { name = "system-runner", version_argv = ["system-runner", "--version"] },
+]
+
+[tools.action]
+type = "build"
+path = "packages/system-run-mcp"
+
+[[tools]]
+name = "http-fixture"
+platforms = ["macos", "linux"]
+bins = [{ name = "http-fixture", version_argv = ["http-fixture", "--version"] }]
+
+[tools.action]
+type = "build"
+path = "packages/http-fixture"
+
+[[tools]]
+name = "lsp-diagnostic-filter"
+platforms = ["macos", "linux"]
+bins = [{ name = "nushell-lsp-filter", version_argv = ["nushell-lsp-filter", "--version"] }]
+
+[tools.action]
+type = "build"
+path = "packages/lsp-diagnostic-filter"
+
+[[tools]]
 name = "zellij-theme-tools"
 platforms = ["macos", "linux"]
-bins = ["zellij-theme-run"]
+bins = [{ name = "zellij-theme-run", version_argv = ["zellij-theme-run", "--version"] }]
 
 [tools.action]
 type = "build"

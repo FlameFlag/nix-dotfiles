@@ -16,9 +16,6 @@ in
       eupkgs.catppuccin-system-theme-pi
       eupkgs.pi-ssh-tools
       eupkgs.web-search-pi
-      system-run-mcp
-      lsp-diagnostic-filter
-      opencode-web-theme
       (hiPrio unstable.uutils-coreutils-noprefix)
       (hiPrio unstable.uutils-diffutils)
       (hiPrio unstable.uutils-findutils)

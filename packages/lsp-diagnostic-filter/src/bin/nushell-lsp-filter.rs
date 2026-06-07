@@ -16,14 +16,44 @@ fn main() -> ExitCode {
 }
 
 fn run() -> io::Result<ExitStatus> {
-    let real_nu = env::var("NU_LSP_REAL_NU").unwrap_or_else(|_| "nu".to_owned());
     let args = env::args().skip(1).collect::<Vec<_>>();
+    if handle_static_args(&args) {
+        return Ok(success_status());
+    }
 
+    let real_nu = env::var("NU_LSP_REAL_NU").unwrap_or_else(|_| "nu".to_owned());
     if !args.iter().any(|arg| arg == "--lsp") {
         return Command::new(real_nu).args(args).status();
     }
 
     proxy_lsp(&real_nu, &args)
+}
+
+fn handle_static_args(args: &[String]) -> bool {
+    match args.first().map(String::as_str) {
+        Some("--version" | "-V") => {
+            println!("nushell-lsp-filter {}", env!("CARGO_PKG_VERSION"));
+            true
+        }
+        Some("--help" | "-h") => {
+            println!("nushell-lsp-filter {}", env!("CARGO_PKG_VERSION"));
+            println!("Proxy nushell LSP output while filtering template diagnostics.");
+            true
+        }
+        _ => false,
+    }
+}
+
+#[cfg(unix)]
+fn success_status() -> ExitStatus {
+    use std::os::unix::process::ExitStatusExt as _;
+    ExitStatus::from_raw(0)
+}
+
+#[cfg(windows)]
+fn success_status() -> ExitStatus {
+    use std::os::windows::process::ExitStatusExt as _;
+    ExitStatus::from_raw(0)
 }
 
 fn proxy_lsp(real_nu: &str, args: &[String]) -> io::Result<ExitStatus> {
