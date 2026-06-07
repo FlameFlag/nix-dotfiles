@@ -72,7 +72,7 @@ let theme = if $dark_mode {
 }
 
 let scheme = {
-  recognized_command: $theme.blue
+  recognized_command: $theme.pink
   unrecognized_command: $theme.text
   constant: $theme.peach
   punctuation: $theme.overlay2
@@ -80,13 +80,13 @@ let scheme = {
   string: $theme.green
   virtual_text: $theme.surface2
   variable: { fg: $theme.flamingo attr: i }
-  filepath: $theme.yellow
+  filepath: $theme.pink
 }
 
 $env.LS_COLORS = if $dark_mode {
-  "di=01;38;2;140;170;238:ln=01;38;2;153;209;219:ex=01;38;2;166;209;137:*.md=0;38;2;140;170;238:*.nix=0;38;2;202;158;230:*.json=0;38;2;229;200;144:*.toml=0;38;2;229;200;144:*.lock=0;38;2;129;200;190:*.txt=0;38;2;166;209;137:*.zip=01;38;2;231;130;132:*.tar=01;38;2;231;130;132:*.gz=01;38;2;231;130;132:*.png=0;38;2;244;184;228:*.jpg=0;38;2;244;184;228"
+  "di=01;38;2;244;184;228:ln=01;38;2;153;209;219:ex=01;38;2;166;209;137:*.md=0;38;2;244;184;228:*.nix=0;38;2;202;158;230:*.json=0;38;2;229;200;144:*.toml=0;38;2;229;200;144:*.lock=0;38;2;129;200;190:*.txt=0;38;2;166;209;137:*.zip=01;38;2;231;130;132:*.tar=01;38;2;231;130;132:*.gz=01;38;2;231;130;132:*.png=0;38;2;244;184;228:*.jpg=0;38;2;244;184;228"
 } else {
-  "di=01;38;2;30;102;245:ln=01;38;2;23;146;153:ex=01;38;2;64;160;43:*.md=0;38;2;30;102;245:*.nix=0;38;2;136;57;239:*.json=0;38;2;223;142;29:*.toml=0;38;2;223;142;29:*.lock=0;38;2;23;146;153:*.txt=0;38;2;64;160;43:*.zip=01;38;2;210;15;57:*.tar=01;38;2;210;15;57:*.gz=01;38;2;210;15;57:*.png=0;38;2;234;118;203:*.jpg=0;38;2;234;118;203"
+  "di=01;38;2;234;118;203:ln=01;38;2;23;146;153:ex=01;38;2;64;160;43:*.md=0;38;2;234;118;203:*.nix=0;38;2;136;57;239:*.json=0;38;2;223;142;29:*.toml=0;38;2;223;142;29:*.lock=0;38;2;23;146;153:*.txt=0;38;2;64;160;43:*.zip=01;38;2;210;15;57:*.tar=01;38;2;210;15;57:*.gz=01;38;2;210;15;57:*.png=0;38;2;234;118;203:*.jpg=0;38;2;234;118;203"
 }
 
 $env.config.color_config = {
@@ -103,7 +103,7 @@ $env.config.color_config = {
   shape_flag: { fg: $theme.maroon attr: i }
   shape_matching_brackets: { attr: u }
   shape_garbage: $theme.red
-  shape_keyword: $theme.mauve
+  shape_keyword: $theme.pink
   shape_match_pattern: $theme.green
   shape_signature: $theme.teal
   shape_table: $scheme.punctuation
@@ -173,7 +173,7 @@ $env.config.color_config = {
   custom: $theme.pink
   background: $theme.base
   foreground: $theme.text
-  cursor: { bg: $theme.rosewater fg: $theme.base }
+  cursor: { bg: $theme.pink fg: $theme.base }
   shape_range: $scheme.operator
   range: $scheme.operator
   shape_pipe: $scheme.operator
@@ -210,9 +210,9 @@ $env.config.explore = {
     status: {
         error: $theme.red,
         warn: $theme.yellow,
-        info: $theme.blue,
+        info: $theme.pink,
     },
-    selected_cell: { bg: $theme.blue fg: $theme.base },
+    selected_cell: { bg: $theme.pink fg: $theme.base },
 }
 }
 
