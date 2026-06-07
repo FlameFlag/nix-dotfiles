@@ -2,10 +2,8 @@
 {{- $nushellConfigPaths := list ".config/nushell" -}}
 {{- $yaziConfigPath := "" -}}
 {{- $fontsPath := "" -}}
-{{- $ghosttyConfigPaths := list ".config/ghostty" -}}
 {{- if eq .chezmoi.os "darwin" -}}
 {{-   $nushellConfigPaths = list ".config/nushell" "Library/Application Support/nushell" -}}
-{{-   $ghosttyConfigPaths = list ".config/ghostty" "Library/Application Support/com.mitchellh.ghostty" -}}
 {{-   $yaziConfigPath = ".config/yazi" -}}
 {{-   $fontsPath = "Library/Fonts" -}}
 {{- else -}}
@@ -21,18 +19,6 @@
 ["{{ $configPath }}/completions/{{ $tool }}.nu"]
 type = "file"
 url = "https://raw.githubusercontent.com/nushell/nu_scripts/main/custom-completions/{{ $tool }}/{{ $tool }}-completions.nu"
-refreshPeriod = "168h"
-{{ end }}
-{{ end }}
-
-# ----- Ghostty -----
-
-{{- $ghosttyFlavors := list "frappe" "latte" -}}
-{{- range $configPath := $ghosttyConfigPaths }}
-{{- range $flavor := $ghosttyFlavors }}
-["{{ $configPath }}/themes/catppuccin-{{ $flavor }}.conf"]
-type = "file"
-url = "https://raw.githubusercontent.com/catppuccin/ghostty/main/themes/catppuccin-{{ $flavor }}.conf"
 refreshPeriod = "168h"
 {{ end }}
 {{ end }}
@@ -92,9 +78,9 @@ args = ["--ff-only"]
 
 {{- $yaziFlavors := list "frappe" "latte" -}}
 {{- range $flavor := $yaziFlavors }}
-["{{ $yaziConfigPath }}/flavors/catppuccin-{{ $flavor }}-blue.yazi/flavor.toml"]
+["{{ $yaziConfigPath }}/flavors/catppuccin-{{ $flavor }}-pink.yazi/flavor.toml"]
 type = "file"
-url = "https://raw.githubusercontent.com/catppuccin/yazi/main/themes/{{ $flavor }}/catppuccin-{{ $flavor }}-blue.toml"
+url = "https://raw.githubusercontent.com/catppuccin/yazi/main/themes/{{ $flavor }}/catppuccin-{{ $flavor }}-pink.toml"
 refreshPeriod = "168h"
 {{ end }}
 
