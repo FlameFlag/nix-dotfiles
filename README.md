@@ -66,14 +66,17 @@ cargo run --locked --bin bootstrap -- --repo-dir /path/to/nix-dotfiles bootstrap
 
 The first run is staged like this:
 
-1. `bootstrap bootstrap` creates `~/.local/bin` and `~/.local/opt`, installs the
+1. on Windows, `bootstrap bootstrap` first installs managed PowerShell from the
+   catalog and writes Windows Terminal settings that make that `pwsh` profile
+   the default
+2. `bootstrap bootstrap` creates `~/.local/bin` and `~/.local/opt`, installs the
    running `bootstrap` binary into the bootstrap prefix, adds the user-local bin
    directory to the shell environment, and writes the minimal chezmoi config
-2. the Rust installer reads [`bootstrap/tools.toml`](bootstrap/tools.toml) and
+3. the Rust installer reads [`bootstrap/tools.toml`](bootstrap/tools.toml) and
    installs `chezmoi`, `git`, `uv`, Rust via `rustup`, archive tools like
    `node`, `bun`, and VS Code, `uv tool` packages like `ruff`, `ty`, and
    `yt-dlp`, plus the repo-local Rust tools
-3. after that, the machine gets the remaining setup steps: `chezmoi apply`
+4. after that, the machine gets the remaining setup steps: `chezmoi apply`
    and, where needed, a NixOS or nix-darwin rebuild
 
 NixOS is the one platform where the order flips on first setup. Rebuild NixOS

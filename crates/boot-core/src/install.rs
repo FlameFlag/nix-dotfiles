@@ -1,5 +1,5 @@
 use dotfiles_common::{process, template};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use thiserror::Error;
 
 use crate::catalog::{Action, Catalog, Phase, Tool};
@@ -45,6 +45,8 @@ pub enum InstallError {
         "{phase:?} phase failed with {failures} tool failures; stopping before dependent phases"
     )]
     PhaseFailed { phase: Phase, failures: usize },
+    #[error("catalog does not contain requested tool: {0}")]
+    MissingNamedTool(String),
 }
 
 /// Installs or updates tools from the bootstrap catalog according to `policy`.
@@ -54,6 +56,34 @@ pub enum InstallError {
 /// Returns an error if loading the catalog, checking tool state, or installing a tool fails.
 pub fn install_all(ctx: &Context, policy: Policy) -> Result<(), InstallError> {
     let catalog = Catalog::load(ctx.catalog_path())?;
+    install_catalog_tools(ctx, policy, &catalog, |_| true)
+}
+
+/// Installs or updates named tools from the bootstrap catalog according to `policy`.
+///
+/// # Errors
+///
+/// Returns an error if loading the catalog or installing a requested tool fails.
+pub fn install_named(ctx: &Context, policy: Policy, names: &[&str]) -> Result<(), InstallError> {
+    let catalog = Catalog::load(ctx.catalog_path())?;
+    for name in names {
+        if !catalog.tools.iter().any(|tool| tool.name == *name) {
+            return Err(InstallError::MissingNamedTool((*name).to_owned()));
+        }
+    }
+
+    let names = names.iter().copied().collect::<HashSet<_>>();
+    install_catalog_tools(ctx, policy, &catalog, |tool| {
+        names.contains(tool.name.as_str())
+    })
+}
+
+fn install_catalog_tools(
+    ctx: &Context,
+    policy: Policy,
+    catalog: &Catalog,
+    mut include: impl FnMut(&Tool) -> bool,
+) -> Result<(), InstallError> {
     for phase in [
         Phase::Prerequisites,
         Phase::Archives,
@@ -61,7 +91,11 @@ pub fn install_all(ctx: &Context, policy: Policy) -> Result<(), InstallError> {
         Phase::Builds,
     ] {
         let mut failures = 0;
-        for tool in catalog.tools.iter().filter(|tool| tool.phase() == phase) {
+        for tool in catalog
+            .tools
+            .iter()
+            .filter(|tool| tool.phase() == phase && include(tool))
+        {
             failures += install_one(ctx, policy, tool)?;
         }
         if failures != 0 {

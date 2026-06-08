@@ -1,6 +1,8 @@
 use std::path::Path;
 
 use dotfiles_common::fs;
+#[cfg(any(windows, test))]
+use serde_json::{Map, Value, json};
 use thiserror::Error;
 use toml_edit::{Array, DocumentMut, Item, Table, value};
 
@@ -16,6 +18,8 @@ pub enum SetupError {
     Install(#[from] install::InstallError),
     #[error(transparent)]
     Toml(#[from] toml_edit::TomlError),
+    #[error(transparent)]
+    Json(#[from] serde_json::Error),
 }
 
 /// Runs first-boot setup from a standalone `bootstrap` binary, then installs the catalog.
@@ -24,8 +28,22 @@ pub enum SetupError {
 ///
 /// Returns an error if setup files, self-installation, or catalog installation fails.
 pub fn bootstrap(ctx: &Context) -> Result<(), SetupError> {
+    prepare_windows_console(ctx)?;
     prepare_bootstrap(ctx)?;
     install_catalog(ctx)
+}
+
+fn prepare_windows_console(ctx: &Context) -> Result<(), SetupError> {
+    #[cfg(windows)]
+    {
+        install::install_named(ctx, install::Policy::InstallMissing, &["powershell"])?;
+        ensure_windows_terminal_settings(ctx)?;
+    }
+
+    #[cfg(not(windows))]
+    let _ = ctx;
+
+    Ok(())
 }
 
 fn prepare_bootstrap(ctx: &Context) -> Result<(), SetupError> {
@@ -44,6 +62,139 @@ fn install_current_exe_if_needed(ctx: &Context) -> Result<(), SetupError> {
 
 fn install_catalog(ctx: &Context) -> Result<(), SetupError> {
     Ok(install::install_all(ctx, install::Policy::InstallMissing)?)
+}
+
+#[cfg(windows)]
+fn ensure_windows_terminal_settings(ctx: &Context) -> Result<(), SetupError> {
+    let path = windows_terminal_settings_path(ctx);
+    let existing = fs_err::read_to_string(&path).unwrap_or_default();
+    let commandline = windows_terminal_pwsh_commandline(ctx);
+    let rendered = match windows_terminal_settings_json(&existing, &commandline) {
+        Ok(rendered) => rendered,
+        Err(err) if !existing.trim().is_empty() => {
+            backup_windows_terminal_settings(&path, &existing)?;
+            eprintln!(
+                "warning: Windows Terminal settings were not valid JSON; backed up and rewrote {}",
+                path.display()
+            );
+            windows_terminal_settings_json("", &commandline).map_err(|_| err)?
+        }
+        Err(err) => return Err(err.into()),
+    };
+
+    if existing == rendered {
+        return Ok(());
+    }
+
+    if let Some(parent) = path.parent() {
+        fs_err::create_dir_all(parent)?;
+    }
+    fs_err::write(path, rendered)?;
+    Ok(())
+}
+
+#[cfg(windows)]
+fn windows_terminal_settings_path(ctx: &Context) -> std::path::PathBuf {
+    windows_local_appdata(ctx)
+        .join("Packages")
+        .join("Microsoft.WindowsTerminal_8wekyb3d8bbwe")
+        .join("LocalState")
+        .join("settings.json")
+}
+
+#[cfg(windows)]
+fn windows_local_appdata(ctx: &Context) -> std::path::PathBuf {
+    if ctx.isolated_home {
+        ctx.home.join("AppData").join("Local")
+    } else {
+        std::env::var_os("LOCALAPPDATA")
+            .map(std::path::PathBuf::from)
+            .unwrap_or_else(|| ctx.home.join("AppData").join("Local"))
+    }
+}
+
+#[cfg(windows)]
+fn windows_terminal_pwsh_commandline(ctx: &Context) -> String {
+    let pwsh = ctx.bin_dir.join("pwsh.cmd");
+    format!("\"{}\" -NoLogo", pwsh.to_string_lossy())
+}
+
+#[cfg(windows)]
+fn backup_windows_terminal_settings(path: &Path, existing: &str) -> Result<(), SetupError> {
+    if let Some(parent) = path.parent() {
+        fs_err::create_dir_all(parent)?;
+    }
+    fs_err::write(path.with_extension("json.bootstrap-backup"), existing)?;
+    Ok(())
+}
+
+#[cfg(any(windows, test))]
+const WINDOWS_TERMINAL_PWSH_PROFILE_GUID: &str = "{9fcbf0c8-9af5-4e53-9d6f-5f88d2f64c08}";
+
+#[cfg(any(windows, test))]
+fn windows_terminal_settings_json(existing: &str, commandline: &str) -> serde_json::Result<String> {
+    let mut root = if existing.trim().is_empty() {
+        json!({})
+    } else {
+        serde_json::from_str(existing)?
+    };
+
+    ensure_json_object(&mut root);
+    if let Some(root_object) = root.as_object_mut() {
+        root_object
+            .entry("$schema")
+            .or_insert_with(|| json!("https://aka.ms/terminal-profiles-schema"));
+        root_object.insert(
+            "defaultProfile".to_owned(),
+            json!(WINDOWS_TERMINAL_PWSH_PROFILE_GUID),
+        );
+
+        let profiles = root_object
+            .entry("profiles")
+            .or_insert_with(|| json!({ "defaults": {}, "list": [] }));
+        ensure_json_object(profiles);
+        if let Some(profiles_object) = profiles.as_object_mut() {
+            profiles_object
+                .entry("defaults")
+                .or_insert_with(|| json!({}));
+
+            let list = profiles_object.entry("list").or_insert_with(|| json!([]));
+            if !list.is_array() {
+                *list = json!([]);
+            }
+            if let Some(list) = list.as_array_mut() {
+                list.retain(|profile| {
+                    profile
+                        .as_object()
+                        .and_then(|profile| profile.get("guid"))
+                        .and_then(Value::as_str)
+                        != Some(WINDOWS_TERMINAL_PWSH_PROFILE_GUID)
+                });
+                list.insert(
+                    0,
+                    json!({
+                        "guid": WINDOWS_TERMINAL_PWSH_PROFILE_GUID,
+                        "name": "Bootstrap PowerShell",
+                        "commandline": commandline,
+                        "startingDirectory": "%USERPROFILE%",
+                        "hidden": false
+                    }),
+                );
+            }
+        }
+    }
+
+    serde_json::to_string_pretty(&root).map(|mut text| {
+        text.push('\n');
+        text
+    })
+}
+
+#[cfg(any(windows, test))]
+fn ensure_json_object(value: &mut Value) {
+    if !value.is_object() {
+        *value = Value::Object(Map::new());
+    }
 }
 
 /// Copies the running `bootstrap` executable into the managed bootstrap prefix.
@@ -335,6 +486,51 @@ mod tests {
 
         assert!(same_file(&file, &file));
         assert!(!same_file(&file, &temp.path().join("missing")));
+    }
+
+    #[test]
+    fn windows_terminal_settings_json_adds_bootstrap_pwsh_profile() {
+        let text =
+            windows_terminal_settings_json("", r#""C:\Users\flame\.local\bin\pwsh.cmd" -NoLogo"#)
+                .expect("render terminal settings");
+        let settings: Value = serde_json::from_str(&text).expect("parse terminal settings");
+
+        assert_eq!(
+            settings["defaultProfile"],
+            WINDOWS_TERMINAL_PWSH_PROFILE_GUID
+        );
+        assert_eq!(
+            settings["profiles"]["list"][0]["commandline"],
+            r#""C:\Users\flame\.local\bin\pwsh.cmd" -NoLogo"#
+        );
+        assert_eq!(
+            settings["profiles"]["list"][0]["guid"],
+            WINDOWS_TERMINAL_PWSH_PROFILE_GUID
+        );
+    }
+
+    #[test]
+    fn windows_terminal_settings_json_replaces_existing_bootstrap_profile() {
+        let existing = format!(
+            r#"{{
+  "profiles": {{
+    "list": [
+      {{ "guid": "{WINDOWS_TERMINAL_PWSH_PROFILE_GUID}", "name": "old" }},
+      {{ "guid": "{{11111111-1111-1111-1111-111111111111}}", "name": "cmd" }}
+    ]
+  }}
+}}"#
+        );
+        let text = windows_terminal_settings_json(&existing, "pwsh.cmd -NoLogo")
+            .expect("render terminal settings");
+        let settings: Value = serde_json::from_str(&text).expect("parse terminal settings");
+        let profiles = settings["profiles"]["list"]
+            .as_array()
+            .expect("profiles list");
+
+        assert_eq!(profiles.len(), 2);
+        assert_eq!(profiles[0]["name"], "Bootstrap PowerShell");
+        assert_eq!(profiles[1]["name"], "cmd");
     }
 
     #[test]
