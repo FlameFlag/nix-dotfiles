@@ -23,8 +23,11 @@ in
       inherit (pkgs.unstable) nuget-to-json;
       inherit (pkgs.unstable)
         go
+        gcc
+        gnumake
         golangci-lint
         gopls
+        pkg-config
         ;
       uutils-coreutils-noprefix = hiPrio pkgs.unstable.uutils-coreutils-noprefix;
       uutils-diffutils = hiPrio pkgs.unstable.uutils-diffutils;

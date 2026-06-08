@@ -17,6 +17,9 @@
     nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixos-unstable-small";
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-26.05-small";
 
+    scaffold.inputs.nixpkgs.follows = "nixpkgs-unstable";
+    scaffold.url = "github:FlameFlag/scaffold";
+
     sops-nix.inputs.nixpkgs.follows = "nixpkgs-unstable";
     sops-nix.url = "github:Mic92/sops-nix";
   };
@@ -39,7 +42,35 @@
         };
     in
     {
-      formatter = forAllSystems (system: inputs.nixpkgs.legacyPackages.${system}.nixfmt-tree);
+      formatter = forAllSystems (
+        system:
+        let
+          pkgs = mkPkgs system;
+        in
+        pkgs.writeShellApplication {
+          name = "dotfiles-format";
+          runtimeInputs = [
+            pkgs.cargo
+            pkgs.git
+            pkgs.nixfmt-tree
+            pkgs.rustfmt
+            pkgs.scaffold
+            pkgs.shfmt
+          ];
+          text = ''
+            set -euo pipefail
+
+            repo_dir="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+            cd "$repo_dir"
+
+            find . -path ./.git -prune -o -name '*.sh' -type f -exec shfmt -w -i 2 -bn {} +
+            treefmt "$@"
+            cargo fmt --all
+            shopt -s globstar nullglob
+            scaffold fmt "$@" scaffold.scm scaffold/**/*.scm
+          '';
+        }
+      );
 
       packages = forAllSystems (
         system:
@@ -51,7 +82,6 @@
             bootstrap
             chezmoi-support
             dis
-            system-run-mcp
             gh-hide-comment
             hyper-window-tiling-gnome
             hyper-window-tiling-kde
@@ -60,6 +90,8 @@
             kanata-with-cmd
             lldb-mcp-launcher
             lsp-diagnostic-filter
+            scaffold
+            system-run-mcp
             zellij-theme-tools
             ;
 
@@ -67,10 +99,10 @@
           ghidra-mcp-headless-httpd = pkgs.ghidra-mcp-headless.httpd;
           ghidra-mcp-headless-server = pkgs.ghidra-mcp-headless.server;
 
-          default = pkgs.bootstrap;
+          default = pkgs.scaffold;
         }
         // inputs.nixpkgs.lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux {
-          inherit (pkgs) lenovo-con-mode;
+          inherit (pkgs) immutable-profile lenovo-con-mode;
         }
       );
 

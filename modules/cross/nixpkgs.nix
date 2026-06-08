@@ -12,6 +12,7 @@
       (final: prev: {
         eupkgs = final.unstable.extend inputs.eupkgs.overlays.default;
       })
+      inputs.scaffold.overlays.default
       (
         final: prev:
         let
@@ -30,7 +31,6 @@
                 fileset = final.lib.fileset.unions [
                   (repoRoot + /Cargo.lock)
                   (repoRoot + /Cargo.toml)
-                  (repoRoot + /bootstrap)
                   (repoRoot + /crates)
                   (repoRoot + /packages/system-run-mcp)
                   (repoRoot + /packages/gh-hide-comment)
@@ -86,6 +86,7 @@
               };
             });
           kanata-with-cmd = final.kanata.override { withCmd = true; };
+          immutable-profile = final.callPackage ../../packages/immutable-profile.nix { };
           http-fixture = final.callPackage ../../packages/http-fixture.nix { };
           hyper-window-tiling = final.callPackage ../../packages/hyper-window-tiling.nix { };
           hyper-window-tiling-gnome = final.hyper-window-tiling.gnome;
@@ -121,7 +122,6 @@
               platforms = final.lib.platforms.linux ++ final.lib.platforms.windows;
             };
           };
-          bootstrap = final.callPackage ../../packages/bootstrap.nix { };
           lsp-diagnostic-filter = final.callPackage ../../packages/lsp-diagnostic-filter.nix { };
           zellij-theme-tools = cargoWorkspacePackage {
             package = "zellij-theme-tools";
