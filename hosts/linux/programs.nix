@@ -30,13 +30,13 @@ in
         cairo
         gtk3
         pango
-        xorg.libX11
-        xorg.libXcomposite
-        xorg.libXdamage
-        xorg.libXext
-        xorg.libXfixes
-        xorg.libXrandr
-        xorg.libxcb
+        libX11
+        libXcomposite
+        libXdamage
+        libXext
+        libXfixes
+        libXrandr
+        libxcb
         libxkbcommon
         systemd
         alsa-lib
