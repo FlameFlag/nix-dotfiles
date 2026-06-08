@@ -10,7 +10,7 @@ use clap::{
     builder::{OsStringValueParser, TypedValueParser},
 };
 
-const DEFAULT_RUNNER_PATH: &str = "/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/sbin:/usr/local/bin:/opt/homebrew/sbin:/opt/homebrew/bin:/run/wrappers/bin:/run/current-system/sw/bin:/nix/var/nix/profiles/default/bin:/etc/profiles/per-user/root/bin";
+const DEFAULT_RUNNER_PATH: &str = "/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/sbin:/usr/local/bin:/run/wrappers/bin:/run/current-system/sw/bin:/nix/var/nix/profiles/default/bin:/etc/profiles/per-user/root/bin";
 
 fn main() {
     if handle_static_arg() {

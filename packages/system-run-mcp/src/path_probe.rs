@@ -70,6 +70,7 @@ fn normalize_user_shell_path(path: &str, home: Option<&str>) -> String {
         ".pi/agent/bin",
         ".bun/bin",
         ".bun/install/global/node_modules/.bin",
+        ".cache/.bun/bin",
         ".npm/bin",
         ".local/bin",
         ".cargo/bin",
@@ -129,13 +130,13 @@ trailing noise
 
         assert_eq!(
             normalize_user_shell_path(path, Some("/Users/flame")),
-            "/Users/flame/.pi/agent/bin:/Users/flame/.bun/bin:/Users/flame/.bun/install/global/node_modules/.bin:/Users/flame/.npm/bin:/Users/flame/.local/bin:/Users/flame/.go/bin:/Users/flame/.yarn/bin:/Users/flame/.nix-profile/bin:/run/current-system/sw/bin:/Users/flame/.cargo/bin"
+            "/Users/me/.pi/agent/bin:/Users/me/.bun/bin:/Users/me/.bun/install/global/node_modules/.bin:/Users/me/.cache/.bun/bin:/Users/me/.npm/bin:/Users/me/.local/bin:/Users/me/.go/bin:/Users/me/.yarn/bin:/Users/me/.nix-profile/bin:/run/current-system/sw/bin:/Users/me/.cargo/bin"
         );
     }
 
     #[test]
     fn normalize_user_shell_path_preserves_complete_shell_order() {
-        let path = "/home/nyx/.yarn/bin:/home/nyx/.go/bin:/home/nyx/.cargo/bin:/home/nyx/.local/bin:/home/nyx/.npm/bin:/home/nyx/.bun/install/global/node_modules/.bin:/home/nyx/.bun/bin:/home/nyx/.pi/agent/bin:/run/current-system/sw/bin";
+        let path = "/home/me/.cache/.bun/bin:/home/me/.yarn/bin:/home/me/.go/bin:/home/me/.cargo/bin:/home/me/.local/bin:/home/me/.npm/bin:/home/me/.bun/install/global/node_modules/.bin:/home/me/.bun/bin:/home/me/.pi/agent/bin:/run/current-system/sw/bin";
 
         assert_eq!(normalize_user_shell_path(path, Some("/home/nyx")), path);
     }
