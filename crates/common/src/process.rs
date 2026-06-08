@@ -53,6 +53,15 @@ pub fn path_of(bin: &str) -> Option<PathBuf> {
 }
 
 #[must_use]
+pub fn path_of_with_path(bin: &str, paths: &OsStr) -> Option<PathBuf> {
+    if is_path_like(bin) {
+        let path = PathBuf::from(bin);
+        return path.is_file().then_some(path);
+    }
+    which::which_in(executable_name(bin), Some(paths), Path::new(".")).ok()
+}
+
+#[must_use]
 pub fn path_in_dir(dir: &Path, bin: &str) -> Option<PathBuf> {
     which::which_in(bin, Some(dir), Path::new(".")).ok()
 }
