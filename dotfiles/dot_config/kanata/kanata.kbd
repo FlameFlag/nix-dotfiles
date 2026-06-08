@@ -16,13 +16,17 @@
 )
 
 (defsrc
-  esc caps my_side_button my_extra_button
+  esc caps my_side_button my_extra_button w a s d ret \
 )
 
 (defalias
-  caps-hyper (tap-hold 1500 1500 esc (multi lmet lctl lalt lsft))
+  caps-hyper (tap-hold-press 200 200 esc (multi lmet lctl lalt lsft (layer-while-held hyper)))
 )
 
 (deflayer base
-  caps @caps-hyper vold volu
+  caps @caps-hyper vold volu w a s d ret \
+)
+
+(deflayer hyper
+  _    _           _    _    w a s d ret \
 )
