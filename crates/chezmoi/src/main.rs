@@ -5,6 +5,7 @@ mod context;
 mod error;
 mod fs;
 mod github;
+mod hyper_window_tiling;
 mod raycast;
 mod shell;
 mod vscode;
@@ -84,6 +85,7 @@ enum CommandName {
     NushellInit,
     ShellInit,
     InstallVsExtensions,
+    InstallHyperWindowTiling,
     ZedInstallCatppuccinTheme,
     YaziInit,
     RaycastBetaPatch,
@@ -102,6 +104,9 @@ fn run_chezmoi_support(command: CommandName, options: Options) -> Result<()> {
         CommandName::NushellInit => shell::nushell_init(),
         CommandName::ShellInit => shell::shell_init(),
         CommandName::InstallVsExtensions => vscode::install_vs_extensions(&options),
+        CommandName::InstallHyperWindowTiling => {
+            hyper_window_tiling::install_hyper_window_tiling(&options)
+        }
         CommandName::ZedInstallCatppuccinTheme => zed::install_catppuccin_theme(&options),
         CommandName::YaziInit => yazi::install_plugins(&options),
         CommandName::RaycastBetaPatch => raycast::beta_patch(&options),

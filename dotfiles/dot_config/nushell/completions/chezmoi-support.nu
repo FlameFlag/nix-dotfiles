@@ -30,6 +30,13 @@ module completions {
     --help(-h)                # Print help
   ]
 
+  export extern "chezmoi-support install-hyper-window-tiling" [
+    --source-dir: path        # Chezmoi source directory
+    --home-dir: path          # Home directory used by chezmoi
+    --os: string              # Chezmoi OS name
+    --help(-h)                # Print help
+  ]
+
   export extern "chezmoi-support zed-install-catppuccin-theme" [
     --source-dir: path        # Chezmoi source directory
     --home-dir: path          # Home directory used by chezmoi
@@ -81,6 +88,9 @@ module completions {
   ]
 
   export extern "chezmoi-support help install-vs-extensions" [
+  ]
+
+  export extern "chezmoi-support help install-hyper-window-tiling" [
   ]
 
   export extern "chezmoi-support help zed-install-catppuccin-theme" [

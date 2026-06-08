@@ -53,6 +53,8 @@
             dis
             system-run-mcp
             gh-hide-comment
+            hyper-window-tiling-gnome
+            hyper-window-tiling-kde
             http-fixture
             kanata
             kanata-with-cmd

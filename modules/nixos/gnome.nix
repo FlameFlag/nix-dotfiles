@@ -40,6 +40,9 @@ let
     "systemd-hibernate.service"
   ];
 
+  hyperWindowTilingExtension = pkgs.hyper-window-tiling-gnome;
+  hyperWindowTilingExtensionUuid = hyperWindowTilingExtension.passthru.extensionUuid;
+
   gnomeShell = getExe' pkgs.gnome-shell "gnome-shell";
   pkill = getExe' pkgs.procps "pkill";
 in
@@ -110,6 +113,7 @@ in
     (mkIf config.nixOS.dconf.enable {
       environment.systemPackages = attrValues {
         inherit (pkgs.gnomeExtensions) appindicator clipboard-indicator pip-on-top;
+        inherit hyperWindowTilingExtension;
       };
       programs.dconf.profiles.user.databases = [
         {
@@ -139,9 +143,6 @@ in
             );
 
             "org/gnome/desktop/wm/keybindings" = {
-              maximize = mkArray [ "<Super><Shift>Return" ];
-              move-to-side-n = mkArray [ "<Super>w" ];
-              move-to-side-s = mkArray [ "<Super>s" ];
               switch-applications = mkEmptyArray type.string;
               switch-windows = mkArray [
                 "<Alt>Tab"
@@ -159,8 +160,18 @@ in
               enabled-extensions = mkArray [
                 "appindicatorsupport@rgcjonas.gmail.com"
                 "clipboard-indicator@tudmotu.com"
+                hyperWindowTilingExtensionUuid
                 "pip-on-top@rafostar.github.com"
               ];
+            };
+
+            "org/gnome/shell/extensions/hyper-window-tiling" = {
+              move-up = mkArray [ "<Super><Control><Alt><Shift>w" ];
+              move-left = mkArray [ "<Super><Control><Alt><Shift>a" ];
+              move-down = mkArray [ "<Super><Control><Alt><Shift>s" ];
+              move-right = mkArray [ "<Super><Control><Alt><Shift>d" ];
+              move-max-almost = mkArray [ "<Super><Control><Alt><Shift>Return" ];
+              move-max = mkArray [ "<Super><Control><Alt><Shift>backslash" ];
             };
           };
         }

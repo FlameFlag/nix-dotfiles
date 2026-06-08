@@ -87,6 +87,9 @@
             });
           kanata-with-cmd = final.kanata.override { withCmd = true; };
           http-fixture = final.callPackage ../../packages/http-fixture.nix { };
+          hyper-window-tiling = final.callPackage ../../packages/hyper-window-tiling.nix { };
+          hyper-window-tiling-gnome = final.hyper-window-tiling.gnome;
+          hyper-window-tiling-kde = final.hyper-window-tiling.kde;
           chezmoi-support = cargoWorkspacePackage {
             package = "chezmoi-support";
             meta = {

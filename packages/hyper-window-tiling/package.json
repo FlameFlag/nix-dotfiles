@@ -1,0 +1,28 @@
+{
+    "name": "hyper-window-tiling",
+    "version": "1.0.0",
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "build": "bun run typecheck && bun run build:gnome && bun run build:kde",
+        "build:gnome": "bun build src/gnome/extension.ts --format=esm --target=browser --minify --external='gi://*' --external='resource:///*' --outfile=dist/gnome/extension.js",
+        "build:kde": "bun build src/kde/main.ts --format=iife --target=browser --minify --outfile=dist/kde/contents/code/main.js",
+        "check": "biome check . && bun run test && bun run build && bun run check:dist",
+        "check:dist": "bun build dist/gnome/extension.js --target=browser --external='gi://*' --external='resource:///*' --outfile=/tmp/hyper-window-tiling-gnome-check.js && bun build dist/kde/contents/code/main.js --target=browser --outfile=/tmp/hyper-window-tiling-kde-check.js",
+        "fallow": "fallow audit --format json --quiet --explain",
+        "format": "biome format --write .",
+        "lint": "biome lint .",
+        "lint:fix": "biome lint --write .",
+        "test": "bun test",
+        "typecheck": "tsc --noEmit -p tsconfig.json"
+    },
+    "devDependencies": {
+        "@biomejs/biome": "2.4.16",
+        "@girs/gjs": "4.0.4",
+        "@girs/gnome-shell": "50.0.0",
+        "@types/bun": "1.3.14",
+        "fallow": "2.89.0",
+        "kwin-api": "6.0.9",
+        "typescript": "6.0.3"
+    }
+}

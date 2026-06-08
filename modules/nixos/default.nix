@@ -6,6 +6,7 @@ _: {
     ./ghidra-mcp.nix
     ./hardware.nix
     ./kanata.nix
+    ./kde.nix
     ./networking.nix
     ./nixcord.nix
     ./services.nix
