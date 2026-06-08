@@ -56,4 +56,6 @@ Library/
 {{ if eq .chezmoi.os "darwin" }}
 .config/Code/
 .config/kanata/
+.local/share/applications/
+dot_local/share/applications/
 {{ end }}

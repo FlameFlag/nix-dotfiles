@@ -3,8 +3,8 @@ if [[ "$TERM" == "xterm-ghostty" ]] && ! infocmp xterm-ghostty &>/dev/null; then
   export TERM=xterm-256color
 fi
 
-# Prefer user-local tools installed by bootstrap and language toolchains.
-for dir in "$HOME/.pi/agent/bin" "$HOME/.bun/bin" "$HOME/.bun/install/global/node_modules/.bin" "$HOME/.npm/bin" "$HOME/.local/bin" "$HOME/.cargo/bin" "$HOME/.go/bin" "$HOME/.yarn/bin"; do
+# Prefer user-local tools installed by Scaffold and language toolchains.
+for dir in "$HOME/.pi/agent/bin" "$HOME/.bun/bin" "$HOME/.bun/install/global/node_modules/.bin" "$HOME/.cache/.bun/bin" "$HOME/.npm/bin" "$HOME/.local/bin" "$HOME/.cargo/bin" "$HOME/.go/bin" "$HOME/.yarn/bin"; do
   case ":$PATH:" in
     *":$dir:"*) ;;
     *) PATH="$dir:$PATH" ;;
@@ -17,6 +17,54 @@ if [ -d /run/wrappers/bin ]; then
   esac
 fi
 export PATH
+
+_immutable_wrapper_marker="# nix-dotfiles: immutable-wrapper"
+_legacy_immutable_wrapper_marker="# nix-dotfiles: ublue-wrapper"
+_is_immutable_wrapper_path() {
+  [ -f "$1" ] \
+    && { command grep -Fqx "$_immutable_wrapper_marker" "$1" 2>/dev/null \
+      || command grep -Fqx "$_legacy_immutable_wrapper_marker" "$1" 2>/dev/null; }
+}
+_is_immutable_wrapper_command() {
+  local command_path
+  command_path="$(command -v "$1" 2>/dev/null)" || return 1
+  _is_immutable_wrapper_path "$command_path"
+}
+
+_nix_dotfiles_flake="${NIX_DOTFILES_FLAKE:-}"
+if [ -z "$_nix_dotfiles_flake" ]; then
+  for _nix_dotfiles_dir in "/etc/nixos" "$HOME/Developer/nix-dotfiles" "$HOME/nix-dotfiles"; do
+    [ -f "$_nix_dotfiles_dir/flake.nix" ] || continue
+    _nix_dotfiles_flake="$_nix_dotfiles_dir"
+    break
+  done
+fi
+if [ -z "$_nix_dotfiles_flake" ]; then
+  _nix_dotfiles_flake="/etc/nixos"
+fi
+if [ -d "$_nix_dotfiles_flake" ]; then
+  _nix_dotfiles_flake="$(
+    cd -P -- "$_nix_dotfiles_flake" 2>/dev/null \
+      && pwd \
+      || printf '%s\n' "$_nix_dotfiles_flake"
+  )"
+fi
+unset _nix_dotfiles_dir
+
+_immutable_nix_host=0
+if _is_immutable_wrapper_command nix; then
+  _immutable_nix_host=1
+fi
+
+_startup_command() {
+  local command_path
+  command_path="$(command -v "$1" 2>/dev/null)" || return 1
+  if [ "${2:-}" != "allow-wrapper" ] && _is_immutable_wrapper_path "$command_path"; then
+    command_path="$(PATH="/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin" command -v "$1" 2>/dev/null)" || return 1
+  fi
+  [ -n "$command_path" ] || return 1
+  printf '%s\n' "$command_path"
+}
 
 # Bail out for non-interactive shells (e.g. `ssh host cmd`, scp).
 # Everything below assumes an interactive prompt — running it on every
@@ -32,7 +80,10 @@ OSH_THEME=""  # Disabled — using starship
 plugins=(git bashmarks)
 
 # Completions
-completions=(git gh ssh system)
+completions=(git ssh system)
+if _startup_command gh >/dev/null; then
+  completions+=(gh)
+fi
 
 # Aliases (oh-my-bash)
 aliases=()
@@ -40,13 +91,42 @@ aliases=()
 source "$OSH/oh-my-bash.sh"
 
 # Tool Integrations (cached init files)
-[[ -r "$HOME/.cache/starship/init.bash" ]] && source "$HOME/.cache/starship/init.bash"
-[[ -r "$HOME/.cache/television/init.bash" ]] && source "$HOME/.cache/television/init.bash"
-eval "$(fzf --bash)"
-if [[ -r "$HOME/.cache/atuin/init.bash" ]]; then
-  source "$HOME/.cache/atuin/init.bash"
-  atuin-bind -m emacs '\C-r' atuin-search-emacs
+_starship_bin="$(_startup_command starship 2>/dev/null || true)"
+if [[ -n "$_starship_bin" ]]; then
+  eval "starship() { command $(printf '%q' "$_starship_bin") \"\$@\"; }"
 fi
+if [[ -n "$_starship_bin" && -r "$HOME/.cache/starship/init.bash" ]]; then
+  source "$HOME/.cache/starship/init.bash"
+elif [[ -n "$_starship_bin" ]]; then
+  eval "$("$_starship_bin" init bash)"
+fi
+unset _starship_bin
+if _startup_command tv >/dev/null && [[ -r "$HOME/.cache/television/init.bash" ]]; then
+  source "$HOME/.cache/television/init.bash"
+fi
+_fzf_bin="$(_startup_command fzf 2>/dev/null || true)"
+if [[ -n "$_fzf_bin" ]]; then
+  eval "fzf() { command $(printf '%q' "$_fzf_bin") \"\$@\"; }"
+  eval "$("$_fzf_bin" --bash)"
+fi
+unset _fzf_bin
+_atuin_bin="$(_startup_command atuin allow-wrapper 2>/dev/null || true)"
+if [[ -t 0 && -t 1 && -n "$_atuin_bin" && -r "$HOME/.cache/atuin/init.bash" ]]; then
+  eval "atuin() { command $(printf '%q' "$_atuin_bin") \"\$@\"; }"
+  source "$HOME/.cache/atuin/init.bash"
+  __atuin_search_cmd() {
+    local -a search_args=("$@")
+    local result_file status
+
+    result_file="$(mktemp)" || return 1
+    ATUIN_SHELL=bash ATUIN_LOG=error ATUIN_QUERY=$READLINE_LINE atuin search "${search_args[@]}" -i --result-file "$result_file" 1>&2
+    status=$?
+    cat "$result_file"
+    rm -f "$result_file"
+    return "$status"
+  }
+fi
+unset _atuin_bin
 
 # Completions (cached)
 for f in "$HOME/.cache/bash/completions"/*; do
@@ -78,9 +158,10 @@ alias ll="eza -la --icons"
 alias la="eza -la --icons"
 alias lt="eza --tree --icons"
 alias cat="bat"
-alias htop="btop"
+alias btop="zellij-theme-run btop"
+alias htop="zellij-theme-run btop"
 alias neofetch="pfetch"
-alias top="btop"
+alias top="zellij-theme-run btop"
 
 # yt-dlp shortcuts
 _yt_dlp_script() {
@@ -100,7 +181,7 @@ free() {
   local runner
   runner="$(command -v system-runner)"
   if [[ -z "$runner" ]]; then
-    printf '%s\n' "free: system-runner is not installed yet; run bootstrap first" >&2
+    printf '%s\n' "free: system-runner is not installed yet; install system-run-mcp first" >&2
     return 127
   fi
   sudo -n "$runner" "$@"
@@ -111,25 +192,37 @@ f() {
 cx() {
   zellij-theme-run codex "$@"
 }
+cxg() {
+  zellij-theme-run codex -c mcp_servers.ghidra.enabled=true -c mcp_servers.lldb.enabled=true "$@"
+}
 
 # Nix
-alias update="nix flake update --flake \$(readlink -f /etc/nixos/)"
+update() {
+  nix flake update --flake "$_nix_dotfiles_flake" "$@"
+}
 {{- if eq .chezmoi.os "darwin" }}
 rebuild() {
-  nh darwin switch "$(readlink -f /etc/nixos/)" "$@"
+  nh darwin switch "$_nix_dotfiles_flake" "$@"
 }
 check() {
-  free darwin-rebuild check --flake "$(readlink -f /etc/nixos/)" "$@"
+  free darwin-rebuild check --flake "$_nix_dotfiles_flake" "$@"
 }
 micfix() {
   free killall coreaudiod "$@"
 }
 {{- else }}
 rebuild() {
-  free nh os switch "$(readlink -f /etc/nixos/)" "$@"
+  if [ "$_immutable_nix_host" -eq 1 ]; then
+    nix build "$_nix_dotfiles_flake#immutable-profile"
+    return
+  fi
+  free nh os switch "$_nix_dotfiles_flake" "$@"
 }
 check() {
-  nix flake check "$(readlink -f /etc/nixos/)" "$@"
+  nix flake check "$_nix_dotfiles_flake" "$@"
+  if [ "$_immutable_nix_host" -eq 1 ]; then
+    nix build "$_nix_dotfiles_flake#immutable-profile"
+  fi
 }
 micfix() {
   systemctl --user restart pipewire pipewire-pulse wireplumber "$@"
@@ -180,5 +273,10 @@ export FZF_DEFAULT_OPTS="--height 40% --layout=reverse --border
   --color=selected-bg:#51576d,border:#737994,label:#c6d0f5"
 
 # Zoxide (must be at the end of .bashrc)
-[[ -r "$HOME/.cache/zoxide/init.bash" ]] && source "$HOME/.cache/zoxide/init.bash"
-alias cd="z"
+if _startup_command zoxide >/dev/null && [[ -r "$HOME/.cache/zoxide/init.bash" ]]; then
+  source "$HOME/.cache/zoxide/init.bash"
+  alias cd="z"
+fi
+
+unset -f _is_immutable_wrapper_path _is_immutable_wrapper_command _startup_command
+unset _immutable_wrapper_marker _legacy_immutable_wrapper_marker

@@ -4,9 +4,15 @@ source $aliases_file
 const catppuccin_file = path self catppuccin.nu
 source $catppuccin_file
 
-{{- range $t := list "bat" "bootstrap" "cargo" "chezmoi-support" "claude" "curl" "gh" "gh-hide-comment" "git" "jj" "lenovo-con-mode" "man" "nix" "op" "rg" "ssh" "uv" "vscode" "zellij" "zoxide" }}
-const completion_{{ $t | replace "-" "_" }} = if ((path self completions/{{ $t }}.nu) | path exists) { path self completions/{{ $t }}.nu } else { null }
-source $completion_{{ $t | replace "-" "_" }}
+{{- range $t := list "bat" "scaffold" "cargo" "chezmoi-support" "claude" "curl" "gh" "gh-hide-comment" "git" "jj" "lenovo-con-mode" "man" "nix" "op" "rg" "ssh" "uv" "vscode" "zellij" "zoxide" }}
+const completion_{{ $t | replace "-" "_" }} = if ((path self completions/{{ $t }}-completions.nu) | path exists) {
+    path self completions/{{ $t }}-completions.nu
+} else if ((path self completions/{{ $t }}.nu) | path exists) {
+    path self completions/{{ $t }}.nu
+} else {
+    null
+}
+use $completion_{{ $t | replace "-" "_" }} *
 {{- end }}
 
 $env.config = (
@@ -60,23 +66,11 @@ if $atuin_init != null {
 }
 
 {{- if eq .chezmoi.os "darwin" }}
-def --wrapped rebuild [...args] {
-    ^nh darwin switch (readlink -f /etc/nixos/) ...$args
-}
-def --wrapped check [...args] {
-    free darwin-rebuild check --flake (readlink -f /etc/nixos/) ...$args
-}
 def --wrapped micfix [...args] {
     free killall coreaudiod ...$args
 }
 {{- else }}
-def --wrapped rebuild [...args] {
-    free nh os switch (readlink -f /etc/nixos/) ...$args
-}
-def --wrapped check [...args] {
-    nix flake check (readlink -f /etc/nixos/) ...$args
-}
 def --wrapped micfix [...args] {
-    systemctl --user restart pipewire pipewire-pulse wireplumber ...$args
+    ^systemctl --user restart pipewire pipewire-pulse wireplumber ...$args
 }
 {{- end }}
