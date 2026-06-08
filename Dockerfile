@@ -16,6 +16,7 @@ apk_packages="
   build-base
   ca-certificates
   cargo
+  chezmoi
   curl
   curl-dev
   expat-dev
@@ -27,10 +28,12 @@ apk_packages="
   libstdc++
   nushell
   openssl-dev
+  starship
   tar
   unzip
   xz
   zlib-dev
+  zellij
   zsh
 "
 
@@ -42,6 +45,7 @@ dnf_packages="
   bash
   ca-certificates
   cargo
+  chezmoi
   cairo
   curl
   dbus-libs
@@ -73,10 +77,12 @@ dnf_packages="
   openssl-devel
   pango
   rust
+  starship
   tar
   unzip
   xz
   zlib-devel
+  zellij
   zsh
 "
 
@@ -96,6 +102,7 @@ set -eu
 if command -v apk >/dev/null 2>&1; then
   adduser -D -h "${TEST_HOME}" "${TEST_USER}"
 elif command -v useradd >/dev/null 2>&1; then
+  mkdir -p "$(dirname "${TEST_HOME}")"
   useradd --create-home --home-dir "${TEST_HOME}" "${TEST_USER}"
 else
   printf 'missing user creation command\n' >&2
@@ -105,36 +112,24 @@ EOF
 
 USER ${TEST_USER}
 ENV HOME=${TEST_HOME}
-ENV PATH=${TEST_HOME}/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+ENV CARGO_HOME=${TEST_HOME}/.cargo
+ENV RUSTUP_HOME=${TEST_HOME}/.rustup
+ENV CARGO_TARGET_DIR=/tmp/nix-dotfiles-target
+ENV XDG_CACHE_HOME=${TEST_HOME}/.cache
+ENV TMPDIR=${TEST_HOME}/.cache/tmp
+ENV TMP=${TEST_HOME}/.cache/tmp
+ENV TEMP=${TEST_HOME}/.cache/tmp
+ENV PATH=${TEST_HOME}/.local/bin:${TEST_HOME}/.cargo/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+ENV CARGO_BUILD_JOBS=1
+ENV DOTFILES_PROCESS_CAPTURE_TIMEOUT_SECS=180
+
+RUN mkdir -p "${TMPDIR}"
 
 WORKDIR /workspace/nix-dotfiles
 COPY --chown=${TEST_USER}:${TEST_USER} . .
 
-RUN cargo run --locked --bin bootstrap -- bootstrap
-
-RUN <<EOF
-set -eu
-
-if ldd --version 2>&1 | grep -qi musl; then
-  if command -v node >/dev/null 2>&1; then
-    printf 'node should be unsupported on musl Linux, but found: %s\n' "$(command -v node)" >&2
-    exit 1
-  fi
-else
-  node_target="$(readlink "${HOME}/.local/bin/node")"
-  case "$node_target" in
-    "${HOME}/.local/opt/node/"*/bin/node) ;;
-    *) printf 'node is not bootstrap-managed: %s\n' "$node_target" >&2; exit 1 ;;
-  esac
-  case "$node_target" in
-    *musl*) printf 'node still points at a musl build: %s\n' "$node_target" >&2; exit 1 ;;
-  esac
-
-  node --version
-  npm --version
-  npx --version
-fi
-EOF
+RUN --mount=type=cache,target=/tmp/nix-dotfiles-target,uid=1000,gid=1000 \
+    cargo install --locked --path crates/chezmoi --root "${HOME}/.local"
 
 RUN <<EOF
 set -eu
@@ -148,8 +143,12 @@ chezmoi_targets="
   .ssh/allowed_signers
   .codex
   .claude
+  .cache/starship
+  .cache/zellij
   .config
   .local/bin
+  .local/share/applications
+  .local/share/zellij
 "
 
 set --
@@ -164,16 +163,8 @@ chezmoi \
   --force \
   --no-tty \
   --parent-dirs \
-  --exclude=externals,scripts \
+  --exclude=scripts \
   "$@"
 EOF
 
-RUN <<EOF
-set -eu
-
-doctor_output="$(BOOTSTRAP_REPO_DIR=/workspace/nix-dotfiles bootstrap doctor)"
-printf '%s\n' "$doctor_output"
-case "$doctor_output" in
-  *error:CommandFailed*) exit 1 ;;
-esac
-EOF
+RUN scaffold --help >/dev/null

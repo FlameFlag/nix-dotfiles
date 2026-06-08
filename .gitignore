@@ -36,3 +36,7 @@ lcov.info
 # Zig
 **/.zig-cache/
 **/zig-out/
+
+# Generated Nushell completions are populated by chezmoi-support nushell-init.
+dotfiles/dot_config/nushell/completions/
+dotfiles/Library/Application Support/nushell/completions/

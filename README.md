@@ -8,7 +8,7 @@
   <a href="https://nixos.org"><img alt="NixOS" src="https://img.shields.io/badge/NixOS-303446?style=for-the-badge&logo=nixos&logoColor=c6d0f5&labelColor=232634"></a>
   <a href="https://github.com/nix-darwin/nix-darwin"><img alt="nix-darwin" src="https://img.shields.io/badge/nix--darwin-8caaee?style=for-the-badge&logo=apple&logoColor=232634&labelColor=c6d0f5"></a>
   <a href="https://www.chezmoi.io/"><img alt="chezmoi" src="https://img.shields.io/badge/chezmoi-a6d189?style=for-the-badge&logo=homeassistant&logoColor=232634&labelColor=414559"></a>
-  <a href="https://www.rust-lang.org/"><img alt="Rust bootstrap" src="https://img.shields.io/badge/Rust_bootstrap-ef9f76?style=for-the-badge&logo=rust&logoColor=232634&labelColor=414559"></a>
+  <a href="https://github.com/FlameFlag/scaffold"><img alt="Scaffold" src="https://img.shields.io/badge/Scaffold-Scheme-ef9f76?style=for-the-badge&logo=rust&logoColor=232634&labelColor=414559"></a>
   <a href="https://catppuccin.com/"><img alt="Catppuccin" src="https://img.shields.io/badge/Catppuccin-Frappe-f4b8e4?style=for-the-badge&logoColor=232634&labelColor=414559"></a>
 </p>
 
@@ -27,83 +27,32 @@
 
 ## System Flow
 
-Nix defines the system state. `bootstrap` installs user-space tools that either
-are not in nixpkgs or need to update independently.
+Nix defines the system state. [Scaffold](https://github.com/FlameFlag/scaffold)
+is the Scheme-driven tool catalog layer for user-space setup that should live
+outside the Nix system closure or update independently.
 
 Host-level configuration stays in Nix: services, patched packages, system
 settings, and anything else that is easier to keep declarative.
 
-## Bootstrap
+## Scaffold
+
+The root [`scaffold.scm`](scaffold.scm) is a Scaffold catalog. It includes a
+macOS `scaffold` tool entry so Scaffold can install or refresh itself without
+using Nix profiles:
 
 ```bash
-bootstrap bootstrap
+scaffold install scaffold
 ```
 
-On a brand-new machine, download the latest `bootstrap` binary from the
-[latest bootstrap release](https://github.com/FlameFlag/nix-dotfiles/releases/latest)
-once, then run it from wherever it landed:
-
-```bash
-./bootstrap-linux-x86_64 bootstrap
-```
-
-If Rust is already available and this repo is cloned, build and run the
-one-time bootstrapper directly from the workspace:
-
-```bash
-cargo run --locked --bin bootstrap -- bootstrap
-```
-
-From outside the repo, point it at the checkout:
-
-```bash
-cargo run --locked --bin bootstrap -- --repo-dir /path/to/nix-dotfiles bootstrap
-```
-
-<details>
-
-<summary>How the bootstrap is staged</summary>
-
-The first run is staged like this:
-
-1. on Windows, `bootstrap bootstrap` first installs managed PowerShell from the
-   catalog and writes Windows Terminal settings that make that `pwsh` profile
-   the default
-2. `bootstrap bootstrap` creates `~/.local/bin` and `~/.local/opt`, installs the
-   running `bootstrap` binary into the bootstrap prefix, adds the user-local bin
-   directory to the shell environment, and writes the minimal chezmoi config
-3. the Rust installer reads [`bootstrap/tools.toml`](bootstrap/tools.toml) and
-   installs `chezmoi`, `git`, `uv`, Rust via `rustup`, archive tools like
-   `node`, `bun`, and VS Code, `uv tool` packages like `ruff`, `ty`, and
-   `yt-dlp`, plus the repo-local Rust tools
-4. after that, the machine gets the remaining setup steps: `chezmoi apply`
-   and, where needed, a NixOS or nix-darwin rebuild
-
-NixOS is the one platform where the order flips on first setup. Rebuild NixOS
-first so this config can enable the runtime compatibility that upstream Linux
-binaries expect. After that first switch, run the bootstrapper through a Nix
-3 `nix run` target from the same flake; the bootstrap binary is provided by
-the NixOS package set. On macOS and normal FHS Linux distros, bootstrap can
-go first.
-
-`chezmoi` comes from its official release archive. Chezmoi hooks call the Rust
-`chezmoi-support` helper installed by bootstrap, so the dotfile runtime no
-longer depends on a local compiler.
-
-After bootstrap, `bootstrap update` runs the installer in update mode.
-`bootstrap doctor` tells you what it can see and where the tools are coming
-from. `bootstrap bootstrap` installs `bootstrap` into `~/.local/bin`, so those
-commands are the normal entry points once the first run has completed.
-
-</details>
+The old repo-local installer and Rust-backed Scheme config helpers have been
+removed. Scaffold owns the Scheme catalog.
 
 ## System Builds
 
 The first-run order matters:
 
-- **NixOS:** rebuild first, then bootstrap, then `chezmoi`
-- **macOS and normal FHS Linux:** bootstrap first, then `chezmoi`, then the Nix
-  system if you are using one
+- **NixOS:** rebuild first, then run Scaffold or `chezmoi` as needed
+- **macOS:** install Nix, switch nix-darwin, then run Scaffold or `chezmoi`
 
 ### NixOS
 
@@ -119,10 +68,6 @@ fi
 
 nixos-rebuild switch --use-remote-sudo --flake $(readlink -f "/etc/nixos")
 
-# Now nix-ld and runtime compatibility links exist, so upstream binaries can run.
-# Use Nix 3 to run the bootstrap package from this NixOS configuration.
-nix run "$(readlink -f /etc/nixos)#nixosConfigurations.lenovo-legion.pkgs.bootstrap" -- bootstrap
-
 # Apply the dotfiles.
 chezmoi apply --refresh-externals=always --force
 
@@ -132,9 +77,6 @@ chezmoi apply --refresh-externals=always --force
 ### macOS
 
 ```bash
-bootstrap bootstrap
-chezmoi apply --refresh-externals=always --force
-
 # I use /etc/nixos as the shared flake path on both NixOS and Darwin.
 sudo ln -s ~/Developer/nix-dotfiles/ "/etc/nixos"
 
@@ -142,14 +84,49 @@ nix run nix-darwin -- switch --flake $(readlink -f "/etc/nixos/")
 
 sudo darwin-rebuild switch --flake $(readlink -f "/etc/nixos/")
 
+chezmoi apply --refresh-externals=always --force
+
 # After initial build, you can use the `rebuild` alias.
 ```
 
+### Immutable Linux With Containerized Nix
+
+```bash
+chezmoi apply --refresh-externals=always --force
+nix build .#immutable-profile
+```
+
+After first setup:
+
+```bash
+# Refresh flake inputs in the checkout selected by NIX_DOTFILES_FLAKE,
+# /etc/nixos, ~/Developer/nix-dotfiles, or ~/nix-dotfiles.
+update
+
+# Reinstall the immutable Nix profile, refresh wrappers, and restage host bits.
+rebuild
+
+# Check the flake and build the immutable profile.
+check
+```
+
+## Formatting
+
+Run the repo formatter with:
+
+```bash
+nix fmt
+```
+
+It formats Nix through `treefmt`, Rust through `cargo fmt`, and Scheme config
+through `scaffold fmt`.
+
 ## Smoke Tests
 
-A Dockerfile that boots an Alpine or Fedora base, runs bootstrap, checks that
-`git`, `node`, `npm`, and `npx` came from bootstrap instead of the distro
-package manager, applies a focused slice of the dotfiles, and runs `bootstrap doctor`
+A Dockerfile boots Alpine or Fedora, builds the repo-local helpers, and applies
+a focused slice of the dotfiles. Bluefin and other immutable hosts are covered
+on real machines instead of Docker because their public images are large and
+unreliable on Apple Silicon Docker.
 
 ```bash
 # Build and test Alpine.
@@ -158,7 +135,7 @@ docker compose build alpine
 # Build and test Fedora 44.
 docker compose build fedora-44
 
-# Build and test both services.
+# Build and test all services.
 docker compose build
 
 # Rebuild from scratch when cache is hiding something.
@@ -166,14 +143,11 @@ docker compose build --no-cache alpine
 docker compose build --no-cache fedora-44
 ```
 
-After a build, inspect either image:
+After a build, inspect any image:
 
 ```bash
-docker compose run --rm alpine bootstrap doctor
-docker compose run --rm fedora-44 bootstrap doctor
-
-docker compose run --rm alpine node --version
-docker compose run --rm fedora-44 node --version
+docker compose run --rm alpine scaffold --help
+docker compose run --rm fedora-44 scaffold --help
 ```
 
 ## License

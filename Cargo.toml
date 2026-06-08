@@ -1,7 +1,5 @@
 [workspace]
 members = [
-    "crates/boot-cli",
-    "crates/boot-core",
     "crates/chezmoi",
     "crates/common",
     "packages/gh-hide-comment",
@@ -33,6 +31,7 @@ rustls = { version = "0.23.40", default-features = false, features = ["ring"] }
 schemars = { version = "1.2.1", features = ["derive"] }
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.150"
+shell-words = "1.1.1"
 strum = { version = "0.28.0", features = ["derive"] }
 tar = "0.4.46"
 tempfile = "3.27.0"
@@ -40,7 +39,7 @@ thiserror = "2.0.18"
 tokio = { version = "1.52.3", default-features = false, features = ["io-std", "macros", "rt-multi-thread"] }
 tokio-util = "0.7"
 minijinja = "2.20.0"
-rouille = "3.6.2"
+tiny_http = "0.12.0"
 toml = "1.1.2"
 toml_edit = "0.25.12"
 url = "2.5.8"
