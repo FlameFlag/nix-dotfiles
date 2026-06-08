@@ -1,7 +1,6 @@
-use std::io::Read;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use rouille::{Request, Response, Server};
+use tiny_http::{Request, Server};
 use url::Url;
 
 use crate::app::App;
@@ -17,33 +16,32 @@ pub(crate) fn serve(_cli: &Cli, app: &App) -> Result<()> {
         println!("{}", route.describe());
     }
 
-    make_server(app)?.run();
+    for request in make_server(app)?.incoming_requests() {
+        handle_request(request, &app.routes);
+    }
     Ok(())
 }
 
-fn make_server(app: &App) -> Result<Server<impl Send + Sync + 'static + Fn(&Request) -> Response>> {
+fn make_server(app: &App) -> Result<Server> {
     let listen = app.listen;
-    let routes = app.routes.clone();
-    Server::new(listen, move |request| handle_request(request, &routes)).map_err(|source| {
-        Error::Bind {
-            addr: listen,
-            source,
-        }
+    Server::http(listen).map_err(|source| Error::Bind {
+        addr: listen,
+        source,
     })
 }
 
-fn handle_request(request: &Request, routes: &[crate::route::Route]) -> Response {
-    let method = request.method().to_owned();
-    let url = request.raw_url().to_owned();
+fn handle_request(mut request: Request, routes: &[crate::route::Route]) {
+    let method = request.method().as_str().to_owned();
+    let url = request.url().to_owned();
     let path = request_path(&url);
-    let body = read_body(request).unwrap_or_else(|err| {
+    let body = read_body(&mut request).unwrap_or_else(|err| {
         eprintln!("failed to read request body: {err}");
         String::new()
     });
 
     log_request(&method, &url, &body);
 
-    match routes
+    let response = match routes
         .iter()
         .find(|route| route.matches(&method, &path))
         .map_or_else(not_found_response, |route| route.to_response())
@@ -53,15 +51,16 @@ fn handle_request(request: &Request, routes: &[crate::route::Route]) -> Response
             eprintln!("failed to build response: {err}");
             internal_error_response()
         }
+    };
+
+    if let Err(err) = request.respond(response) {
+        eprintln!("failed to send response: {err}");
     }
 }
 
-fn read_body(request: &Request) -> std::io::Result<String> {
-    let Some(mut body_reader) = request.data() else {
-        return Ok(String::new());
-    };
+fn read_body(request: &mut Request) -> std::io::Result<String> {
     let mut body = String::new();
-    body_reader.read_to_string(&mut body)?;
+    request.as_reader().read_to_string(&mut body)?;
     Ok(body)
 }
 

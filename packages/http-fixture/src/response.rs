@@ -1,11 +1,12 @@
 use std::collections::BTreeMap;
+use std::io::Cursor;
 
-use rouille::Response;
 use serde_json::Value;
+use tiny_http::{Header, Response, StatusCode};
 
-use crate::error::Result;
+use crate::error::{Error, Result};
 
-pub(crate) type FixtureHttpResponse = Response;
+pub(crate) type FixtureHttpResponse = Response<Cursor<Vec<u8>>>;
 
 #[derive(Debug, Clone)]
 pub(crate) struct FixtureResponse {
@@ -31,19 +32,12 @@ impl FixtureResponse {
             Body::Json(body) => (serde_json::to_vec(body)?, Some("application/json")),
             Body::Empty => (Vec::new(), None),
         };
-        let content_type = self
-            .content_type
-            .as_deref()
-            .or(inferred_content_type)
-            .unwrap_or("application/octet-stream");
-        let mut response = Response::from_data(content_type.to_owned(), body)
-            .with_status_code(self.status)
-            .without_header("Content-Type");
+        let mut response = Response::from_data(body).with_status_code(StatusCode(self.status));
         if let Some(content_type) = self.content_type.as_deref().or(inferred_content_type) {
-            response = response.with_additional_header("Content-Type", content_type.to_owned());
+            response = response.with_header(header("Content-Type", content_type)?);
         }
         for (name, value) in &self.headers {
-            response = response.with_additional_header(name.clone(), value.clone());
+            response = response.with_header(header(name, value)?);
         }
         Ok(response)
     }
@@ -51,11 +45,24 @@ impl FixtureResponse {
 
 pub(crate) fn not_found_response() -> Result<FixtureHttpResponse> {
     let body = serde_json::json!({ "error": "not_found" });
-    Ok(Response::from_data("application/json", serde_json::to_vec(&body)?).with_status_code(404))
+    Ok(Response::from_data(serde_json::to_vec(&body)?)
+        .with_status_code(StatusCode(404))
+        .with_header(header("Content-Type", "application/json")?))
 }
 
 pub(crate) fn internal_error_response() -> FixtureHttpResponse {
-    Response::from_data("application/json", r#"{"error":"internal_error"}"#).with_status_code(500)
+    let mut response =
+        Response::from_data(r#"{"error":"internal_error"}"#).with_status_code(StatusCode(500));
+    if let Ok(content_type) = Header::from_bytes("Content-Type", "application/json") {
+        response = response.with_header(content_type);
+    }
+    response
+}
+
+fn header(name: &str, value: &str) -> Result<Header> {
+    Header::from_bytes(name.as_bytes(), value.as_bytes()).map_err(|()| Error::InvalidHeader {
+        name: name.to_owned(),
+    })
 }
 
 #[cfg(test)]
@@ -77,7 +84,7 @@ mod tests {
         }
         .to_response()?;
 
-        assert_eq!(response.status_code, 202);
+        assert_eq!(response.status_code().0, 202);
         assert_header(&response, "Content-Type", "application/json");
         assert_header(&response, "X-Fixture", "yes");
         assert_eq!(body_text(response)?, r#"{"ok":true}"#);
@@ -92,19 +99,19 @@ mod tests {
         assert_header(&response, "Content-Type", "text/html; charset=utf-8");
 
         let response = not_found_response()?;
-        assert_eq!(response.status_code, 404);
+        assert_eq!(response.status_code().0, 404);
         assert_eq!(body_text(response)?, r#"{"error":"not_found"}"#);
         Ok(())
     }
 
-    fn assert_header(response: &Response, name: &str, value: &str) {
-        assert!(response.headers.iter().any(|(header_name, header_value)| {
-            header_name.eq_ignore_ascii_case(name) && header_value == value
+    fn assert_header(response: &FixtureHttpResponse, name: &str, value: &str) {
+        assert!(response.headers().iter().any(|header| {
+            header.field.to_string().eq_ignore_ascii_case(name) && header.value.as_str() == value
         }));
     }
 
-    fn body_text(response: Response) -> std::io::Result<String> {
-        let (mut reader, _) = response.data.into_reader_and_size();
+    fn body_text(response: FixtureHttpResponse) -> std::io::Result<String> {
+        let mut reader = response.into_reader();
         let mut body = String::new();
         reader.read_to_string(&mut body)?;
         Ok(body)
