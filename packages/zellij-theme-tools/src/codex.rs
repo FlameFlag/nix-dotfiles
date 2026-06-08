@@ -35,7 +35,12 @@ fn codex_bin_from(
     if let Some(path) = find_on_path() {
         return Ok(path);
     }
-    for candidate in [".bun/bin/codex", ".npm/bin/codex", ".local/bin/codex"] {
+    for candidate in [
+        ".bun/bin/codex",
+        ".cache/.bun/bin/codex",
+        ".npm/bin/codex",
+        ".local/bin/codex",
+    ] {
         let path = home.join(candidate);
         if path.is_file() {
             return Ok(path);

@@ -21,20 +21,25 @@ pub fn run_with_args(args: Vec<OsString>) -> Result<i32> {
     let base_config = read_base_config(&base_config_path)?;
     let theme = btop_theme_name(detect_theme());
     let themed_config = with_color_theme(&base_config, theme);
+    let cache_dir = cache_config_dir()?;
 
     let mut config = tempfile::Builder::new()
         .prefix("zellij-theme-run-btop-")
         .suffix(".conf")
-        .tempfile()?;
+        .tempfile_in(cache_dir)?;
     config.write_all(themed_config.as_bytes())?;
     config.flush()?;
 
-    let mut btop_args = Vec::with_capacity(args.len() + 2);
+    let mut btop_args = Vec::with_capacity(args.len() + 5);
+    btop_args.push(OsString::from("-u"));
+    btop_args.push(OsString::from("NO_COLOR"));
+    btop_args.push(OsString::from("COLORTERM=truecolor"));
+    btop_args.push(btop.into_os_string());
     btop_args.push(OsString::from("--config"));
     btop_args.push(config.path().as_os_str().to_owned());
     btop_args.extend(strip_config_args(args));
 
-    run_inherit(&duct::cmd(btop, btop_args))
+    run_inherit(&duct::cmd("env", btop_args))
 }
 
 fn btop_theme_name(theme: Theme) -> &'static str {
@@ -49,6 +54,14 @@ fn default_config_path() -> PathBuf {
     BaseDirs::new()
         .map(|dirs| dirs.home_dir().join(".config/btop/btop.conf"))
         .unwrap_or_else(|| PathBuf::from(".config/btop/btop.conf"))
+}
+
+fn cache_config_dir() -> Result<PathBuf> {
+    let dir = BaseDirs::new()
+        .map(|dirs| dirs.cache_dir().join("zellij-theme-run/btop"))
+        .unwrap_or_else(|| PathBuf::from(".cache/zellij-theme-run/btop"));
+    fs_err::create_dir_all(&dir)?;
+    Ok(dir)
 }
 
 fn read_base_config(path: &Path) -> Result<String> {
