@@ -3,12 +3,16 @@ model_reasoning_effort = "high"
 approval_policy = "never"
 sandbox_mode = "danger-full-access"
 suppress_unstable_features_warning = true
+trust_level = "trusted"
+
+notify = ["{{ .chezmoi.homeDir }}/.codex/computer-use/Codex Computer Use.app/Contents/SharedSupport/SkyComputerUseClient.app/Contents/MacOS/SkyComputerUseClient", "turn-ended"]
 
 [features]
 in_app_browser = true
 browser_use = true
 browser_use_external = true
 computer_use = true
+js_repl = false
 
 [tui]
 notification_condition = "always"
@@ -28,6 +32,7 @@ default_tools_approval_mode = "approve"
 url = "http://127.0.0.1:8090/mcp"
 startup_timeout_sec = 60
 tool_timeout_sec = 1800
+default_tools_approval_mode = "approve"
 enabled_tools = [
   "list_instances",
   "connect_instance",
@@ -122,7 +127,78 @@ enabled_tools = [
 command = "lldb-mcp-launcher"
 startup_timeout_sec = 30
 tool_timeout_sec = 1800
+default_tools_approval_mode = "approve"
 enabled_tools = [
   "command",
   "debugger_list",
 ]
+
+[mcp_servers.node_repl]
+args = []
+command = "/Applications/Codex.app/Contents/Resources/node_repl"
+startup_timeout_sec = 120
+default_tools_approval_mode = "approve"
+
+[mcp_servers.node_repl.env]
+NODE_REPL_NATIVE_PIPE_CONNECT_TIMEOUT_MS = "1000"
+NODE_REPL_NODE_MODULE_DIRS = ""
+NODE_REPL_NODE_PATH = "/Applications/Codex.app/Contents/Resources/node"
+NODE_REPL_TRUSTED_CODE_PATHS = "{{ .chezmoi.homeDir }}/.codex"
+CODEX_HOME = "{{ .chezmoi.homeDir }}/.codex"
+NODE_REPL_TRUSTED_BROWSER_CLIENT_SHA256S = "2de792ebdf729e85542c94275f6654821dddce546d9c7374c915f2297529e313"
+BROWSER_USE_AVAILABLE_BACKENDS = "iab"
+NODE_REPL_INSTRUCTIONS_USE_CASE_BROWSER = "Control the in-app browser in conjunction with the Browser Plugin."
+BROWSER_USE_CODEX_APP_BUILD_FLAVOR = "prod"
+BROWSER_USE_CODEX_APP_VERSION = "26.602.40724"
+CODEX_CLI_PATH = "/Applications/Codex.app/Contents/Resources/codex"
+
+[marketplaces.openai-bundled]
+last_updated = "2026-06-07T22:25:19Z"
+source_type = "local"
+source = "{{ .chezmoi.homeDir }}/.codex/.tmp/bundled-marketplaces/openai-bundled"
+
+[plugins."browser@openai-bundled"]
+enabled = true
+
+[apps._default]
+enabled = true
+destructive_enabled = true
+open_world_enabled = true
+default_tools_enabled = true
+default_tools_approval_mode = "approve"
+
+[notice]
+hide_full_access_warning = true
+hide_world_writable_warning = true
+
+[desktop]
+appearanceLightCodeThemeId = "catppuccin"
+appearanceDarkCodeThemeId = "catppuccin"
+
+[desktop.appearanceLightChromeTheme]
+accent = "#ea76cb"
+contrast = 45
+ink = "#4c4f69"
+opaqueWindows = false
+surface = "#eff1f5"
+
+[desktop.appearanceLightChromeTheme.fonts]
+
+[desktop.appearanceLightChromeTheme.semanticColors]
+diffAdded = "#40a02b"
+diffRemoved = "#d20f39"
+skill = "#8839ef"
+
+[desktop.appearanceDarkChromeTheme]
+accent = "#f4b8e4"
+contrast = 60
+ink = "#c6d0f5"
+opaqueWindows = false
+surface = "#303446"
+
+[desktop.appearanceDarkChromeTheme.fonts]
+
+[desktop.appearanceDarkChromeTheme.semanticColors]
+diffAdded = "#a6d189"
+diffRemoved = "#e78284"
+skill = "#ca9ee6"
