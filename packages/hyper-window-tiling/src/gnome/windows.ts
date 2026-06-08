@@ -1,4 +1,5 @@
 import Meta from 'gi://Meta';
+import type Mtk from 'gi://Mtk';
 
 const IGNORED_WINDOW_TYPES = new Set([
     Meta.WindowType.DESKTOP,
@@ -17,4 +18,13 @@ export function focusedWindow() {
     ].some(Boolean)
         ? null
         : window;
+}
+
+export function moveResizeWindow(window: Meta.Window, rect: Mtk.Rectangle) {
+    if (window.get_maximize_flags()) {
+        window.set_unmaximize_flags(Meta.MaximizeFlags.BOTH);
+        window.unmaximize();
+    }
+
+    window.move_resize_frame(true, rect.x, rect.y, rect.width, rect.height);
 }

@@ -12,7 +12,7 @@ import {
     MAXIMIZE_BINDING_NAME,
 } from '../shared/lib.js';
 import { resolveLayout } from './layouts.js';
-import { focusedWindow } from './windows.js';
+import { focusedWindow, moveResizeWindow } from './windows.js';
 
 export default class HyperWindowTilingExtension extends Extension {
     private settings: Gio.Settings | null = null;
@@ -67,9 +67,7 @@ export default class HyperWindowTilingExtension extends Extension {
             layouts[advanceCycle(this.cycle, bindingName, layouts.length)],
         );
 
-        if (window.is_maximized()) window.unmaximize();
-
-        window.move_resize_frame(true, rect.x, rect.y, rect.width, rect.height);
+        moveResizeWindow(window, rect);
     }
 
     private maximizeFocusedWindow() {
@@ -77,8 +75,6 @@ export default class HyperWindowTilingExtension extends Extension {
         if (!window?.allows_move() || !window.allows_resize()) return;
 
         const rect = resolveLayout(window, 'maximize');
-        if (window.is_maximized()) window.unmaximize();
-
-        window.move_resize_frame(true, rect.x, rect.y, rect.width, rect.height);
+        moveResizeWindow(window, rect);
     }
 }
