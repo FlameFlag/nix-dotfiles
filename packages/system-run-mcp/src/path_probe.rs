@@ -126,10 +126,10 @@ trailing noise
     #[test]
     fn normalize_user_shell_path_prepends_user_tool_dirs() {
         let path =
-            "/Users/flame/.nix-profile/bin:/run/current-system/sw/bin:/Users/flame/.cargo/bin";
+            "/Users/me/.nix-profile/bin:/run/current-system/sw/bin:/Users/me/.cargo/bin";
 
         assert_eq!(
-            normalize_user_shell_path(path, Some("/Users/flame")),
+            normalize_user_shell_path(path, Some("/Users/me")),
             "/Users/me/.pi/agent/bin:/Users/me/.bun/bin:/Users/me/.bun/install/global/node_modules/.bin:/Users/me/.cache/.bun/bin:/Users/me/.npm/bin:/Users/me/.local/bin:/Users/me/.go/bin:/Users/me/.yarn/bin:/Users/me/.nix-profile/bin:/run/current-system/sw/bin:/Users/me/.cargo/bin"
         );
     }
@@ -138,6 +138,6 @@ trailing noise
     fn normalize_user_shell_path_preserves_complete_shell_order() {
         let path = "/home/me/.cache/.bun/bin:/home/me/.yarn/bin:/home/me/.go/bin:/home/me/.cargo/bin:/home/me/.local/bin:/home/me/.npm/bin:/home/me/.bun/install/global/node_modules/.bin:/home/me/.bun/bin:/home/me/.pi/agent/bin:/run/current-system/sw/bin";
 
-        assert_eq!(normalize_user_shell_path(path, Some("/home/nyx")), path);
+        assert_eq!(normalize_user_shell_path(path, Some("/home/me")), path);
     }
 }

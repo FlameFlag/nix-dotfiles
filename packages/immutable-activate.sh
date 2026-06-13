@@ -2,7 +2,7 @@
 # shellcheck shell=bash
 # Build and activate the nix-dotfiles immutable Linux user profile.
 set -euo pipefail
-shopt -s inherit_errexit 2>/dev/null || true
+shopt -s inherit_errexit array_expand_once globskipdots
 
 readonly runtime_path="@runtimePath@"
 readonly marker="# nix-dotfiles: immutable-wrapper"
@@ -28,8 +28,8 @@ log_error() {
 }
 
 die() {
-  local message=$1
-  local status=${2:-1}
+  local -r message=$1
+  local -r status=${2:-1}
 
   log_error "$message"
   exit "$status"
@@ -68,15 +68,23 @@ os_release_words() {
 
 detect_host_updater() {
   local host_updater=$1
+  local -A valid_updater=(
+    [apt]=1
+    [dnf]=1
+    [none]=1
+    [pacman]=1
+    ["rpm-ostree"]=1
+  )
 
   case "$host_updater" in
   auto)
     ;;
-  none | rpm-ostree | pacman | dnf | apt)
-    printf '%s\n' "$host_updater"
-    return
-    ;;
   *)
+    if [[ -v "valid_updater[$host_updater]" ]]; then
+      printf '%s\n' "$host_updater"
+      return
+    fi
+
     log_error "unknown host updater: $host_updater"
     return 2
     ;;
@@ -87,26 +95,33 @@ detect_host_updater() {
     return
   fi
 
-  case " $(os_release_words) " in
-  *" arch "*)
-    printf '%s\n' "pacman"
-    ;;
-  *" fedora "* | *" rhel "* | *" centos "*)
-    printf '%s\n' "dnf"
-    ;;
-  *" debian "* | *" ubuntu "*)
-    printf '%s\n' "apt"
-    ;;
-  *)
-    printf '%s\n' "none"
-    ;;
-  esac
+  local -A os_updater=(
+    [arch]=pacman
+    [centos]=dnf
+    [debian]=apt
+    [fedora]=dnf
+    [rhel]=dnf
+    [ubuntu]=apt
+  )
+  local os_word
+
+  for os_word in $(os_release_words); do
+    if [[ -v "os_updater[$os_word]" ]]; then
+      printf '%s\n' "${os_updater[$os_word]}"
+      return
+    fi
+  done
+
+  printf '%s\n' "none"
 }
 
 run_native_updates() {
   local host_updater=$1
+  local resolved_updater
 
-  case "$(detect_host_updater "$host_updater")" in
+  resolved_updater=${ detect_host_updater "$host_updater";}
+
+  case "$resolved_updater" in
   none)
     ;;
   rpm-ostree)
@@ -139,16 +154,17 @@ install_wrapper() {
   local wrapper_dir=$2
   local source_bin=$3
   local owned_now=$4
-  local name dest tmp
+  local name dest tmp quoted_target
 
-  name="$(basename "$source_bin")"
+  name=${source_bin##*/}
   dest="$wrapper_dir/$name"
   tmp="$(mktemp "$wrapper_dir/.nix-dotfiles-$name.XXXXXX")"
+  printf -v quoted_target '%#q' "$profile/bin/$name"
 
   {
     printf '%s\n' '#!/usr/bin/env bash'
     printf '%s\n' "$marker"
-    printf 'exec %q "$@"\n' "$profile/bin/$name"
+    printf 'exec %s "$@"\n' "$quoted_target"
   } >"$tmp"
   chmod 0755 "$tmp"
 
@@ -171,26 +187,28 @@ remove_stale_wrappers() {
   local wrapper_dir=$1
   local owned_now=$2
   local candidate
+  local -a candidates=()
 
-  while IFS= read -r -d '' candidate; do
+  mapfile -d '' -t candidates < <(find "$wrapper_dir" -maxdepth 1 -type f -print0)
+
+  for candidate in "${candidates[@]}"; do
     if is_wrapper "$candidate" && ! grep -Fzxq -- "$candidate" "$owned_now"; then
       rm -f "$candidate"
     fi
-  done < <(find "$wrapper_dir" -maxdepth 1 -type f -print0)
+  done
 }
 
 default_flake() {
-  local home=${HOME:-}
   local candidate
   local -a candidates=(
     "$PWD"
     "/etc/nixos"
   )
 
-  if [[ -n "$home" ]]; then
+  if [[ -v HOME && -n "$HOME" ]]; then
     candidates+=(
-      "$home/Developer/nix-dotfiles"
-      "$home/nix-dotfiles"
+      "$HOME/Developer/nix-dotfiles"
+      "$HOME/nix-dotfiles"
     )
   fi
 
@@ -251,7 +269,7 @@ main() {
     || die "this entry point is only for portable Linux hosts"
 
   if [[ -z "$flake" ]]; then
-    flake="$(default_flake)"
+    flake=${ default_flake;}
   fi
 
   if [[ -z "$flake" ]]; then
@@ -287,13 +305,16 @@ main() {
   fi
 
   local owned_now source_bin
+  local -a source_bins=()
   owned_now="$(mktemp)"
   trap 'rm -f "$owned_now"' EXIT
 
-  while IFS= read -r -d '' source_bin; do
+  mapfile -d '' -t source_bins < <(find "$profile/bin" -maxdepth 1 \( -type f -o -type l \) -print0 | sort -z)
+
+  for source_bin in "${source_bins[@]}"; do
     [[ -x "$source_bin" ]] || continue
     install_wrapper "$profile" "$wrapper_dir" "$source_bin" "$owned_now"
-  done < <(find "$profile/bin" -maxdepth 1 \( -type f -o -type l \) -print0 | sort -z)
+  done
 
   remove_stale_wrappers "$wrapper_dir" "$owned_now"
 

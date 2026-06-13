@@ -1,26 +1,48 @@
 # Fall back to a common terminfo entry on remote hosts without Ghostty support.
+shopt -s array_expand_once globskipdots
+
 if [[ "$TERM" == "xterm-ghostty" ]] && ! infocmp xterm-ghostty &>/dev/null; then
   export TERM=xterm-256color
 fi
 
+_path_prepend_once() {
+  local -n path_ref=$1
+  local dir
+
+  shift
+  for dir; do
+    [[ -n "$dir" && ":$path_ref:" != *":$dir:"* ]] && path_ref="$dir:$path_ref"
+  done
+}
+
+_command_wrapper() {
+  local -r command_name=$1
+  local -r command_path=$2
+  local quoted_path
+
+  printf -v quoted_path '%#q' "$command_path"
+  eval "$command_name() { command $quoted_path \"\$@\"; }"
+}
+
 # Prefer user-local tools installed by Scaffold and language toolchains.
-for dir in "$HOME/.pi/agent/bin" "$HOME/.bun/bin" "$HOME/.bun/install/global/node_modules/.bin" "$HOME/.cache/.bun/bin" "$HOME/.npm/bin" "$HOME/.local/bin" "$HOME/.cargo/bin" "$HOME/.go/bin" "$HOME/.yarn/bin"; do
-  case ":$PATH:" in
-    *":$dir:"*) ;;
-    *) PATH="$dir:$PATH" ;;
-  esac
-done
-if [ -d /run/wrappers/bin ]; then
-  case ":$PATH:" in
-    *":/run/wrappers/bin:"*) ;;
-    *) PATH="/run/wrappers/bin:$PATH" ;;
-  esac
+_path_prepend_once PATH \
+  "$HOME/.pi/agent/bin" \
+  "$HOME/.bun/bin" \
+  "$HOME/.bun/install/global/node_modules/.bin" \
+  "$HOME/.cache/.bun/bin" \
+  "$HOME/.npm/bin" \
+  "$HOME/.local/bin" \
+  "$HOME/.cargo/bin" \
+  "$HOME/.go/bin" \
+  "$HOME/.yarn/bin"
+if [[ -d /run/wrappers/bin ]]; then
+  _path_prepend_once PATH /run/wrappers/bin
 fi
 export PATH
 
 _immutable_wrapper_marker="# nix-dotfiles: immutable-wrapper"
 _is_immutable_wrapper_path() {
-  [ -f "$1" ] && command grep -Fqx "$_immutable_wrapper_marker" "$1" 2>/dev/null
+  [[ -f "$1" ]] && command grep -Fqx "$_immutable_wrapper_marker" "$1" 2>/dev/null
 }
 _is_immutable_wrapper_command() {
   local command_path
@@ -29,17 +51,17 @@ _is_immutable_wrapper_command() {
 }
 
 _nix_dotfiles_flake="${NIX_DOTFILES_FLAKE:-}"
-if [ -z "$_nix_dotfiles_flake" ]; then
+if [[ -z "$_nix_dotfiles_flake" ]]; then
   for _nix_dotfiles_dir in "/etc/nixos" "$HOME/Developer/nix-dotfiles" "$HOME/nix-dotfiles"; do
-    [ -f "$_nix_dotfiles_dir/flake.nix" ] || continue
+    [[ -f "$_nix_dotfiles_dir/flake.nix" ]] || continue
     _nix_dotfiles_flake="$_nix_dotfiles_dir"
     break
   done
 fi
-if [ -z "$_nix_dotfiles_flake" ]; then
+if [[ -z "$_nix_dotfiles_flake" ]]; then
   _nix_dotfiles_flake="/etc/nixos"
 fi
-if [ -d "$_nix_dotfiles_flake" ]; then
+if [[ -d "$_nix_dotfiles_flake" ]]; then
   _nix_dotfiles_flake="$(
     cd -P -- "$_nix_dotfiles_flake" 2>/dev/null \
       && pwd \
@@ -53,17 +75,17 @@ if _is_immutable_wrapper_command nix; then
   _immutable_nix_host=1
 fi
 _portable_nix_host=0
-if [ "$_immutable_nix_host" -eq 1 ] || [ ! -e /etc/NIXOS ]; then
+if ((_immutable_nix_host == 1)) || [[ ! -e /etc/NIXOS ]]; then
   _portable_nix_host=1
 fi
 
 _startup_command() {
   local command_path
   command_path="$(command -v "$1" 2>/dev/null)" || return 1
-  if [ "${2:-}" != "allow-wrapper" ] && _is_immutable_wrapper_path "$command_path"; then
+  if [[ "${2:-}" != "allow-wrapper" ]] && _is_immutable_wrapper_path "$command_path"; then
     command_path="$(PATH="/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin" command -v "$1" 2>/dev/null)" || return 1
   fi
-  [ -n "$command_path" ] || return 1
+  [[ -n "$command_path" ]] || return 1
   printf '%s\n' "$command_path"
 }
 
@@ -94,7 +116,7 @@ source "$OSH/oh-my-bash.sh"
 # Tool Integrations (cached init files)
 _starship_bin="$(_startup_command starship 2>/dev/null || true)"
 if [[ -n "$_starship_bin" ]]; then
-  eval "starship() { command $(printf '%q' "$_starship_bin") \"\$@\"; }"
+  _command_wrapper starship "$_starship_bin"
 fi
 if [[ -n "$_starship_bin" && -r "$HOME/.cache/starship/init.bash" ]]; then
   source "$HOME/.cache/starship/init.bash"
@@ -107,13 +129,13 @@ if _startup_command tv >/dev/null && [[ -r "$HOME/.cache/television/init.bash" ]
 fi
 _fzf_bin="$(_startup_command fzf 2>/dev/null || true)"
 if [[ -n "$_fzf_bin" ]]; then
-  eval "fzf() { command $(printf '%q' "$_fzf_bin") \"\$@\"; }"
+  _command_wrapper fzf "$_fzf_bin"
   eval "$("$_fzf_bin" --bash)"
 fi
 unset _fzf_bin
 _atuin_bin="$(_startup_command atuin allow-wrapper 2>/dev/null || true)"
 if [[ -t 0 && -t 1 && -n "$_atuin_bin" && -r "$HOME/.cache/atuin/init.bash" ]]; then
-  eval "atuin() { command $(printf '%q' "$_atuin_bin") \"\$@\"; }"
+  _command_wrapper atuin "$_atuin_bin"
   source "$HOME/.cache/atuin/init.bash"
   __atuin_search_cmd() {
     local -a search_args=("$@")
@@ -131,7 +153,7 @@ unset _atuin_bin
 
 # Completions (cached)
 for f in "$HOME/.cache/bash/completions"/*; do
-  [ -f "$f" ] && source "$f"
+  [[ -f "$f" ]] && source "$f"
 done
 
 # Use 1Password locally, but preserve sshd's forwarded agent in SSH sessions.
@@ -213,14 +235,14 @@ micfix() {
 }
 {{- else }}
 update() {
-  if [ "$_portable_nix_host" -eq 1 ]; then
+  if ((_portable_nix_host == 1)); then
     nix run "$_nix_dotfiles_flake#immutable-activate" -- --flake "$_nix_dotfiles_flake" --update --host-update "$@"
     return
   fi
   nix flake update --flake "$_nix_dotfiles_flake" "$@"
 }
 rebuild() {
-  if [ "$_portable_nix_host" -eq 1 ]; then
+  if ((_portable_nix_host == 1)); then
     nix run "$_nix_dotfiles_flake#immutable-activate" -- --flake "$_nix_dotfiles_flake" "$@"
     return
   fi
@@ -228,7 +250,7 @@ rebuild() {
 }
 check() {
   nix flake check "$_nix_dotfiles_flake" "$@"
-  if [ "$_portable_nix_host" -eq 1 ]; then
+  if ((_portable_nix_host == 1)); then
     nix build "$_nix_dotfiles_flake#immutable-profile"
   fi
 }
@@ -240,9 +262,11 @@ alias cza="chezmoi apply --force"
 
 # yazi with cwd sync
 function yy() {
-  local tmp="$(mktemp -t "yazi-cwd.XXXXX")"
+  local tmp cwd
+
+  tmp="$(mktemp -t "yazi-cwd.XXXXX")"
   yazi "$@" --cwd-file="$tmp"
-  if cwd="$(command cat -- "$tmp")" && [ -n "$cwd" ] && [ "$cwd" != "$PWD" ]; then
+  if cwd="$(command cat -- "$tmp")" && [[ -n "$cwd" && "$cwd" != "$PWD" ]]; then
     builtin cd -- "$cwd"
   fi
   rm -f -- "$tmp"
@@ -286,5 +310,5 @@ if _startup_command zoxide >/dev/null && [[ -r "$HOME/.cache/zoxide/init.bash" ]
   alias cd="z"
 fi
 
-unset -f _is_immutable_wrapper_path _is_immutable_wrapper_command _startup_command
+unset -f _path_prepend_once _command_wrapper _is_immutable_wrapper_path _is_immutable_wrapper_command _startup_command
 unset _immutable_wrapper_marker _immutable_nix_host _portable_nix_host

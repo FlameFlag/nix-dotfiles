@@ -1,16 +1,32 @@
 # Keep user-local tools visible in non-interactive bash.
-for dir in "$HOME/.yarn/bin" "$HOME/.go/bin" "$HOME/.cargo/bin" "$HOME/.local/bin" "$HOME/.npm/bin" "$HOME/.cache/.bun/bin" "$HOME/.bun/install/global/node_modules/.bin" "$HOME/.bun/bin" "$HOME/.pi/agent/bin"; do
-  case ":$PATH:" in
-    *":$dir:"*) ;;
-    *) PATH="$dir:$PATH" ;;
-  esac
-done
-if [ -d /run/wrappers/bin ]; then
-  case ":$PATH:" in
-    *":/run/wrappers/bin:"*) ;;
-    *) PATH="/run/wrappers/bin:$PATH" ;;
-  esac
+shopt -s array_expand_once globskipdots
+
+_path_prepend_once() {
+  local -n path_ref=$1
+  local dir
+
+  shift
+  for dir; do
+    [[ -n "$dir" && ":$path_ref:" != *":$dir:"* ]] && path_ref="$dir:$path_ref"
+  done
+}
+
+_path_prepend_once PATH \
+  "$HOME/.yarn/bin" \
+  "$HOME/.go/bin" \
+  "$HOME/.cargo/bin" \
+  "$HOME/.local/bin" \
+  "$HOME/.npm/bin" \
+  "$HOME/.cache/.bun/bin" \
+  "$HOME/.bun/install/global/node_modules/.bin" \
+  "$HOME/.bun/bin" \
+  "$HOME/.pi/agent/bin"
+
+if [[ -d /run/wrappers/bin ]]; then
+  _path_prepend_once PATH /run/wrappers/bin
 fi
+
+unset -f _path_prepend_once
 export PATH
 
 export UV_PYTHON_PREFERENCE="${UV_PYTHON_PREFERENCE:-only-managed}"
