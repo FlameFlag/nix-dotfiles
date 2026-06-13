@@ -7,7 +7,7 @@ $env.VISUAL = "hx"
 path add (
     ([ .bun .npm .local .cargo .go .yarn ] | each {|dir| [$nu.home-dir $dir bin] | path join })
     | append ([$nu.home-dir .cache .bun bin] | path join)
-    | append ([$nu.home-dir .local share nix-dotfiles bluefin bin] | path join)
+    | append ([$nu.home-dir .local share nix-dotfiles immutable bin] | path join)
 )
 if ("/run/wrappers/bin" | path exists) {
     $env.PATH = (

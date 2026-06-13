@@ -5,7 +5,7 @@ fi
 
 # Prefer user-local tools installed by Scaffold and language toolchains.
 typeset -U path PATH
-path=("$HOME/.pi/agent/bin" "$HOME/.bun/bin" "$HOME/.bun/install/global/node_modules/.bin" "$HOME/.cache/.bun/bin" "$HOME/.npm/bin" "$HOME/.local/bin" "$HOME/.cargo/bin" "$HOME/.go/bin" "$HOME/.yarn/bin" $path)
+path=("$HOME/.pi/agent/bin" "$HOME/.bun/bin" "$HOME/.bun/install/global/node_modules/.bin" "$HOME/.cache/.bun/bin" "$HOME/.npm/bin" "$HOME/.local/share/nix-dotfiles/immutable/bin" "$HOME/.local/bin" "$HOME/.cargo/bin" "$HOME/.go/bin" "$HOME/.yarn/bin" $path)
 if [[ -d /run/wrappers/bin ]]; then
   path=(/run/wrappers/bin $path)
 fi

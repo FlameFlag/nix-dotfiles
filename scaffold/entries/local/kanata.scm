@@ -13,6 +13,7 @@
       "install"
       "--git"
       "https://github.com/FlameFlag/kanata"
+      "kanata"
       "--rev"
       "c8c720ded5a34bbc4bdfbfbe33c97b7bb2e60e77"
       "--features"

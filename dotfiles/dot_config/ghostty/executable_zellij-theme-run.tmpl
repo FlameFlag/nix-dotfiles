@@ -5,7 +5,7 @@
 set -euo pipefail
 
 readonly HOME_DIR={{ .chezmoi.homeDir | quote }}
-PATH="${HOME_DIR}/.local/bin:${HOME_DIR}/.cargo/bin:${HOME_DIR}/.bun/bin:${HOME_DIR}/.bun/install/global/node_modules/.bin:${HOME_DIR}/.cache/.bun/bin:${HOME_DIR}/.nix-profile/bin:/run/wrappers/bin:/run/current-system/sw/bin:/nix/var/nix/profiles/default/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+PATH="${HOME_DIR}/.local/share/nix-dotfiles/immutable/bin:${HOME_DIR}/.local/bin:${HOME_DIR}/.cargo/bin:${HOME_DIR}/.bun/bin:${HOME_DIR}/.bun/install/global/node_modules/.bin:${HOME_DIR}/.cache/.bun/bin:${HOME_DIR}/.nix-profile/bin:/run/wrappers/bin:/run/current-system/sw/bin:/nix/var/nix/profiles/default/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
 export PATH
 
 is_immutable_wrapper() {

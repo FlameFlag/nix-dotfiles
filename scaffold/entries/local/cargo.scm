@@ -3,10 +3,7 @@
   (export repo-cargo-tools)
   (import (rnrs) (scaffold catalog) (scaffold extensions ecosystem cargo))
 
-  (doc-next
-    (hidden)
-    (summary
-      "Create a repo-local Cargo tool that installs without refreshing crates.io."))
+  (doc-next (hidden) (summary "Create a repo-local Cargo tool from this repository."))
 
   (define (repo-cargo-tool name path . fields)
     (tool/override
@@ -17,7 +14,7 @@
             'action
             (build
               (field 'path path)
-              (field 'argv (cargo/install-argv "{{ source_dir }}" (arr "--offline")))))))))
+              (field 'argv (cargo/install-argv "{{ source_dir }}" (arr)))))))))
 
   (doc-next
     (hidden)

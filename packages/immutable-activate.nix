@@ -33,7 +33,7 @@ pkgs.stdenvNoCC.mkDerivation {
 
     install -Dm755 "$src" "$out/bin/immutable-activate"
     substituteInPlace "$out/bin/immutable-activate" \
-      --replace-fail '#!/usr/bin/env bash' '#!${lib.getExe pkgs.bash}' \
+      --replace-fail '#!/bin/bash' '#!${lib.getExe pkgs.bash}' \
       --replace-fail '@runtimePath@' '${lib.makeBinPath runtimeInputs}'
 
     runHook postInstall

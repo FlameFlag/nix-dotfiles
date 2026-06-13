@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 # shellcheck shell=bash
 # Build and activate the nix-dotfiles immutable Linux user profile.
 set -euo pipefail
@@ -6,6 +6,51 @@ shopt -s inherit_errexit array_expand_once globskipdots
 
 readonly runtime_path="@runtimePath@"
 readonly marker="# nix-dotfiles: immutable-wrapper"
+readonly ARCH_CONTAINER_IMAGE="docker.io/library/archlinux:latest"
+readonly NIX_CONTAINER_NAME="arch-nix"
+readonly DEV_CONTAINER_NAME="arch-dev"
+readonly CONTAINER_SYSTEM_PATH="/usr/local/sbin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+
+declare -ra NIX_CONTAINER_PACKAGES=(
+  base-devel
+  ca-certificates
+  curl
+  git
+  gzip
+  nix
+  sudo
+  tar
+  xz
+)
+declare -ra DEV_CONTAINER_PACKAGES=(
+  base-devel
+  ffmpeg
+  ruff
+  rustup
+  sudo
+  ty
+  uv
+  yt-dlp
+)
+declare -ra RUSTUP_COMPONENTS=(
+  rustfmt
+  clippy
+  rust-analyzer
+  rust-src
+)
+declare -ra DEV_EXPORT_BINS=(
+  cargo
+  cargo-clippy
+  ruff
+  rust-analyzer
+  rustc
+  rustfmt
+  rustup
+  ty
+  uv
+  uvx
+  yt-dlp
+)
 
 usage() {
   cat <<'EOF'
@@ -176,7 +221,7 @@ install_host_wrapper() {
   printf -v quoted_target '%#q' "$profile/bin/$name"
 
   {
-    printf '%s\n' '#!/usr/bin/env bash'
+    printf '%s\n' '#!/bin/sh'
     printf '%s\n' "$marker"
     printf 'exec %s "$@"\n' "$quoted_target"
   } >"$tmp"
@@ -210,6 +255,32 @@ remove_stale_wrappers() {
       rm -f "$candidate"
     fi
   done
+}
+
+link_scaffold_extension() {
+  local flake=$1
+  local name=$2
+  local source="$flake/scaffold/$name"
+  local dest="$flake/.scaffold/extensions/$name"
+  local relative_source="../../scaffold/$name"
+
+  [[ -d "$source" ]] || die "missing Scaffold extension source: $source"
+
+  if [[ -L "$dest" ]]; then
+    ln -sfn "$relative_source" "$dest"
+  elif [[ -e "$dest" ]]; then
+    die "refusing to replace non-symlink Scaffold extension path: $dest"
+  else
+    ln -s "$relative_source" "$dest"
+  fi
+}
+
+ensure_scaffold_extensions() {
+  local flake=$1
+
+  mkdir -p "$flake/.scaffold/extensions"
+  link_scaffold_extension "$flake" entries
+  link_scaffold_extension "$flake" installers
 }
 
 default_flake() {
