@@ -17,4 +17,6 @@
     (returns "List of Scaffold tool objects."))
 
   (define (local/tools)
-    (append (list (kanata-tool) (scaffold-tool)) (repo-cargo-tools))))
+    (append
+      (list (kanata-tool) (scaffold-tool))
+      (repo-cargo-tools))))

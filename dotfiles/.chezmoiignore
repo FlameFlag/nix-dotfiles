@@ -51,6 +51,7 @@ Library/
 {{ if ne .chezmoi.os "darwin" }}
 Library/
 .config/raycast/
+dot_local/bin/executable_raycast-beta-write-user.cjs
 {{ end }}
 
 {{ if eq .chezmoi.os "darwin" }}

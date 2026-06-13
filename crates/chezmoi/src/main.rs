@@ -109,7 +109,7 @@ fn run_chezmoi_support(command: CommandName, options: Options) -> Result<()> {
         }
         CommandName::ZedInstallCatppuccinTheme => zed::install_catppuccin_theme(&options),
         CommandName::YaziInit => yazi::install_plugins(&options),
-        CommandName::RaycastBetaPatch => raycast::beta_patch(&options),
+        CommandName::RaycastBetaPatch => raycast::patch_beta_user(&options),
         CommandName::SyncCompletions => sync_completions(&options),
         CommandName::Completions { shell } => {
             generate_chezmoi_support_completions(shell);

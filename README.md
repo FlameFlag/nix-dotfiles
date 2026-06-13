@@ -81,6 +81,20 @@ chezmoi apply --refresh-externals=always --force
 ### Immutable Linux With Containerized Nix
 
 ```bash
+# Bluefin and other ostree hosts usually cannot create /nix on the host.
+packages/immutable-activate.sh --backend container --reset-containers
+chezmoi apply --refresh-externals=always --force
+```
+
+The container backend keeps Nix inside managed Distrobox containers and exports
+commands through `distrobox-export` into
+`~/.local/share/nix-dotfiles/immutable/bin`. Keep that directory on `PATH`
+before `~/.local/bin`; the dotfiles shell templates do this automatically.
+
+If `nix` already exists on the host, the direct profile activator is still
+available:
+
+```bash
 nix run .#immutable-activate
 chezmoi apply --refresh-externals=always --force
 ```
