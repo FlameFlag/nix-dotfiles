@@ -25,15 +25,6 @@
 > hostnames, users, secrets, hardware config, paid font settings, and other
 > machine-specific values.
 
-## System Flow
-
-Nix defines the system state. [Scaffold](https://github.com/FlameFlag/scaffold)
-is the Scheme-driven tool catalog layer for user-space setup that should live
-outside the Nix system closure or update independently.
-
-Host-level configuration stays in Nix: services, patched packages, system
-settings, and anything else that is easier to keep declarative.
-
 ## Scaffold
 
 The root [`scaffold.scm`](scaffold.scm) is a Scaffold catalog. It includes a
@@ -44,22 +35,17 @@ using Nix profiles:
 scaffold install scaffold
 ```
 
-The old repo-local installer and Rust-backed Scheme config helpers have been
-removed. Scaffold owns the Scheme catalog.
-
 ## System Builds
 
-The first-run order matters:
-
-- **NixOS:** rebuild first, then run Scaffold or `chezmoi` as needed
+- **NixOS:** rebuild first, run Scaffold, then apply `chezmoi`
 - **macOS:** install Nix, switch nix-darwin, then run Scaffold or `chezmoi`
 
 ### NixOS
 
 ```bash
-# Replace my secrets or change hosts/linux/users.nix so it does not need them.
+# Replace my secrets or change hosts/linux/users.nix so it does not need them
 
-# Delete my hardware-configuration.nix and generate one for your machine.
+# Delete my hardware-configuration.nix and generate one for your machine
 if [ ! -f "hosts/linux/hardware-configuration.nix" ]; then
   nixos-generate-config
   mv "hardware-configuration.nix" "hosts/linux/hardware-configuration.nix"
@@ -68,10 +54,13 @@ fi
 
 nixos-rebuild switch --use-remote-sudo --flake $(readlink -f "/etc/nixos")
 
-# Apply the dotfiles.
+# Install/update user-space tools managed outside the NixOS closure
+scaffold install
+
+# Apply the dotfiles
 chezmoi apply --refresh-externals=always --force
 
-# After initial build, you can use the `rebuild` and `cza` aliases.
+# After initial build, you can use the `rebuild` and `cza` aliases
 ```
 
 ### macOS
