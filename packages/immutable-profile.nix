@@ -2,17 +2,21 @@
 
 pkgs.buildEnv {
   name = "nix-dotfiles-immutable-profile";
-  paths =
-    (with pkgs; [
+  paths = lib.attrValues {
+    inherit (pkgs)
       dis
-    ])
-    ++ (with pkgs.unstable; [
+      immutable-activate
+      scaffold
+      ;
+
+    inherit (pkgs.unstable)
       atuin
       bash
       bat
       bottom
       broot
       btop
+      chezmoi
       delta
       duf
       dust
@@ -27,6 +31,7 @@ pkgs.buildEnv {
       less
       nh
       nil
+      nix
       nix-prefetch-github
       nix-tree
       nixd
@@ -40,7 +45,8 @@ pkgs.buildEnv {
       zellij
       zoxide
       zsh
-    ]);
+      ;
+  };
 
   pathsToLink = [
     "/bin"
@@ -48,7 +54,7 @@ pkgs.buildEnv {
   ];
 
   meta = {
-    description = "User packages exported from the nix-dotfiles immutable Distrobox";
+    description = "User packages exported for nix-dotfiles immutable Linux hosts";
     platforms = lib.platforms.linux;
   };
 }

@@ -19,11 +19,8 @@ fi
 export PATH
 
 _immutable_wrapper_marker="# nix-dotfiles: immutable-wrapper"
-_legacy_immutable_wrapper_marker="# nix-dotfiles: ublue-wrapper"
 _is_immutable_wrapper_path() {
-  [ -f "$1" ] \
-    && { command grep -Fqx "$_immutable_wrapper_marker" "$1" 2>/dev/null \
-      || command grep -Fqx "$_legacy_immutable_wrapper_marker" "$1" 2>/dev/null; }
+  [ -f "$1" ] && command grep -Fqx "$_immutable_wrapper_marker" "$1" 2>/dev/null
 }
 _is_immutable_wrapper_command() {
   local command_path
@@ -54,6 +51,10 @@ unset _nix_dotfiles_dir
 _immutable_nix_host=0
 if _is_immutable_wrapper_command nix; then
   _immutable_nix_host=1
+fi
+_portable_nix_host=0
+if [ "$_immutable_nix_host" -eq 1 ] || [ ! -e /etc/NIXOS ]; then
+  _portable_nix_host=1
 fi
 
 _startup_command() {
@@ -197,10 +198,10 @@ cxg() {
 }
 
 # Nix
+{{- if eq .chezmoi.os "darwin" }}
 update() {
   nix flake update --flake "$_nix_dotfiles_flake" "$@"
 }
-{{- if eq .chezmoi.os "darwin" }}
 rebuild() {
   nh darwin switch "$_nix_dotfiles_flake" "$@"
 }
@@ -211,16 +212,23 @@ micfix() {
   free killall coreaudiod "$@"
 }
 {{- else }}
+update() {
+  if [ "$_portable_nix_host" -eq 1 ]; then
+    nix run "$_nix_dotfiles_flake#immutable-activate" -- --flake "$_nix_dotfiles_flake" --update --host-update "$@"
+    return
+  fi
+  nix flake update --flake "$_nix_dotfiles_flake" "$@"
+}
 rebuild() {
-  if [ "$_immutable_nix_host" -eq 1 ]; then
-    nix build "$_nix_dotfiles_flake#immutable-profile"
+  if [ "$_portable_nix_host" -eq 1 ]; then
+    nix run "$_nix_dotfiles_flake#immutable-activate" -- --flake "$_nix_dotfiles_flake" "$@"
     return
   fi
   free nh os switch "$_nix_dotfiles_flake" "$@"
 }
 check() {
   nix flake check "$_nix_dotfiles_flake" "$@"
-  if [ "$_immutable_nix_host" -eq 1 ]; then
+  if [ "$_portable_nix_host" -eq 1 ]; then
     nix build "$_nix_dotfiles_flake#immutable-profile"
   fi
 }
@@ -279,4 +287,4 @@ if _startup_command zoxide >/dev/null && [[ -r "$HOME/.cache/zoxide/init.bash" ]
 fi
 
 unset -f _is_immutable_wrapper_path _is_immutable_wrapper_command _startup_command
-unset _immutable_wrapper_marker _legacy_immutable_wrapper_marker
+unset _immutable_wrapper_marker _immutable_nix_host _portable_nix_host

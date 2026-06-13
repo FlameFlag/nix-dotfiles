@@ -86,6 +86,7 @@
               };
             });
           kanata-with-cmd = final.kanata.override { withCmd = true; };
+          immutable-activate = final.callPackage ../../packages/immutable-activate.nix { };
           immutable-profile = final.callPackage ../../packages/immutable-profile.nix { };
           http-fixture = final.callPackage ../../packages/http-fixture.nix { };
           hyper-window-tiling = final.callPackage ../../packages/hyper-window-tiling.nix { };

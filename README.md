@@ -81,18 +81,19 @@ chezmoi apply --refresh-externals=always --force
 ### Immutable Linux With Containerized Nix
 
 ```bash
+nix run .#immutable-activate
 chezmoi apply --refresh-externals=always --force
-nix build .#immutable-profile
 ```
 
 After first setup:
 
 ```bash
-# Refresh flake inputs in the checkout selected by NIX_DOTFILES_FLAKE,
-# /etc/nixos, ~/Developer/nix-dotfiles, or ~/nix-dotfiles.
+# Refresh flake inputs, update native host/user package managers when present,
+# rebuild the immutable profile, refresh wrappers, and run Scaffold.
 update
 
-# Reinstall the immutable Nix profile, refresh wrappers, and restage host bits.
+# Rebuild the immutable profile, refresh wrappers, and run Scaffold without
+# changing flake inputs or the host OS.
 rebuild
 
 # Check the flake and build the immutable profile.

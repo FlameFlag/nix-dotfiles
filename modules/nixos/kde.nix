@@ -5,6 +5,7 @@
   ...
 }:
 let
+  inherit (lib.attrsets) attrValues;
   inherit (lib.modules) mkIf mkMerge;
   inherit (lib.options) mkEnableOption;
 in
@@ -17,6 +18,14 @@ in
       services = {
         displayManager.sddm.enable = true;
         desktopManager.plasma6.enable = true;
+      };
+      environment.systemPackages = attrValues {
+        inherit (pkgs.unstable.kdePackages)
+          breeze
+          breeze-gtk
+          breeze-icons
+          ffmpegthumbs
+          ;
       };
     })
     (mkIf (config.nixOS.kde.enable || config.nixOS.kde.hyperWindowTiling.enable) {

@@ -57,7 +57,6 @@ in
         desktopManager.gnome.enable = true;
       };
       environment.systemPackages = attrValues {
-        inherit (pkgs) wl-clipboard;
         inherit (pkgs)
           apostrophe # Markdown Editor
           decibels # Audio Player

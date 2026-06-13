@@ -73,7 +73,7 @@ def is-immutable-wrapper [candidate: path]: nothing -> bool {
     } catch {
         ""
     }
-    ($text | str contains "# nix-dotfiles: immutable-wrapper") or ($text | str contains "# nix-dotfiles: ublue-wrapper")
+    $text | str contains "# nix-dotfiles: immutable-wrapper"
 }
 
 def is-immutable-nix-host []: nothing -> bool {
@@ -85,16 +85,31 @@ def is-immutable-nix-host []: nothing -> bool {
     is-immutable-wrapper $nix_path
 }
 
+def is-portable-nix-host []: nothing -> bool {
+    if (is-immutable-nix-host) {
+        return true
+    }
+
+    not ("/etc/NIXOS" | path exists)
+}
+
 def --wrapped update [...args] {
-    ^nix flake update --flake (nix-dotfiles-flake) ...$args
+    let flake = (nix-dotfiles-flake)
+    if $nu.os-info.name == "macos" {
+        ^nix flake update --flake $flake ...$args
+    } else if (is-portable-nix-host) {
+        ^nix run $"($flake)#immutable-activate" -- --flake $flake --update --host-update ...$args
+    } else {
+        ^nix flake update --flake $flake ...$args
+    }
 }
 
 def --wrapped rebuild [...args] {
     let flake = (nix-dotfiles-flake)
     if $nu.os-info.name == "macos" {
         ^nh darwin switch $flake ...$args
-    } else if (is-immutable-nix-host) {
-        ^nix build $"($flake)#immutable-profile"
+    } else if (is-portable-nix-host) {
+        ^nix run $"($flake)#immutable-activate" -- --flake $flake ...$args
     } else {
         free nh os switch $flake ...$args
     }
@@ -106,7 +121,7 @@ def --wrapped check [...args] {
         free darwin-rebuild check --flake $flake ...$args
     } else {
         ^nix flake check $flake ...$args
-        if (is-immutable-nix-host) {
+        if (is-portable-nix-host) {
             ^nix build $"($flake)#immutable-profile"
         }
     }

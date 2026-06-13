@@ -102,7 +102,7 @@
           default = pkgs.scaffold;
         }
         // inputs.nixpkgs.lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux {
-          inherit (pkgs) immutable-profile lenovo-con-mode;
+          inherit (pkgs) immutable-activate immutable-profile lenovo-con-mode;
         }
       );
 
