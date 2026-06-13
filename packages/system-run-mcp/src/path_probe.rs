@@ -125,8 +125,7 @@ trailing noise
 
     #[test]
     fn normalize_user_shell_path_prepends_user_tool_dirs() {
-        let path =
-            "/Users/me/.nix-profile/bin:/run/current-system/sw/bin:/Users/me/.cargo/bin";
+        let path = "/Users/me/.nix-profile/bin:/run/current-system/sw/bin:/Users/me/.cargo/bin";
 
         assert_eq!(
             normalize_user_shell_path(path, Some("/Users/me")),

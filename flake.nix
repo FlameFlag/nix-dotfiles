@@ -67,7 +67,7 @@
             treefmt "$@"
             cargo fmt --all
             shopt -s globstar nullglob
-            scaffold fmt "$@" scaffold.scm scaffold/**/*.scm
+            scaffold fmt scaffold.scm scaffold/**/*.scm
           '';
         }
       );
