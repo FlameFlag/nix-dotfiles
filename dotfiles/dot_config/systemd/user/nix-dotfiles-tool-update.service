@@ -1,0 +1,25 @@
+[Unit]
+Description=Run periodic nix-dotfiles tool updaters
+Documentation=https://github.com/FlameFlag/nix-dotfiles
+
+[Service]
+Type=oneshot
+ExecStart=%h/.local/bin/nix-dotfiles-tool-update
+CapabilityBoundingSet=
+LockPersonality=true
+NoNewPrivileges=true
+PrivateDevices=true
+PrivateTmp=true
+ProtectClock=true
+ProtectControlGroups=true
+ProtectHome=false
+ProtectHostname=true
+ProtectKernelLogs=true
+ProtectKernelModules=true
+ProtectKernelTunables=true
+ProtectSystem=full
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+RestrictRealtime=true
+RestrictSUIDSGID=true
+SystemCallArchitectures=native
+UMask=0022

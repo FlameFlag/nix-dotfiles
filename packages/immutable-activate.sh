@@ -5,52 +5,11 @@ set -euo pipefail
 shopt -s inherit_errexit array_expand_once globskipdots
 
 readonly runtime_path="@runtimePath@"
+readonly distrobox_manifest="@distroboxManifest@"
 readonly marker="# nix-dotfiles: immutable-wrapper"
-readonly ARCH_CONTAINER_IMAGE="docker.io/library/archlinux:latest"
-readonly NIX_CONTAINER_NAME="arch-nix"
-readonly DEV_CONTAINER_NAME="arch-dev"
+readonly NIX_CONTAINER_NAME="fedora-nix"
+readonly LEGACY_NIX_CONTAINER_NAME="arch-nix"
 readonly CONTAINER_SYSTEM_PATH="/usr/local/sbin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
-
-declare -ra NIX_CONTAINER_PACKAGES=(
-  base-devel
-  ca-certificates
-  curl
-  git
-  gzip
-  nix
-  sudo
-  tar
-  xz
-)
-declare -ra DEV_CONTAINER_PACKAGES=(
-  base-devel
-  ffmpeg
-  ruff
-  rustup
-  sudo
-  ty
-  uv
-  yt-dlp
-)
-declare -ra RUSTUP_COMPONENTS=(
-  rustfmt
-  clippy
-  rust-analyzer
-  rust-src
-)
-declare -ra DEV_EXPORT_BINS=(
-  cargo
-  cargo-clippy
-  ruff
-  rust-analyzer
-  rustc
-  rustfmt
-  rustup
-  ty
-  uv
-  uvx
-  yt-dlp
-)
 
 usage() {
   cat <<'EOF'
@@ -92,12 +51,6 @@ require_command() {
   local name=$1
 
   command -v "$name" >/dev/null 2>&1 || die "missing required command: $name"
-}
-
-join_words() {
-  local IFS=' '
-
-  printf '%s\n' "$*"
 }
 
 is_wrapper() {
@@ -312,6 +265,17 @@ distrobox_enter() {
   distrobox enter --name "$name" -- "$@"
 }
 
+resolve_distrobox_manifest() {
+  local manifest=$distrobox_manifest
+
+  if [[ "$manifest" == "@distroboxManifest@" ]]; then
+    manifest="$(cd -P -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)/immutable-distrobox.ini"
+  fi
+
+  [[ -f "$manifest" ]] || die "missing Distrobox manifest: $manifest"
+  printf '%s\n' "$manifest"
+}
+
 profile_container_path() {
   printf '%s:%s:%s:%s:%s\n' \
     "$HOME/.local/bin" \
@@ -321,86 +285,18 @@ profile_container_path() {
     "$CONTAINER_SYSTEM_PATH"
 }
 
-dev_container_path() {
-  printf '%s:%s\n' "$HOME/.cargo/bin" "$CONTAINER_SYSTEM_PATH"
-}
-
 nix_container_path() {
-  printf '%s:%s\n' "$HOME/.nix-profile/bin" "$CONTAINER_SYSTEM_PATH"
+  printf '%s:%s:%s\n' "$HOME/.nix-profile/bin" "/nix/var/nix/profiles/default/bin" "$CONTAINER_SYSTEM_PATH"
 }
 
-ensure_distrobox_container() {
-  local name=$1
-  local image=$2
-  local init_hooks=$3
-  shift 3
+ensure_nix_container() {
+  local manifest=$1
 
-  local package_list
-  local -a packages=("$@")
-  local -a create_args=(
-    create
-    --yes
-    --name "$name"
-    --image "$image"
-    --init
-    --home "$HOME"
-  )
+  distrobox assemble create --file "$manifest" --name "$NIX_CONTAINER_NAME"
 
-  if distrobox_enter "$name" true >/dev/null 2>&1; then
-    return
+  if ! distrobox_enter "$NIX_CONTAINER_NAME" env "PATH=$(nix_container_path)" nix --version >/dev/null 2>&1; then
+    die "managed Distrobox container has no working Nix; rerun with --reset-containers"
   fi
-
-  if ((${#packages[@]} > 0)); then
-    package_list=$(join_words "${packages[@]}")
-    create_args+=(--additional-packages "$package_list")
-  fi
-  if [[ -n "$init_hooks" ]]; then
-    create_args+=(--init-hooks "$init_hooks")
-  fi
-
-  distrobox "${create_args[@]}"
-  distrobox_enter "$name" true
-}
-
-setup_nix_container() {
-  local init_hooks
-
-  printf -v init_hooks 'mkdir -p /etc/nix /nix/store; printf "%%s\\n" "experimental-features = nix-command flakes" > /etc/nix/nix.conf; chown -R %s:%s /nix' \
-    "$(id -u)" \
-    "$(id -g)"
-
-  ensure_distrobox_container \
-    "$NIX_CONTAINER_NAME" \
-    "$ARCH_CONTAINER_IMAGE" \
-    "$init_hooks" \
-    "${NIX_CONTAINER_PACKAGES[@]}"
-}
-
-setup_dev_container() {
-  local component
-  local container_path
-  local -a rustup_args=(
-    rustup
-    toolchain
-    install
-    stable
-    --profile
-    minimal
-  )
-
-  container_path=$(dev_container_path)
-  ensure_distrobox_container \
-    "$DEV_CONTAINER_NAME" \
-    "$ARCH_CONTAINER_IMAGE" \
-    "" \
-    "${DEV_CONTAINER_PACKAGES[@]}"
-
-  for component in "${RUSTUP_COMPONENTS[@]}"; do
-    rustup_args+=(--component "$component")
-  done
-
-  distrobox_enter "$DEV_CONTAINER_NAME" env "PATH=$container_path" "${rustup_args[@]}"
-  distrobox_enter "$DEV_CONTAINER_NAME" env "PATH=$container_path" rustup default stable
 }
 
 export_profile_container_bins() {
@@ -438,39 +334,6 @@ done
 CONTAINER_SCRIPT
 }
 
-export_dev_container_bins() {
-  local export_dir=$1
-  local launcher_dir=$2
-  local dev_export_bins
-
-  dev_export_bins=$(join_words "${DEV_EXPORT_BINS[@]}")
-  local -a env_args=(
-    "NIX_DOTFILES_CONTAINER_PATH=$(dev_container_path)"
-    "NIX_DOTFILES_DEV_EXPORT_BINS=$dev_export_bins"
-    "NIX_DOTFILES_EXPORT_DIR=$export_dir"
-    "NIX_DOTFILES_LAUNCHER_DIR=$launcher_dir"
-  )
-
-  distrobox_enter "$DEV_CONTAINER_NAME" env "${env_args[@]}" sh -s <<'CONTAINER_SCRIPT'
-set -eu
-
-rm -rf "$NIX_DOTFILES_LAUNCHER_DIR"
-mkdir -p "$NIX_DOTFILES_LAUNCHER_DIR"
-
-for name in $NIX_DOTFILES_DEV_EXPORT_BINS; do
-  target=$(PATH="$NIX_DOTFILES_CONTAINER_PATH" command -v "$name") || continue
-  launcher="$NIX_DOTFILES_LAUNCHER_DIR/$name"
-  {
-    printf "%s\n" "#!/bin/sh"
-    printf "export PATH=\"%s\"\n" "$NIX_DOTFILES_CONTAINER_PATH"
-    printf "exec \"%s\" \"\$@\"\n" "$target"
-  } >"$launcher"
-  chmod 0755 "$launcher"
-  distrobox-export --bin "$launcher" --export-path "$NIX_DOTFILES_EXPORT_DIR" >/dev/null
-done
-CONTAINER_SCRIPT
-}
-
 remove_legacy_container_wrappers() {
   local wrapper_dir=$1
   local candidate
@@ -487,7 +350,10 @@ remove_legacy_container_wrappers() {
 }
 
 reset_managed_containers() {
-  distrobox rm --force "$NIX_CONTAINER_NAME" "$DEV_CONTAINER_NAME" || true
+  local manifest=$1
+
+  distrobox assemble rm --file "$manifest" --name "$NIX_CONTAINER_NAME" || true
+  distrobox rm --force "$LEGACY_NIX_CONTAINER_NAME" || true
 }
 
 activate_host_profile() {
@@ -546,6 +412,7 @@ activate_container_profile() {
   local export_root="${HOME:?HOME must be set}/.local/share/nix-dotfiles/immutable"
   local export_dir="$export_root/bin"
   local launcher_root="$export_root/container-launchers"
+  local manifest
   local -a nix_env_args=(
     "PATH=$(nix_container_path)"
   )
@@ -558,13 +425,13 @@ activate_container_profile() {
   require_command distrobox
 
   mkdir -p "$bin_home" "$export_dir" "$launcher_root"
+  manifest=$(resolve_distrobox_manifest)
 
   if ((reset == 1)); then
-    reset_managed_containers
+    reset_managed_containers "$manifest"
   fi
 
-  setup_nix_container
-  setup_dev_container
+  ensure_nix_container "$manifest"
 
   if ((run_update == 1)); then
     distrobox_enter "$NIX_CONTAINER_NAME" env "${nix_env_args[@]}" \
@@ -579,7 +446,6 @@ activate_container_profile() {
   rm -rf "$export_dir"
   mkdir -p "$export_dir"
   export_profile_container_bins "$export_dir" "$launcher_root/$NIX_CONTAINER_NAME"
-  export_dev_container_bins "$export_dir" "$launcher_root/$DEV_CONTAINER_NAME"
   remove_legacy_container_wrappers "$bin_home"
 
   if ((run_scaffold == 1)); then

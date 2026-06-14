@@ -1,52 +1,16 @@
 { lib, pkgs }:
 
+let
+  userPackages = import ./user-packages.nix { inherit lib pkgs; };
+in
 pkgs.buildEnv {
   name = "nix-dotfiles-immutable-profile";
-  paths = lib.attrValues {
-    inherit (pkgs)
-      dis
-      immutable-activate
-      scaffold
-      ;
-
-    inherit (pkgs.unstable)
-      atuin
-      bash
-      bat
-      bottom
-      broot
-      btop
-      chezmoi
-      delta
-      duf
-      dust
-      eza
-      fd
-      fzf
-      git
-      gitui
-      helix
-      jq
-      jujutsu
-      less
-      nh
-      nil
-      nix
-      nix-prefetch-github
-      nix-tree
-      nixd
-      nixfmt
-      nushell
-      ripgrep
-      sd
-      starship
-      television
-      yazi
-      zellij
-      zoxide
-      zsh
-      ;
-  };
+  paths = userPackages ++ [
+    pkgs.immutable-activate
+    pkgs.scaffold
+    pkgs.unstable.chezmoi
+    pkgs.unstable.nix
+  ];
 
   pathsToLink = [
     "/bin"

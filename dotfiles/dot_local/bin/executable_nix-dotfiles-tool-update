@@ -1,0 +1,293 @@
+#!/usr/bin/env bash
+# shellcheck shell=bash
+set -u -o pipefail
+
+readonly DEFAULT_IMMUTABLE_CONTAINER="fedora-nix"
+
+log() {
+  printf '%s %s\n' "$(date '+%Y-%m-%dT%H:%M:%S%z')" "$*"
+}
+
+prepend_path() {
+  local dir
+
+  for dir; do
+    [[ -n "$dir" && -d "$dir" && ":$PATH:" != *":$dir:"* ]] && PATH="$dir:$PATH"
+  done
+}
+
+script_path() {
+  case "$0" in
+  */*) printf '%s\n' "$0" ;;
+  *) command -v -- "$0" ;;
+  esac
+}
+
+maybe_reexec_in_immutable_container() {
+  local container script
+
+  [[ "$(uname -s)" == "Linux" ]] || return
+  [[ -e /run/ostree-booted ]] || return
+  [[ "${NIX_DOTFILES_TOOL_UPDATE_IN_CONTAINER:-0}" != 1 ]] || return
+  command -v distrobox >/dev/null 2>&1 || return
+
+  container="${NIX_DOTFILES_TOOL_UPDATE_CONTAINER:-$DEFAULT_IMMUTABLE_CONTAINER}"
+  distrobox enter --name "$container" -- true >/dev/null 2>&1 || return
+
+  script="$(script_path)" || return
+  log "re-executing tool updater inside Distrobox container: $container"
+  exec distrobox enter --name "$container" -- env \
+    "NIX_DOTFILES_TOOL_UPDATE_IN_CONTAINER=1" \
+    "NIX_DOTFILES_TOOL_UPDATE_MANIFEST=${NIX_DOTFILES_TOOL_UPDATE_MANIFEST:-}" \
+    "NIX_DOTFILES_TOOL_UPDATERS_DIR=${NIX_DOTFILES_TOOL_UPDATERS_DIR:-}" \
+    "PATH=$PATH" \
+    "$script" "$@"
+}
+
+run_manifest_entry() {
+  local name=$1 provider=$2 target=$3 source=${4:-} runner package
+
+  log "running manifest updater: $name ($provider)"
+  case "$provider" in
+  bun-global)
+    runner="$(command -v bun)" || {
+      log "skipping $name: bun not found"
+      return 127
+    }
+    "$runner" install --global "$target"
+    ;;
+  uv-tool)
+    runner="$(command -v uv)" || {
+      log "skipping $name: uv not found"
+      return 127
+    }
+    "$runner" tool upgrade "$target"
+    ;;
+  uv-tool-source)
+    runner="$(command -v uv)" || {
+      log "skipping $name: uv not found"
+      return 127
+    }
+    if [[ -z "$source" ]]; then
+      log "skipping $name: uv-tool-source requires a source column"
+      return 2
+    fi
+    package="$target @ $source"
+    "$runner" tool install --force --reinstall --refresh "$package"
+    ;;
+  *)
+    log "skipping $name: unknown updater provider '$provider'"
+    return 2
+    ;;
+  esac
+}
+
+trim_ws() {
+  local value=$1
+
+  value="${value#"${value%%[![:space:]]*}"}"
+  value="${value%"${value##*[![:space:]]}"}"
+  printf '%s\n' "$value"
+}
+
+strip_toml_comment() {
+  local value=$1 out= ch= quote=
+  local i
+
+  for ((i = 0; i < ${#value}; i++)); do
+    ch="${value:i:1}"
+    if [[ -n "$quote" ]]; then
+      out+="$ch"
+      if [[ "$ch" == "$quote" ]]; then
+        quote=
+      elif [[ "$quote" == '"' && "$ch" == "\\" && $((i + 1)) -lt ${#value} ]]; then
+        i=$((i + 1))
+        out+="${value:i:1}"
+      fi
+      continue
+    fi
+
+    case "$ch" in
+    \"|\')
+      quote="$ch"
+      out+="$ch"
+      ;;
+    "#")
+      break
+      ;;
+    *)
+      out+="$ch"
+      ;;
+    esac
+  done
+
+  trim_ws "$out"
+}
+
+toml_value() {
+  local value
+
+  value="$(trim_ws "$1")"
+  case "$value" in
+  \"*\")
+    value="${value#\"}"
+    value="${value%\"}"
+    value="${value//\\\"/\"}"
+    value="${value//\\\\/\\}"
+    ;;
+  \'*\')
+    value="${value#\'}"
+    value="${value%\'}"
+    ;;
+  esac
+  printf '%s\n' "$value"
+}
+
+run_manifest_tool() {
+  local name=$1 provider=$2 target=$3 source=$4 enabled=$5
+
+  [[ "$enabled" != "false" ]] || {
+    log "skipping disabled manifest updater: $name"
+    return 0
+  }
+
+  if [[ -z "$name" || -z "$provider" || -z "$target" ]]; then
+    log "invalid manifest tool entry: name, provider, and package are required"
+    return 2
+  fi
+
+  run_manifest_entry "$name" "$provider" "$target" "$source"
+}
+
+run_manifest() {
+  local manifest=$1 line key value in_tool=0 count=0 status=0
+  local name= provider= target= source= enabled=true entry_status=0
+
+  [[ -f "$manifest" ]] || return 0
+  log "reading update manifest: $manifest"
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    line="${line%$'\r'}"
+    line="$(strip_toml_comment "$line")"
+    [[ -n "$line" ]] || continue
+
+    if [[ "$line" == "[[tools]]" || "$line" == "[[tool]]" ]]; then
+      if ((in_tool)); then
+        entry_status=0
+        run_manifest_tool "$name" "$provider" "$target" "$source" "$enabled" || entry_status=$?
+        ((entry_status != 0)) && status=$entry_status
+      fi
+
+      in_tool=1
+      name=
+      provider=
+      target=
+      source=
+      enabled=true
+      count=$((count + 1))
+      continue
+    fi
+
+    if [[ "$line" == \[* ]]; then
+      log "invalid manifest table: $line"
+      status=2
+      in_tool=0
+      continue
+    fi
+
+    if ((!in_tool)) || [[ "$line" != *=* ]]; then
+      log "invalid manifest line: $line"
+      status=2
+      continue
+    fi
+
+    key="$(trim_ws "${line%%=*}")"
+    value="$(toml_value "${line#*=}")"
+    case "$key" in
+    name) name="$value" ;;
+    provider) provider="$value" ;;
+    package | target) target="$value" ;;
+    source) source="$value" ;;
+    enabled) enabled="$value" ;;
+    *)
+      log "ignoring unknown manifest key: $key"
+      ;;
+    esac
+  done <"$manifest"
+
+  if ((in_tool)); then
+    entry_status=0
+    run_manifest_tool "$name" "$provider" "$target" "$source" "$enabled" || entry_status=$?
+    ((entry_status != 0)) && status=$entry_status
+  fi
+
+  _nix_dotfiles_tool_update_manifest_count=$count
+  return "$status"
+}
+
+run_updater() {
+  local updater=$1
+
+  log "running updater: ${updater##*/}"
+  "$updater"
+}
+
+run_updater_hooks() {
+  local updater_dir=$1 updater list count=0 status=0
+
+  [[ -d "$updater_dir" ]] || return 0
+  list="$(mktemp "${TMPDIR:-/tmp}/nix-dotfiles-tool-update-hooks.XXXXXX")" || return 1
+  find "$updater_dir" -maxdepth 1 -type f -perm -111 | LC_ALL=C sort >"$list"
+
+  while IFS= read -r updater; do
+    [[ -n "$updater" ]] || continue
+    count=$((count + 1))
+    run_updater "$updater" || status=$?
+  done <"$list"
+  rm -f "$list"
+
+  _nix_dotfiles_tool_update_hook_count=$count
+  return "$status"
+}
+
+main() {
+  local config_home manifest updater_dir lock_root lock_dir status=0 manifest_status=0 hook_status=0
+
+  prepend_path \
+    "$HOME/.bun/bin" \
+    "$HOME/.bun/install/global/node_modules/.bin" \
+    "$HOME/.cache/.bun/bin" \
+    "$HOME/.local/share/nix-dotfiles/immutable/bin" \
+    "$HOME/.local/bin" \
+    "$HOME/.cargo/bin"
+  export PATH
+
+  maybe_reexec_in_immutable_container "$@"
+
+  config_home="${XDG_CONFIG_HOME:-${HOME:?HOME must be set}/.config}"
+  manifest="${NIX_DOTFILES_TOOL_UPDATE_MANIFEST:-$config_home/nix-dotfiles/tool-updates.toml}"
+  updater_dir="${NIX_DOTFILES_TOOL_UPDATERS_DIR:-$config_home/nix-dotfiles/tool-updaters.d}"
+
+  lock_root="${XDG_RUNTIME_DIR:-${TMPDIR:-/tmp}}"
+  lock_dir="$lock_root/nix-dotfiles-tool-update.lock"
+  _nix_dotfiles_tool_update_lock_dir="$lock_dir"
+  if ! mkdir "$lock_dir" 2>/dev/null; then
+    log "another tool updater is already running"
+    return 0
+  fi
+  trap 'rmdir "${_nix_dotfiles_tool_update_lock_dir:-}" 2>/dev/null || true' EXIT
+
+  log "tool update started"
+  run_manifest "$manifest" || manifest_status=$?
+  run_updater_hooks "$updater_dir" || hook_status=$?
+
+  if ((${_nix_dotfiles_tool_update_manifest_count:-0} == 0 && ${_nix_dotfiles_tool_update_hook_count:-0} == 0)); then
+    log "no tool updates configured; checked $manifest and $updater_dir"
+  fi
+
+  ((manifest_status != 0)) && status=$manifest_status
+  ((hook_status != 0)) && status=$hook_status
+  log "tool update finished with status $status"
+  return "$status"
+}
+
+main "$@"

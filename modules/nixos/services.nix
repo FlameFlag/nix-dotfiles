@@ -26,4 +26,51 @@ in
     openssh.enable = true;
     xserver.xkb.layout = "us";
   };
+
+  systemd.user.services.nix-dotfiles-tool-update = {
+    description = "Run periodic nix-dotfiles tool updaters";
+    path = [
+      pkgs.bash
+      pkgs.coreutils
+      pkgs.findutils
+    ];
+    script = ''
+      exec "$HOME/.local/bin/nix-dotfiles-tool-update"
+    '';
+    serviceConfig = {
+      Type = "oneshot";
+      CapabilityBoundingSet = "";
+      LockPersonality = true;
+      NoNewPrivileges = true;
+      PrivateDevices = true;
+      PrivateTmp = true;
+      ProtectClock = true;
+      ProtectControlGroups = true;
+      ProtectHome = false;
+      ProtectHostname = true;
+      ProtectKernelLogs = true;
+      ProtectKernelModules = true;
+      ProtectKernelTunables = true;
+      ProtectSystem = "full";
+      RestrictAddressFamilies = [
+        "AF_UNIX"
+        "AF_INET"
+        "AF_INET6"
+      ];
+      RestrictRealtime = true;
+      RestrictSUIDSGID = true;
+      SystemCallArchitectures = "native";
+      UMask = "022";
+    };
+  };
+
+  systemd.user.timers.nix-dotfiles-tool-update = {
+    description = "Run periodic nix-dotfiles tool updaters every six hours";
+    wantedBy = [ "timers.target" ];
+    timerConfig = {
+      OnBootSec = "10m";
+      OnUnitActiveSec = "6h";
+      Persistent = true;
+    };
+  };
 }

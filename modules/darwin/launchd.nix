@@ -36,5 +36,33 @@ in
       StandardOutPath = "/Users/${user}/Library/Logs/atuin-daemon.log";
       StandardErrorPath = "/Users/${user}/Library/Logs/atuin-daemon.log";
     };
+
+    nix-dotfiles-tool-update.serviceConfig = {
+      ProgramArguments = [
+        "/bin/sh"
+        "-lc"
+        "exec /Users/${user}/.local/bin/nix-dotfiles-tool-update"
+      ];
+      RunAtLoad = true;
+      StartInterval = 21600;
+      ProcessType = "Background";
+      EnvironmentVariables.PATH = lib.strings.concatStringsSep ":" [
+        "/Users/${user}/.bun/bin"
+        "/Users/${user}/.bun/install/global/node_modules/.bin"
+        "/Users/${user}/.cache/.bun/bin"
+        "/Users/${user}/.local/share/nix-dotfiles/immutable/bin"
+        "/Users/${user}/.local/bin"
+        "/Users/${user}/.cargo/bin"
+        "/run/current-system/sw/bin"
+        "/nix/var/nix/profiles/default/bin"
+        "/usr/local/bin"
+        "/usr/bin"
+        "/bin"
+        "/usr/sbin"
+        "/sbin"
+      ];
+      StandardOutPath = "/Users/${user}/Library/Logs/nix-dotfiles-tool-update.log";
+      StandardErrorPath = "/Users/${user}/Library/Logs/nix-dotfiles-tool-update.log";
+    };
   };
 }

@@ -19,6 +19,7 @@ pkgs.stdenvNoCC.mkDerivation {
   version = "0.1.0";
 
   src = ./immutable-activate.sh;
+  manifest = ./immutable-distrobox.ini;
 
   dontUnpack = true;
 
@@ -32,9 +33,11 @@ pkgs.stdenvNoCC.mkDerivation {
     runHook preInstall
 
     install -Dm755 "$src" "$out/bin/immutable-activate"
+    install -Dm644 "$manifest" "$out/share/nix-dotfiles/immutable/distrobox.ini"
     substituteInPlace "$out/bin/immutable-activate" \
       --replace-fail '#!/bin/bash' '#!${lib.getExe pkgs.bash}' \
-      --replace-fail '@runtimePath@' '${lib.makeBinPath runtimeInputs}'
+      --replace-fail '@runtimePath@' '${lib.makeBinPath runtimeInputs}' \
+      --replace-fail '@distroboxManifest@' "$out/share/nix-dotfiles/immutable/distrobox.ini"
 
     runHook postInstall
   '';

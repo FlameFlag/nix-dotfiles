@@ -1,0 +1,17 @@
+# Periodic tool updater registry.
+#
+# Supported providers:
+# - bun-global: installs the given Bun global package spec
+# - uv-tool: upgrades an existing uv tool by name/spec
+# - uv-tool-source: reinstalls a uv tool from the given source
+
+[[tools]]
+name = "codex"
+provider = "bun-global"
+package = "@openai/codex@latest"
+
+[[tools]]
+name = "yt-dlp"
+provider = "uv-tool-source"
+package = "yt-dlp[default]"
+source = "https://github.com/yt-dlp/yt-dlp/archive/master.tar.gz"
