@@ -130,7 +130,7 @@ async function extractKey() {
 		);
 
 		console.log("Extracting DB key (launching Raycast briefly)...");
-		await execFileAsync("open", ["-a", RAYCAST_APP]);
+		await openRaycastBeta();
 
 		const captured = await waitForFile(paths.keyFile);
 
@@ -177,7 +177,9 @@ async function main() {
 
 	await ensureAvatar();
 	await writeUser(key);
-	console.log("Done. Start Raycast Beta to load the user.");
+	console.log("Starting Raycast Beta...");
+	await openRaycastBeta();
+	console.log("Done. Raycast Beta started.");
 }
 
 main().catch((error) => {
@@ -194,6 +196,10 @@ async function exists(path) {
 
 function fail(message, ...args) {
 	throw new Error(format(message, ...args));
+}
+
+async function openRaycastBeta() {
+	await execFileAsync("open", [RAYCAST_APP]);
 }
 
 async function getRaycastNodeDir() {
