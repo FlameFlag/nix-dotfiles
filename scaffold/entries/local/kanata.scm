@@ -32,7 +32,6 @@
         (field
           'platforms
           (arr (package/platform 'linux (arr "cargo" "git") kanata/install-argv))))
-      (field 'platforms (arr "linux"))
       (field 'bins (arr (bin "kanata")))))
 
   (moduledoc

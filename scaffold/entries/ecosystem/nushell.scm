@@ -3,12 +3,12 @@
   (export nushell-tool)
   (import
     (rnrs)
-    (installers macos github-release)
     (scaffold catalog)
     (scaffold extensions app winget)
     (scaffold extensions distro apt)
     (scaffold extensions distro dnf)
-    (scaffold extensions distro pacman))
+    (scaffold extensions distro pacman)
+    (scaffold extensions source github))
 
   (doc-next (hidden) (summary "Create the Nushell tool."))
 
@@ -37,7 +37,6 @@
               "nu-${version}-x86_64-apple-darwin/nu"
               "nu")
             (winget/package-platform "Nushell.Nushell"))))
-      (field 'platforms (arr "macos" "linux" "windows"))
       (field 'bins (arr (bin "nu")))))
 
   (moduledoc (summary "Nushell tool definition.") (group "Dotfiles tools")))

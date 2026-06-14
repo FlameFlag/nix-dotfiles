@@ -1,7 +1,7 @@
 (library
   (entries ecosystem yt-dlp-script)
   (export yt-dlp-script-tool)
-  (import (rnrs) (installers download) (scaffold catalog))
+  (import (rnrs) (scaffold catalog) (scaffold extensions support download))
 
   (doc-next (hidden) (summary "Create the yt-dlp-script wrapper tool."))
 
@@ -20,7 +20,6 @@
               'linux
               "https://raw.githubusercontent.com/euvlok/pkgs/HEAD/pkgs/by-name/yt/yt-dlp-script/yt-dlp-script.nu"
               "yt-dlp-script"))))
-      (field 'platforms (arr "macos" "linux"))
       (field 'bins (arr (bin/version "yt-dlp-script" "--help")))
       (depends "nushell")))
 

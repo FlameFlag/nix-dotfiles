@@ -3,12 +3,12 @@
   (export git-tool)
   (import
     (rnrs)
-    (installers macos xcode)
     (scaffold catalog)
     (scaffold extensions app winget)
     (scaffold extensions distro apt)
     (scaffold extensions distro dnf)
-    (scaffold extensions distro pacman))
+    (scaffold extensions distro pacman)
+    (scaffold extensions platform macos))
 
   (doc-next (hidden) (summary "Create the Git prerequisite tool."))
 
@@ -24,7 +24,6 @@
             (pacman/package-platform "git")
             (xcode-command-line-tools-platform)
             (winget/package-platform "Git.Git"))))
-      (field 'platforms (arr "macos" "linux" "windows"))
       (field 'bins (arr (bin "git")))))
 
   (moduledoc (summary "Git prerequisite tool definition.") (group "Dotfiles tools")))

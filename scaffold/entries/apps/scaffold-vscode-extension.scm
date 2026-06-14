@@ -1,7 +1,31 @@
 (library
   (entries apps scaffold-vscode-extension)
   (export scaffold-vscode-extension-tool)
-  (import (rnrs) (scaffold catalog))
+  (import (rnrs) (scaffold catalog) (scaffold extensions support download))
+
+  (doc-next (hidden) (summary "Create a platform that installs the rolling VSIX."))
+
+  (define (scaffold-vscode-extension/platform predicate-value)
+    (let
+      ((vsix-dir (tool-cache-dir "scaffold-vscode"))
+        (vsix-path
+          (string-append
+            (tool-cache-dir "scaffold-vscode")
+            "/scaffold-vscode-rolling.vsix")))
+      (package/platform-argvs
+        predicate-value
+        (arr "code" "curl" "mkdir")
+        (arr
+          (arr "mkdir" "-p" vsix-dir)
+          (arr
+            "curl"
+            "-fsSL"
+            "--retry"
+            "3"
+            "-o"
+            vsix-path
+            "https://github.com/FlameFlag/scaffold/releases/download/rolling/scaffold-vscode-rolling.vsix")
+          (arr "code" "--install-extension" vsix-path "--force")))))
 
   (doc-next
     (summary
@@ -14,49 +38,8 @@
         (field
           'platforms
           (arr
-            (package/platform-argvs
-              'macos
-              (arr "code" "curl" "mkdir")
-              (arr
-                (arr
-                  "mkdir"
-                  "-p"
-                  "{{ home }}/.local/share/scaffold/tools/scaffold-vscode/latest")
-                (arr
-                  "curl"
-                  "-fsSL"
-                  "--retry"
-                  "3"
-                  "-o"
-                  "{{ home }}/.local/share/scaffold/tools/scaffold-vscode/latest/scaffold-vscode-rolling.vsix"
-                  "https://github.com/FlameFlag/scaffold/releases/download/rolling/scaffold-vscode-rolling.vsix")
-                (arr
-                  "code"
-                  "--install-extension"
-                  "{{ home }}/.local/share/scaffold/tools/scaffold-vscode/latest/scaffold-vscode-rolling.vsix"
-                  "--force")))
-            (package/platform-argvs
-              'linux
-              (arr "code" "curl" "mkdir")
-              (arr
-                (arr
-                  "mkdir"
-                  "-p"
-                  "{{ home }}/.local/share/scaffold/tools/scaffold-vscode/latest")
-                (arr
-                  "curl"
-                  "-fsSL"
-                  "--retry"
-                  "3"
-                  "-o"
-                  "{{ home }}/.local/share/scaffold/tools/scaffold-vscode/latest/scaffold-vscode-rolling.vsix"
-                  "https://github.com/FlameFlag/scaffold/releases/download/rolling/scaffold-vscode-rolling.vsix")
-                (arr
-                  "code"
-                  "--install-extension"
-                  "{{ home }}/.local/share/scaffold/tools/scaffold-vscode/latest/scaffold-vscode-rolling.vsix"
-                  "--force"))))))
-      (field 'platforms (arr "macos" "linux"))
+            (scaffold-vscode-extension/platform 'macos)
+            (scaffold-vscode-extension/platform 'linux))))
       (field
         'checks
         (arr

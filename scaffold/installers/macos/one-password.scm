@@ -1,7 +1,7 @@
 (library
   (installers macos one-password)
   (export one-password-latest-platform)
-  (import (rnrs) (installers cache) (installers download) (scaffold catalog))
+  (import (rnrs) (scaffold catalog) (scaffold extensions support download))
 
   (doc-next
     (summary "Create a macOS installer for the latest 1Password CLI zip.")

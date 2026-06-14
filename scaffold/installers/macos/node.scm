@@ -1,7 +1,7 @@
 (library
   (installers macos node)
   (export node-latest-platform)
-  (import (rnrs) (installers cache) (installers download) (scaffold catalog))
+  (import (rnrs) (scaffold catalog) (scaffold extensions support download))
 
   (doc-next
     (summary "Create a macOS installer for the latest Node.js dist tarball.")

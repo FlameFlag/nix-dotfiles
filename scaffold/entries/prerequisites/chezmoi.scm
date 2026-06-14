@@ -3,12 +3,12 @@
   (export chezmoi-tool)
   (import
     (rnrs)
-    (installers download)
     (scaffold catalog)
     (scaffold extensions app winget)
     (scaffold extensions distro apt)
     (scaffold extensions distro dnf)
-    (scaffold extensions distro pacman))
+    (scaffold extensions distro pacman)
+    (scaffold extensions support download))
 
   (doc-next (hidden) (summary "Create the chezmoi prerequisite tool."))
 
@@ -35,7 +35,6 @@
               (arr)
               (arr "-b" "{{ bin_dir }}"))
             (winget/package-platform "twpayne.chezmoi"))))
-      (field 'platforms (arr "macos" "linux" "windows"))
       (field 'bins (arr (bin "chezmoi")))))
 
   (moduledoc (summary "chezmoi prerequisite tool definition.") (group "Dotfiles tools")))

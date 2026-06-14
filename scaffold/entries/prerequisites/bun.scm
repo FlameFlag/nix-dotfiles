@@ -3,9 +3,9 @@
   (export bun-tool)
   (import
     (rnrs)
-    (installers download)
     (scaffold catalog)
-    (scaffold extensions app winget))
+    (scaffold extensions app winget)
+    (scaffold extensions support download))
 
   (doc-next (hidden) (summary "Create the Bun prerequisite tool."))
 
@@ -31,7 +31,6 @@
               (arr)
               "{{ home }}/.cache/.bun")
             (winget/package-platform "Oven-sh.Bun"))))
-      (field 'platforms (arr "macos" "linux" "windows"))
       (field 'bins (arr (bin "bun") (bin "bunx")))))
 
   (moduledoc (summary "Bun prerequisite tool definition.") (group "Dotfiles tools")))

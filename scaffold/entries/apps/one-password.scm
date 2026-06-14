@@ -40,7 +40,6 @@
               (field 'name "1password"))
             (one-password-latest-platform (predicate 'macos 'aarch64) "arm64")
             (one-password-latest-platform (predicate 'macos 'x86_64) "amd64"))))
-      (field 'platforms (arr "macos" "linux" "windows"))
       (field 'bins (arr (bin/version "op" "--version")))
       (field 'paths (arr (tool/path "macos" "/Applications/1Password.app")))
       (field 'verify-after-install #f)))

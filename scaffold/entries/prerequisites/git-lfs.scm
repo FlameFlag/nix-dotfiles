@@ -3,12 +3,12 @@
   (export git-lfs-tool)
   (import
     (rnrs)
-    (installers macos github-release)
     (scaffold catalog)
     (scaffold extensions app winget)
     (scaffold extensions distro apt)
     (scaffold extensions distro dnf)
-    (scaffold extensions distro pacman))
+    (scaffold extensions distro pacman)
+    (scaffold extensions source github))
 
   (doc-next (hidden) (summary "Create the Git LFS prerequisite tool."))
 
@@ -37,7 +37,6 @@
               "git-lfs-${version}/git-lfs"
               "git-lfs")
             (winget/package-platform "GitHub.GitLFS"))))
-      (field 'platforms (arr "macos" "linux" "windows"))
       (field 'bins (arr (bin "git-lfs")))))
 
   (moduledoc (summary "Git LFS prerequisite tool definition.") (group "Dotfiles tools")))

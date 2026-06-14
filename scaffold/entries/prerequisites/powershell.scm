@@ -10,7 +10,6 @@
       "powershell"
       (package
         (field 'platforms (arr (winget/package-platform "Microsoft.PowerShell"))))
-      (field 'platforms (arr "windows"))
       (field
         'bins
         (arr

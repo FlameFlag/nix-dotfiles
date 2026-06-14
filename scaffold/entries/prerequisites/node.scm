@@ -33,7 +33,6 @@
             (node-latest-platform (predicate 'macos 'aarch64) "arm64")
             (node-latest-platform (predicate 'macos 'x86_64) "x64")
             (winget/package-platform "OpenJS.NodeJS"))))
-      (field 'platforms (arr "macos" "linux" "windows"))
       (field 'bins (arr (bin "node") (bin "npm") (bin "npx")))))
 
   (moduledoc (summary "Node.js prerequisite tool definition.") (group "Dotfiles tools")))

@@ -1,7 +1,7 @@
 (library
   (installers linux one-password)
   (export apt-platform rpm-platform)
-  (import (rnrs) (scaffold catalog))
+  (import (rnrs) (scaffold catalog) (scaffold extensions support download))
 
   (doc-next
     (hidden)
@@ -9,9 +9,9 @@
 
   (define (apt-platform)
     (let
-      ((root "{{ home }}/.local/share/scaffold/tools/1password/latest")
+      ((root (tool-cache-dir "1password"))
         (key-path
-          "{{ home }}/.local/share/scaffold/tools/1password/latest/1password.asc"))
+          (string-append (tool-cache-dir "1password") "/1password.asc")))
       (package/platform-argvs
         'linux
         (arr "apt-get" "curl" "dpkg" "gpg" "mkdir" "sh" "sudo" "tee")

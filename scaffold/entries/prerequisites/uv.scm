@@ -3,11 +3,11 @@
   (export uv-tool)
   (import
     (rnrs)
-    (installers download)
     (scaffold catalog)
     (scaffold extensions app winget)
     (scaffold extensions distro dnf)
-    (scaffold extensions distro pacman))
+    (scaffold extensions distro pacman)
+    (scaffold extensions support download))
 
   (doc-next (hidden) (summary "Create the uv and uvx prerequisite tool."))
 
@@ -33,7 +33,6 @@
               (arr "UV_INSTALL_DIR={{ bin_dir }}")
               (arr))
             (winget/package-platform "astral-sh.uv"))))
-      (field 'platforms (arr "macos" "linux" "windows"))
       (field 'bins (arr (bin "uv") (bin "uvx")))))
 
   (moduledoc (summary "uv prerequisite tool definition.") (group "Dotfiles tools")))

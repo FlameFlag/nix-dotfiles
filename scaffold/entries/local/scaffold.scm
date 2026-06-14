@@ -1,43 +1,37 @@
 (library
   (entries local scaffold)
   (export scaffold-tool)
-  (import (rnrs) (scaffold catalog))
+  (import (rnrs) (scaffold catalog) (scaffold extensions support download))
 
   (doc-next
     (summary
       "Create a macOS package platform that installs Scaffold from the rolling release asset."))
 
   (define (scaffold/rolling-platform predicate-value asset)
-    (package/platform-argvs
-      predicate-value
-      (arr "curl" "install" "mkdir" "tar")
-      (arr
+    (let
+      ((root (tool-cache-dir "scaffold"))
+        (archive (string-append (tool-cache-dir "scaffold") "/{{ package }}.tar.gz")))
+      (package/platform-argvs
+        predicate-value
+        (arr "curl" "install" "mkdir" "tar")
         (arr
-          "mkdir"
-          "-p"
-          "{{ home }}/.local/share/scaffold/tools/scaffold/latest"
-          "{{ home }}/.local/bin")
-        (arr
-          "curl"
-          "-fsSL"
-          "--retry"
-          "3"
-          "-o"
-          "{{ home }}/.local/share/scaffold/tools/scaffold/latest/{{ package }}.tar.gz"
-          "https://github.com/FlameFlag/scaffold/releases/download/rolling/{{ package }}.tar.gz")
-        (arr
-          "tar"
-          "-xzf"
-          "{{ home }}/.local/share/scaffold/tools/scaffold/latest/{{ package }}.tar.gz"
-          "-C"
-          "{{ home }}/.local/share/scaffold/tools/scaffold/latest")
-        (arr
-          "install"
-          "-m"
-          "0755"
-          "{{ home }}/.local/share/scaffold/tools/scaffold/latest/{{ package }}/scaffold"
-          "{{ home }}/.local/bin/scaffold"))
-      (field 'name asset)))
+          (arr "mkdir" "-p" root "{{ bin_dir }}")
+          (arr
+            "curl"
+            "-fsSL"
+            "--retry"
+            "3"
+            "-o"
+            archive
+            "https://github.com/FlameFlag/scaffold/releases/download/rolling/{{ package }}.tar.gz")
+          (arr "tar" "-xzf" archive "-C" root)
+          (arr
+            "install"
+            "-m"
+            "0755"
+            (string-append root "/{{ package }}/scaffold")
+            "{{ bin_dir }}/scaffold"))
+        (field 'name asset))))
 
   (doc-next
     (hidden)
@@ -56,7 +50,6 @@
             (scaffold/rolling-platform
               (predicate 'macos 'x86_64)
               "scaffold-rolling-x86_64-apple-darwin"))))
-      (field 'platforms (arr "macos"))
       (field 'bins (arr (bin "scaffold")))
       (meta
         (home-page "https://github.com/FlameFlag/scaffold")

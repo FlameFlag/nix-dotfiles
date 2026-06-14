@@ -3,9 +3,9 @@
   (export rustup-tool)
   (import
     (rnrs)
-    (installers download)
     (scaffold catalog)
-    (scaffold extensions app winget))
+    (scaffold extensions app winget)
+    (scaffold extensions support download))
 
   (doc-next (hidden) (summary "Create the Rust toolchain prerequisite tool."))
 
@@ -51,7 +51,6 @@
                 "--component"
                 "rust-src"))
             (winget/package-platform "Rustlang.Rustup"))))
-      (field 'platforms (arr "macos" "linux" "windows"))
       (field
         'bins
         (arr
