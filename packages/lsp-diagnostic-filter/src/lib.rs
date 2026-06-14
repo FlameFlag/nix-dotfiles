@@ -1,6 +1,8 @@
 #![cfg_attr(test, allow(clippy::expect_used, clippy::panic, clippy::unwrap_used))]
 
-use std::io::{self, Cursor, Write};
+use std::io::{self, Cursor, Read, Write};
+use std::process::{Command, ExitStatus, Stdio};
+use std::thread;
 
 use lsp_server::{Message, Notification};
 use lsp_types::notification::Notification as _;
@@ -53,6 +55,53 @@ impl LspFilter {
     }
 }
 
+/// Proxies an stdio LSP server while filtering diagnostics from chezmoi templates.
+///
+/// # Errors
+///
+/// Returns an error if the child process cannot be spawned, child stdio cannot
+/// be connected, or proxying the LSP streams fails.
+pub fn proxy_lsp_command(program: &str, args: &[String]) -> io::Result<ExitStatus> {
+    let mut child = Command::new(program)
+        .args(args)
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()?;
+
+    let mut child_stdin = child
+        .stdin
+        .take()
+        .ok_or_else(|| io::Error::other("child stdin was not piped"))?;
+    let _stdin_thread = thread::spawn(move || {
+        let mut stdin = io::stdin().lock();
+        io::copy(&mut stdin, &mut child_stdin)
+    });
+
+    let mut child_stderr = child
+        .stderr
+        .take()
+        .ok_or_else(|| io::Error::other("child stderr was not piped"))?;
+    let stderr_thread = thread::spawn(move || {
+        let mut stderr = io::stderr().lock();
+        io::copy(&mut child_stderr, &mut stderr)
+    });
+
+    let mut child_stdout = child
+        .stdout
+        .take()
+        .ok_or_else(|| io::Error::other("child stdout was not piped"))?;
+    let filter_result = filter_stdout(&mut child_stdout);
+    let status_result = child.wait();
+    let stderr_result = join_io_thread(stderr_thread);
+
+    filter_result?;
+    let status = status_result?;
+    stderr_result?;
+
+    Ok(status)
+}
+
 fn transform_message(message: Message) -> Message {
     match message {
         Message::Notification(notification)
@@ -88,6 +137,29 @@ fn has_complete_header(buffer: &[u8]) -> bool {
         .any(|window| window == b"\r\n\r\n")
 }
 
+fn filter_stdout(stdout: &mut impl Read) -> io::Result<()> {
+    let mut filter = LspFilter::new();
+    let mut output = io::stdout().lock();
+    let mut chunk = [0_u8; 8192];
+
+    loop {
+        let read = stdout.read(&mut chunk)?;
+        if read == 0 {
+            return Ok(());
+        }
+        filter.accept(&chunk[..read], &mut output)?;
+    }
+}
+
+fn join_io_thread(handle: thread::JoinHandle<io::Result<u64>>) -> io::Result<()> {
+    match handle.join() {
+        Ok(Ok(_)) => Ok(()),
+        Ok(Err(error)) if error.kind() == io::ErrorKind::BrokenPipe => Ok(()),
+        Ok(Err(error)) => Err(error),
+        Err(_) => Err(io::Error::other("I/O thread panicked")),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -100,6 +172,26 @@ mod tests {
 
         assert!(output.contains(r#""diagnostics":[]"#));
         assert!(output.contains(r#""uri":"file:///repo/config.nu.tmpl""#));
+        Ok(())
+    }
+
+    #[test]
+    fn clears_template_diagnostics_for_multiple_filetypes() -> io::Result<()> {
+        for uri in [
+            "file:///repo/yazi.toml.tmpl",
+            "file:///repo/dot_bashrc.tmpl",
+            "file:///repo/run_after_setup.sh.tmpl",
+            "file:///repo/settings.json.tmpl",
+            "file:///repo/config.yaml.tmpl",
+            "file:///repo/flake.nix.tmpl",
+        ] {
+            let body = diagnostic_body(uri);
+            let output = run_filter(frame(&body).as_bytes())?;
+            let output = String::from_utf8_lossy(&output);
+
+            assert!(output.contains(r#""diagnostics":[]"#), "{uri}");
+            assert!(output.contains(&format!(r#""uri":"{uri}""#)), "{uri}");
+        }
         Ok(())
     }
 

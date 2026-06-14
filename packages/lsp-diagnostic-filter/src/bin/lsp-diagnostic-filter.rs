@@ -1,6 +1,6 @@
 use std::env;
 use std::io;
-use std::process::{Command, ExitCode, ExitStatus};
+use std::process::{ExitCode, ExitStatus};
 
 use lsp_diagnostic_filter::proxy_lsp_command;
 
@@ -20,23 +20,30 @@ fn run() -> io::Result<ExitStatus> {
         return Ok(success_status());
     }
 
-    let real_nu = env::var("NU_LSP_REAL_NU").unwrap_or_else(|_| "nu".to_owned());
-    if !args.iter().any(|arg| arg == "--lsp") {
-        return Command::new(real_nu).args(args).status();
-    }
+    let command_start = args
+        .iter()
+        .position(|arg| arg == "--")
+        .map_or(0, |index| index + 1);
+    let Some(program) = args.get(command_start) else {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            "usage: lsp-diagnostic-filter [--] <language-server> [args...]",
+        ));
+    };
 
-    proxy_lsp_command(&real_nu, &args)
+    proxy_lsp_command(program, &args[command_start + 1..])
 }
 
 fn handle_static_args(args: &[String]) -> bool {
     match args.first().map(String::as_str) {
         Some("--version" | "-V") => {
-            println!("nushell-lsp-filter {}", env!("CARGO_PKG_VERSION"));
+            println!("lsp-diagnostic-filter {}", env!("CARGO_PKG_VERSION"));
             true
         }
         Some("--help" | "-h") => {
-            println!("nushell-lsp-filter {}", env!("CARGO_PKG_VERSION"));
-            println!("Proxy nushell LSP output while filtering template diagnostics.");
+            println!("lsp-diagnostic-filter {}", env!("CARGO_PKG_VERSION"));
+            println!("usage: lsp-diagnostic-filter [--] <language-server> [args...]");
+            println!("Proxy an stdio LSP server while filtering template diagnostics.");
             true
         }
         _ => false,

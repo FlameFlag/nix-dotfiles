@@ -35,7 +35,11 @@
         "lsp-diagnostic-filter"
         "packages/lsp-diagnostic-filter"
         (field 'platforms (arr "macos" "linux"))
-        (field 'bins (arr (bin/version "nushell-lsp-filter" "--version")))
+        (field
+          'bins
+          (arr
+            (bin/version "lsp-diagnostic-filter" "--version")
+            (bin/version "nushell-lsp-filter" "--version")))
         (depends "rustup"))
       (cargo/tool
         "zellij-theme-tools"
