@@ -4,6 +4,7 @@
   (import
     (rnrs)
     (scaffold catalog)
+    (entries apps ghostty)
     (entries apps one-password)
     (entries apps scaffold-vscode-extension)
     (entries apps vscode))
@@ -18,4 +19,8 @@
     (returns "List of Scaffold tool objects."))
 
   (define (apps/tools)
-    (list (vscode-tool) (scaffold-vscode-extension-tool) (one-password-tool))))
+    (list
+      (vscode-tool)
+      (scaffold-vscode-extension-tool)
+      (one-password-tool)
+      (ghostty-tool))))
