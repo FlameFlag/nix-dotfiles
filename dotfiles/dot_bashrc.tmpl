@@ -1,18 +1,24 @@
-# Fall back to a common terminfo entry on remote hosts without Ghostty support.
-shopt -s array_expand_once globskipdots
+_enable_bash_shopt() {
+  local opt
+
+  for opt; do
+    shopt -s "$opt" 2>/dev/null || true
+  done
+}
+
+_enable_bash_shopt array_expand_once globskipdots
 
 if [[ "$TERM" == "xterm-ghostty" ]] && ! infocmp xterm-ghostty &>/dev/null; then
   export TERM=xterm-256color
 fi
 
 _path_prepend_once() {
-  local -n path_ref=$1
-  local dir
+  local dir new_path="" path_value="${PATH:-}"
 
-  shift
   for dir; do
-    [[ -n "$dir" && ":$path_ref:" != *":$dir:"* ]] && path_ref="$dir:$path_ref"
+    [[ -n "$dir" && ":$new_path:$path_value:" != *":$dir:"* ]] && new_path="${new_path:+$new_path:}$dir"
   done
+  PATH="$new_path${new_path:+${path_value:+:}}$path_value"
 }
 
 _command_wrapper() {
@@ -20,12 +26,12 @@ _command_wrapper() {
   local -r command_path=$2
   local quoted_path
 
-  printf -v quoted_path '%#q' "$command_path"
+  printf -v quoted_path '%q' "$command_path"
   eval "$command_name() { command $quoted_path \"\$@\"; }"
 }
 
 # Prefer user-local tools installed by Scaffold and language toolchains.
-_path_prepend_once PATH \
+_path_prepend_once \
   "$HOME/.pi/agent/bin" \
   "$HOME/.bun/bin" \
   "$HOME/.bun/install/global/node_modules/.bin" \
@@ -37,7 +43,7 @@ _path_prepend_once PATH \
   "$HOME/.go/bin" \
   "$HOME/.yarn/bin"
 if [[ -d /run/wrappers/bin ]]; then
-  _path_prepend_once PATH /run/wrappers/bin
+  _path_prepend_once /run/wrappers/bin
 fi
 export PATH
 
@@ -64,9 +70,9 @@ if [[ -z "$_nix_dotfiles_flake" ]]; then
 fi
 if [[ -d "$_nix_dotfiles_flake" ]]; then
   _nix_dotfiles_flake="$(
-    cd -P -- "$_nix_dotfiles_flake" 2>/dev/null \
-      && pwd \
-      || printf '%s\n' "$_nix_dotfiles_flake"
+    cd -P -- "$_nix_dotfiles_flake" 2>/dev/null &&
+      pwd ||
+      printf '%s\n' "$_nix_dotfiles_flake"
   )"
 fi
 unset _nix_dotfiles_dir
@@ -96,11 +102,13 @@ _startup_command() {
 # and slow.
 [[ $- != *i* ]] && return
 
-# Oh-My-Bash Configuration
+# Oh My Bash configuration. Prompt rendering is handled by starship.
 export OSH="$HOME/.oh-my-bash"
-OSH_THEME=""  # Disabled — using starship
+# shellcheck disable=SC2034
+OSH_THEME=""
 
 # Plugins
+# shellcheck disable=SC2034
 plugins=(git bashmarks)
 
 # Completions
@@ -110,9 +118,13 @@ if _startup_command gh >/dev/null; then
 fi
 
 # Aliases (oh-my-bash)
+# shellcheck disable=SC2034
 aliases=()
 
-source "$OSH/oh-my-bash.sh"
+if [[ -r "$OSH/oh-my-bash.sh" ]]; then
+  # shellcheck source=/dev/null
+  source "$OSH/oh-my-bash.sh"
+fi
 
 # Tool Integrations (cached init files)
 _starship_bin="$(_startup_command starship 2>/dev/null || true)"
@@ -120,12 +132,14 @@ if [[ -n "$_starship_bin" ]]; then
   _command_wrapper starship "$_starship_bin"
 fi
 if [[ -n "$_starship_bin" && -r "$HOME/.cache/starship/init.bash" ]]; then
+  # shellcheck source=/dev/null
   source "$HOME/.cache/starship/init.bash"
 elif [[ -n "$_starship_bin" ]]; then
   eval "$("$_starship_bin" init bash)"
 fi
 unset _starship_bin
 if _startup_command tv >/dev/null && [[ -r "$HOME/.cache/television/init.bash" ]]; then
+  # shellcheck source=/dev/null
   source "$HOME/.cache/television/init.bash"
 fi
 _fzf_bin="$(_startup_command fzf 2>/dev/null || true)"
@@ -137,6 +151,7 @@ unset _fzf_bin
 _atuin_bin="$(_startup_command atuin allow-wrapper 2>/dev/null || true)"
 if [[ -t 0 && -t 1 && -n "$_atuin_bin" && -r "$HOME/.cache/atuin/init.bash" ]]; then
   _command_wrapper atuin "$_atuin_bin"
+  # shellcheck source=/dev/null
   source "$HOME/.cache/atuin/init.bash"
   __atuin_search_cmd() {
     local -a search_args=("$@")
@@ -154,6 +169,7 @@ unset _atuin_bin
 
 # Completions (cached)
 for f in "$HOME/.cache/bash/completions"/*; do
+  # shellcheck disable=SC1090
   [[ -f "$f" ]] && source "$f"
 done
 
@@ -268,7 +284,7 @@ function yy() {
   tmp="$(mktemp -t "yazi-cwd.XXXXX")"
   yazi "$@" --cwd-file="$tmp"
   if cwd="$(command cat -- "$tmp")" && [[ -n "$cwd" && "$cwd" != "$PWD" ]]; then
-    builtin cd -- "$cwd"
+    builtin cd -- "$cwd" || return
   fi
   rm -f -- "$tmp"
 }
@@ -276,7 +292,7 @@ function yy() {
 # shadow system python
 export UV_PYTHON_PREFERENCE="only-managed"
 
-function python()  { uv run python "$@"; }
+function python() { uv run python "$@"; }
 function python3() { uv run python3 "$@"; }
 function pip() {
   [[ -z "$VIRTUAL_ENV" && ! -d ".venv" ]] && uv venv -q
@@ -307,9 +323,10 @@ export FZF_DEFAULT_OPTS="--height 40% --layout=reverse --border
 
 # Zoxide (must be at the end of .bashrc)
 if _startup_command zoxide >/dev/null && [[ -r "$HOME/.cache/zoxide/init.bash" ]]; then
+  # shellcheck source=/dev/null
   source "$HOME/.cache/zoxide/init.bash"
   alias cd="z"
 fi
 
-unset -f _path_prepend_once _command_wrapper _is_immutable_wrapper_path _is_immutable_wrapper_command _startup_command
+unset -f _enable_bash_shopt _path_prepend_once _command_wrapper _is_immutable_wrapper_path _is_immutable_wrapper_command _startup_command
 unset _immutable_wrapper_marker _immutable_nix_host _portable_nix_host

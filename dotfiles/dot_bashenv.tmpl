@@ -1,33 +1,40 @@
 # Keep user-local tools visible in non-interactive bash.
-shopt -s array_expand_once globskipdots
+_enable_bash_shopt() {
+  local opt
 
-_path_prepend_once() {
-  local -n path_ref=$1
-  local dir
-
-  shift
-  for dir; do
-    [[ -n "$dir" && ":$path_ref:" != *":$dir:"* ]] && path_ref="$dir:$path_ref"
+  for opt; do
+    shopt -s "$opt" 2>/dev/null || true
   done
 }
 
-_path_prepend_once PATH \
-  "$HOME/.yarn/bin" \
-  "$HOME/.go/bin" \
-  "$HOME/.cargo/bin" \
+_enable_bash_shopt array_expand_once globskipdots
+
+_path_prepend_once() {
+  local dir new_path="" path_value="${PATH:-}"
+
+  for dir; do
+    [[ -n "$dir" && ":$new_path:$path_value:" != *":$dir:"* ]] && new_path="${new_path:+$new_path:}$dir"
+  done
+  PATH="$new_path${new_path:+${path_value:+:}}$path_value"
+}
+
+_path_prepend_once \
+  "$HOME/.pi/agent/bin" \
+  "$HOME/.bun/bin" \
+  "$HOME/.bun/install/global/node_modules/.bin" \
+  "$HOME/.cache/.bun/bin" \
+  "$HOME/.npm/bin" \
   "$HOME/.local/bin" \
   "$HOME/.local/share/nix-dotfiles/immutable/bin" \
-  "$HOME/.npm/bin" \
-  "$HOME/.cache/.bun/bin" \
-  "$HOME/.bun/install/global/node_modules/.bin" \
-  "$HOME/.bun/bin" \
-  "$HOME/.pi/agent/bin"
+  "$HOME/.cargo/bin" \
+  "$HOME/.go/bin" \
+  "$HOME/.yarn/bin"
 
 if [[ -d /run/wrappers/bin ]]; then
-  _path_prepend_once PATH /run/wrappers/bin
+  _path_prepend_once /run/wrappers/bin
 fi
 
-unset -f _path_prepend_once
+unset -f _enable_bash_shopt _path_prepend_once
 export PATH
 
 export UV_PYTHON_PREFERENCE="${UV_PYTHON_PREFERENCE:-only-managed}"

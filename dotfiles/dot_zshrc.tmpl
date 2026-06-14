@@ -5,17 +5,41 @@ fi
 
 # Prefer user-local tools installed by Scaffold and language toolchains.
 typeset -U path PATH
-path=("$HOME/.pi/agent/bin" "$HOME/.bun/bin" "$HOME/.bun/install/global/node_modules/.bin" "$HOME/.cache/.bun/bin" "$HOME/.npm/bin" "$HOME/.local/share/nix-dotfiles/immutable/bin" "$HOME/.local/bin" "$HOME/.cargo/bin" "$HOME/.go/bin" "$HOME/.yarn/bin" $path)
+path=(
+  "$HOME/.pi/agent/bin"
+  "$HOME/.bun/bin"
+  "$HOME/.bun/install/global/node_modules/.bin"
+  "$HOME/.cache/.bun/bin"
+  "$HOME/.npm/bin"
+  "$HOME/.local/share/nix-dotfiles/immutable/bin"
+  "$HOME/.local/bin"
+  "$HOME/.cargo/bin"
+  "$HOME/.go/bin"
+  "$HOME/.yarn/bin"
+  "${path[@]}"
+)
 if [[ -d /run/wrappers/bin ]]; then
-  path=(/run/wrappers/bin $path)
+  path=(/run/wrappers/bin "${path[@]}")
 fi
 export PATH
 
+_command_wrapper() {
+  emulate -L zsh
+  local -r command_name=$1
+  local -r command_path=$2
+  local quoted_path
+
+  printf -v quoted_path '%q' "$command_path"
+  eval "$command_name() { command $quoted_path \"\$@\"; }"
+}
+
 _immutable_wrapper_marker="# nix-dotfiles: immutable-wrapper"
 _is_immutable_wrapper_path() {
+  emulate -L zsh
   [[ -f "$1" ]] && command grep -Fqx "$_immutable_wrapper_marker" "$1" 2>/dev/null
 }
 _is_immutable_wrapper_command() {
+  emulate -L zsh
   local command_path
   command_path="$(command -v "$1" 2>/dev/null)" || return 1
   _is_immutable_wrapper_path "$command_path"
@@ -34,9 +58,9 @@ if [[ -z "$_nix_dotfiles_flake" ]]; then
 fi
 if [[ -d "$_nix_dotfiles_flake" ]]; then
   _nix_dotfiles_flake="$(
-    cd -P -- "$_nix_dotfiles_flake" 2>/dev/null \
-      && pwd \
-      || printf '%s\n' "$_nix_dotfiles_flake"
+    cd -P -- "$_nix_dotfiles_flake" 2>/dev/null &&
+      pwd ||
+      printf '%s\n' "$_nix_dotfiles_flake"
   )"
 fi
 unset _nix_dotfiles_dir
@@ -51,6 +75,7 @@ if [[ "$_immutable_nix_host" -eq 1 || ! -e /etc/NIXOS ]]; then
 fi
 
 _startup_command() {
+  emulate -L zsh
   local command_path
   command_path="$(command -v "$1" 2>/dev/null)" || return 1
   if [[ "${2:-}" != "allow-wrapper" ]] && _is_immutable_wrapper_path "$command_path"; then
@@ -62,9 +87,12 @@ _startup_command() {
 
 # Load Oh My Zsh without its prompt or self-update behavior.
 export ZSH="$HOME/.oh-my-zsh"
-ZSH_THEME=""  # Disabled — using starship
-DISABLE_AUTO_UPDATE="true"  # Managed by chezmoi external
-DISABLE_UNTRACKED_FILES_DIRTY="true"  # Faster git status in prompt
+# shellcheck disable=SC2034
+ZSH_THEME=""
+# shellcheck disable=SC2034
+DISABLE_AUTO_UPDATE="true"
+# shellcheck disable=SC2034
+DISABLE_UNTRACKED_FILES_DIRTY="true"
 
 # Enable the Oh My Zsh plugins used in interactive sessions.
 plugins=(
@@ -87,24 +115,29 @@ if _startup_command gh >/dev/null; then
 fi
 
 # Add cached completion definitions before Oh My Zsh runs compinit.
-fpath=("$HOME/.cache/zsh/completions" $fpath)
+fpath=("$HOME/.cache/zsh/completions" "${fpath[@]}")
 
-source $ZSH/oh-my-zsh.sh
+if [[ -r "$ZSH/oh-my-zsh.sh" ]]; then
+  # shellcheck source=/dev/null
+  source "$ZSH/oh-my-zsh.sh"
+fi
 
 # Load fzf's native zsh integration without restoring the special zle option.
 _fzf_init() {
+  emulate -L zsh
   local fzf_bin
   fzf_bin="$(_startup_command fzf)" || return
-  eval "fzf() { command ${(qqq)fzf_bin} \"\$@\"; }"
+  _command_wrapper fzf "$fzf_bin"
 
   local init
-  init="$("$fzf_bin" --zsh | sed \
-    -e '/^  eval \$__fzf_key_bindings_options$/i\
+  init="$(
+    "$fzf_bin" --zsh | sed \
+      -e '/^  eval \$__fzf_key_bindings_options$/i\
   __fzf_key_bindings_options=${__fzf_key_bindings_options/ zle on/}\
   __fzf_key_bindings_options=${__fzf_key_bindings_options/ zle off/}' \
-    -e '/^  eval \$__fzf_completion_options$/i\
+      -e '/^  eval \$__fzf_completion_options$/i\
   __fzf_completion_options=${__fzf_completion_options/ zle on/}\
-  __fzf_completion_options=${__fzf_completion_options/ zle off/}' \
+  __fzf_completion_options=${__fzf_completion_options/ zle off/}'
   )" || return
 
   eval "$init"
@@ -115,20 +148,23 @@ unset -f _fzf_init
 # Source pre-generated startup hooks to keep shell startup fast.
 _starship_bin="$(_startup_command starship 2>/dev/null || true)"
 if [[ -n "$_starship_bin" ]]; then
-  eval "starship() { command ${(qqq)_starship_bin} \"\$@\"; }"
+  _command_wrapper starship "$_starship_bin"
 fi
 if [[ -n "$_starship_bin" && -r "$HOME/.cache/starship/init.zsh" ]]; then
+  # shellcheck source=/dev/null
   source "$HOME/.cache/starship/init.zsh"
 elif [[ -n "$_starship_bin" ]]; then
   eval "$("$_starship_bin" init zsh)"
 fi
 unset _starship_bin
 if _startup_command tv >/dev/null && [[ -r "$HOME/.cache/television/init.zsh" ]]; then
+  # shellcheck source=/dev/null
   source "$HOME/.cache/television/init.zsh"
 fi
 _atuin_bin="$(_startup_command atuin allow-wrapper 2>/dev/null || true)"
 if [[ -t 0 && -t 1 && -n "$_atuin_bin" && -r "$HOME/.cache/atuin/init.zsh" ]]; then
-  eval "atuin() { command ${(qqq)_atuin_bin} \"\$@\"; }"
+  _command_wrapper atuin "$_atuin_bin"
+  # shellcheck source=/dev/null
   source "$HOME/.cache/atuin/init.zsh"
   _atuin_search() {
     emulate -L zsh
@@ -136,6 +172,7 @@ if [[ -t 0 && -t 1 && -n "$_atuin_bin" && -r "$HOME/.cache/atuin/init.zsh" ]]; t
 
     local output result_file __atuin_status
     result_file="$(mktemp)" || return 1
+    # shellcheck disable=SC2153
     ATUIN_SHELL=zsh ATUIN_LOG=error ATUIN_QUERY=$BUFFER atuin search "$@" -i --result-file "$result_file" </dev/tty >/dev/tty 2>/dev/tty
     __atuin_status=$?
     output="$(<"$result_file")"
@@ -146,12 +183,13 @@ if [[ -t 0 && -t 1 && -n "$_atuin_bin" && -r "$HOME/.cache/atuin/init.zsh" ]]; t
       print -rn -- "${zle_bracketed_paste[1]}" >/dev/tty
     fi
 
-    if (( __atuin_status != 0 )); then
+    if ((__atuin_status != 0)); then
       [[ -n "$output" ]] && print -r -- "$output" >/dev/tty
       return "$__atuin_status"
     fi
 
     if [[ -n "$output" ]]; then
+      # shellcheck disable=SC2034
       RBUFFER=""
       LBUFFER=$output
 
@@ -272,10 +310,12 @@ alias cza="chezmoi apply --force"
 
 # yazi with cwd sync
 function yy() {
-  local tmp="$(mktemp -t "yazi-cwd.XXXXX")"
+  local tmp
+
+  tmp="$(mktemp -t "yazi-cwd.XXXXX")"
   yazi "$@" --cwd-file="$tmp"
   if cwd="$(command cat -- "$tmp")" && [ -n "$cwd" ] && [ "$cwd" != "$PWD" ]; then
-    builtin cd -- "$cwd"
+    builtin cd -- "$cwd" || return
   fi
   rm -f -- "$tmp"
 }
@@ -293,7 +333,7 @@ export FZF_DEFAULT_OPTS="--height 40% --layout=reverse --border
 # Shadow system python
 export UV_PYTHON_PREFERENCE="only-managed"
 
-function python()  { uv run python "$@"; }
+function python() { uv run python "$@"; }
 function python3() { uv run python3 "$@"; }
 function pip() {
   [[ -z "$VIRTUAL_ENV" && ! -d ".venv" ]] && uv venv -q
@@ -311,9 +351,10 @@ fi
 
 # Load zoxide last so its directory-jump hook wins.
 if _startup_command zoxide >/dev/null && [[ -r "$HOME/.cache/zoxide/init.zsh" ]]; then
+  # shellcheck source=/dev/null
   source "$HOME/.cache/zoxide/init.zsh"
   alias cd="z"
 fi
 
-unset -f _is_immutable_wrapper_path _is_immutable_wrapper_command _startup_command
+unset -f _command_wrapper _is_immutable_wrapper_path _is_immutable_wrapper_command _startup_command
 unset _immutable_wrapper_marker _immutable_nix_host _portable_nix_host
