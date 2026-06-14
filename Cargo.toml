@@ -2,7 +2,6 @@
 members = [
     "crates/chezmoi",
     "crates/common",
-    "packages/gh-hide-comment",
     "packages/system-run-mcp",
     "packages/http-fixture",
     "packages/lenovo-con-mode",

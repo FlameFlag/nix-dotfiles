@@ -10,12 +10,6 @@
   (define (repo-cargo-tools)
     (list
       (cargo/tool
-        "gh-hide-comment"
-        "packages/gh-hide-comment"
-        (field 'platforms (arr "macos" "linux" "windows"))
-        (field 'bins (arr (bin/version "gh-hide-comment" "--version")))
-        (depends "rustup"))
-      (cargo/tool
         "system-run-mcp"
         "packages/system-run-mcp"
         (field 'platforms (arr "macos" "linux"))

@@ -12,7 +12,6 @@ rustPlatform.buildRustPackage {
       ../crates
       ./system-run-mcp
       ./http-fixture
-      ./gh-hide-comment
       ./lenovo-con-mode
       ./lsp-diagnostic-filter
       ./zellij-theme-tools

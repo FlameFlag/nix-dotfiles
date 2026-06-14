@@ -33,7 +33,6 @@
                   (repoRoot + /Cargo.toml)
                   (repoRoot + /crates)
                   (repoRoot + /packages/system-run-mcp)
-                  (repoRoot + /packages/gh-hide-comment)
                   (repoRoot + /packages/http-fixture)
                   (repoRoot + /packages/lenovo-con-mode)
                   (repoRoot + /packages/lsp-diagnostic-filter)
@@ -97,13 +96,6 @@
             meta = {
               description = "Dotfiles helper used by chezmoi templates";
               mainProgram = "chezmoi-support";
-            };
-          };
-          gh-hide-comment = cargoWorkspacePackage {
-            package = "gh-hide-comment";
-            meta = {
-              description = "Hide GitHub comments from the command line";
-              mainProgram = "gh-hide-comment";
             };
           };
           system-run-mcp = cargoWorkspacePackage {
