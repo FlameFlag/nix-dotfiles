@@ -19,7 +19,7 @@
       "--features"
       "cmd"
       "--root"
-      "{{ home }}/.local"
+      "{{ prefix }}"
       "--force"
       "--locked"))
 

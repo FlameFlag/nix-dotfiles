@@ -22,7 +22,7 @@
             (apt/package-platform "code")
             (dnf/package-platform "code")
             (pacman/package-platform "code")
-            (zip-app-bin-platform
+            (macos/zip-app-bin-platform
               (predicate 'macos 'aarch64)
               "vscode"
               "https://update.code.visualstudio.com/latest/darwin-arm64/stable"
@@ -30,7 +30,7 @@
               "Visual Studio Code.app"
               "Contents/Resources/app/bin/code"
               "code")
-            (zip-app-bin-platform
+            (macos/zip-app-bin-platform
               (predicate 'macos 'x86_64)
               "vscode"
               "https://update.code.visualstudio.com/latest/darwin/stable"

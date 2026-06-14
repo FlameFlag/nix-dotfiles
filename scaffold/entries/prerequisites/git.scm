@@ -22,7 +22,7 @@
             (apt/package-platform "git")
             (dnf/package-platform "git")
             (pacman/package-platform "git")
-            (xcode-command-line-tools-platform)
+            (macos/xcode-command-line-tools-platform)
             (winget/package-platform "Git.Git"))))
       (field 'bins (arr (bin "git")))))
 

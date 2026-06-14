@@ -22,14 +22,14 @@
             (apt/package-platform "nushell")
             (dnf/package-platform "nushell")
             (pacman/package-platform "nushell")
-            (github-latest-targz-bin-platform
+            (github/latest-targz-bin-platform
               (predicate 'macos 'aarch64)
               "nushell"
               "nushell/nushell"
               "nu-${version}-aarch64-apple-darwin.tar.gz"
               "nu-${version}-aarch64-apple-darwin/nu"
               "nu")
-            (github-latest-targz-bin-platform
+            (github/latest-targz-bin-platform
               (predicate 'macos 'x86_64)
               "nushell"
               "nushell/nushell"

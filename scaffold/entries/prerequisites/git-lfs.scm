@@ -22,14 +22,14 @@
             (apt/package-platform "git-lfs")
             (dnf/package-platform "git-lfs")
             (pacman/package-platform "git-lfs")
-            (github-latest-zip-bin-platform
+            (github/latest-zip-bin-platform
               (predicate 'macos 'aarch64)
               "git-lfs"
               "git-lfs/git-lfs"
               "git-lfs-darwin-arm64-v${version}.zip"
               "git-lfs-${version}/git-lfs"
               "git-lfs")
-            (github-latest-zip-bin-platform
+            (github/latest-zip-bin-platform
               (predicate 'macos 'x86_64)
               "git-lfs"
               "git-lfs/git-lfs"
