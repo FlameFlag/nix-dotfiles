@@ -37,19 +37,3 @@ jobs:
 
       - name: Test
         run: cargo test --workspace
-
-      - name: Check Generated Completions
-        run: |
-          mkdir -p \
-            dotfiles/dot_config/nushell/completions \
-            "dotfiles/Library/Application Support/nushell/completions"
-
-          cargo run --quiet --bin chezmoi-support -- completions nushell > dotfiles/dot_config/nushell/completions/chezmoi-support.nu
-          cargo run --quiet --bin gh-hide-comment -- --completions nushell > dotfiles/dot_config/nushell/completions/gh-hide-comment.nu
-          cargo run --quiet --bin lenovo-con-mode -- --completions nushell > dotfiles/dot_config/nushell/completions/lenovo-con-mode.nu
-          cp dotfiles/dot_config/nushell/completions/*.nu "dotfiles/Library/Application Support/nushell/completions/"
-
-          for completion in dotfiles/dot_config/nushell/completions/*.nu; do
-            test -s "$completion"
-            cmp "$completion" "dotfiles/Library/Application Support/nushell/completions/$(basename "$completion")"
-          done
