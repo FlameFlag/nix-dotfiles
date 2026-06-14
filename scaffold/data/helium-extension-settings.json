@@ -1,0 +1,112 @@
+{
+  "local": [
+    {
+      "id": "blockjmkbacgjkknlgpkjjiijinjdanf",
+      "values": {
+        "netWhitelist": [
+          "chrome-extension-scheme",
+          "moz-extension-scheme",
+          "www.mail.com"
+        ],
+        "selectedFilterLists": [
+          "user-filters",
+          "helium-annoyances",
+          "helium-unbreak",
+          "ublock-filters",
+          "ublock-badware",
+          "ublock-privacy",
+          "ublock-quick-fixes",
+          "ublock-unbreak",
+          "easylist",
+          "adguard-generic",
+          "easyprivacy",
+          "adguard-spyware-url",
+          "urlhaus-1",
+          "plowe-0",
+          "fanboy-cookiemonster",
+          "ublock-cookies-easylist",
+          "adguard-cookies",
+          "easylist-newsletters",
+          "easylist-notifications",
+          "ublock-annoyances",
+          "BGR-0"
+        ]
+      }
+    },
+    {
+      "id": "pobhoodpcipjmedfenaigbeloiidbflp",
+      "values": {
+        "articles": "off",
+        "bookmarksButton": "off",
+        "exploreButton": "on",
+        "extensionStatus": "on",
+        "grokButton": "off",
+        "homeButton": "on",
+        "interFont": "on",
+        "messagesButton": "off",
+        "navigationButtonsLabels": "hover",
+        "navigationCenter": "on",
+        "notificationsButton": "on",
+        "profileButton": "on",
+        "removeTopicsToFollow": "on",
+        "sidebarLogo": "off",
+        "titleNotifications": "off",
+        "tweetButton": "off",
+        "typefullyGrowTab": "off",
+        "unreadCountBadge": "on"
+      }
+    },
+    {
+      "id": "ponfpcnoihfmfllpaingbgckeeldkhle",
+      "values": {
+        "backdropopacity": 85,
+        "controls": [
+          "loop",
+          "volume-booster",
+          "cards-end-screens",
+          "speed",
+          "flip-horizontally",
+          "screenshot"
+        ],
+        "darktheme": false,
+        "disableautoplay": false,
+        "griditemsperrow": {
+          "channel": {
+            "shorts": {
+              "apply": false,
+              "count": 5
+            },
+            "videos": {
+              "apply": false,
+              "count": 4
+            }
+          },
+          "posts": {
+            "apply": false,
+            "count": 4
+          },
+          "shorts": {
+            "apply": false,
+            "count": 8
+          },
+          "videos": {
+            "apply": false,
+            "count": 4
+          }
+        },
+        "qualityplaylists": "highres",
+        "qualityvideos": "highres",
+        "selectquality": false,
+        "theme": "default-dark",
+        "themevariant": "dark-fuchsia.css"
+      }
+    },
+    {
+      "id": "hlepfoohegkhhmjieoechaddaejaokhf",
+      "values": {
+        "welcomed": true
+      }
+    }
+  ],
+  "sync": []
+}

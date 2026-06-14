@@ -5,6 +5,7 @@
     (rnrs)
     (scaffold catalog)
     (entries apps ghostty)
+    (entries apps helium)
     (entries apps one-password)
     (entries apps scaffold-vscode-extension)
     (entries apps vscode))
@@ -23,4 +24,5 @@
       (vscode-tool)
       (scaffold-vscode-extension-tool)
       (one-password-tool)
+      (helium-tool)
       (ghostty-tool))))
