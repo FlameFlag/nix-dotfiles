@@ -7,6 +7,7 @@
     (entries apps ghostty)
     (entries apps helium)
     (entries apps one-password)
+    (entries apps raycast)
     (entries apps scaffold-vscode-extension)
     (entries apps vscode))
 
@@ -25,4 +26,5 @@
       (scaffold-vscode-extension-tool)
       (one-password-tool)
       (helium-tool)
+      (raycast-tool)
       (ghostty-tool))))
