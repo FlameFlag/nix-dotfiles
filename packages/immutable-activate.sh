@@ -210,32 +210,6 @@ remove_stale_wrappers() {
   done
 }
 
-link_scaffold_extension() {
-  local flake=$1
-  local name=$2
-  local source="$flake/scaffold/$name"
-  local dest="$flake/.scaffold/extensions/$name"
-  local relative_source="../../scaffold/$name"
-
-  [[ -d "$source" ]] || die "missing Scaffold extension source: $source"
-
-  if [[ -L "$dest" ]]; then
-    ln -sfn "$relative_source" "$dest"
-  elif [[ -e "$dest" ]]; then
-    die "refusing to replace non-symlink Scaffold extension path: $dest"
-  else
-    ln -s "$relative_source" "$dest"
-  fi
-}
-
-ensure_scaffold_extensions() {
-  local flake=$1
-
-  mkdir -p "$flake/.scaffold/extensions"
-  link_scaffold_extension "$flake" entries
-  link_scaffold_extension "$flake" installers
-}
-
 default_flake() {
   local candidate
   local -a candidates=(
@@ -395,7 +369,6 @@ activate_host_profile() {
   remove_stale_wrappers "$wrapper_dir" "$owned_now"
 
   if ((run_scaffold == 1)); then
-    ensure_scaffold_extensions "$flake"
     scaffold --catalog "$flake/scaffold.scm" install
   fi
 
@@ -449,7 +422,6 @@ activate_container_profile() {
   remove_legacy_container_wrappers "$bin_home"
 
   if ((run_scaffold == 1)); then
-    ensure_scaffold_extensions "$flake"
     "$export_dir/scaffold" --catalog "$flake/scaffold.scm" install
   fi
 
