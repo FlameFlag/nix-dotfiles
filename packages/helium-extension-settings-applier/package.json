@@ -1,0 +1,27 @@
+{
+  "name": "helium-extension-settings-applier",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "apply-helium-extension-settings": "./src/apply-helium-extension-settings.ts"
+  },
+  "scripts": {
+    "build": "bun run typecheck",
+    "check": "bun run typecheck && biome check . && bun run fallow",
+    "fallow": "fallow --no-cache --quiet --summary",
+    "format": "biome format --write .",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@stricli/core": "^1.2.7",
+    "classic-level": "3.0.0",
+    "lz-string": "1.5.0"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.5.0",
+    "@types/bun": "^1.3.14",
+    "fallow": "^2.96.0",
+    "typescript": "^6.0.3"
+  }
+}

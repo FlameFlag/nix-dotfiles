@@ -1,0 +1,5 @@
+{
+  "$schema": "https://docs.fallow.tools/schemas/config.json",
+  "entry": ["src/apply-helium-extension-settings.ts"],
+  "ignorePatterns": ["dist/**", "node_modules/**"]
+}
