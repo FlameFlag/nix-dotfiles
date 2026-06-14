@@ -6,8 +6,7 @@ mod comment_url;
 mod error;
 mod github;
 
-use clap::{CommandFactory, Parser};
-use clap_complete_command::Shell;
+use clap::Parser;
 use dotfiles_common::http::Client;
 use std::io::Write;
 
@@ -28,11 +27,6 @@ fn main() {
 }
 
 fn run_gh_hide_comment(mut cli: Cli) -> Result<i32> {
-    if let Some(shell) = cli.completions {
-        generate_gh_hide_comment_completions(shell);
-        return Ok(0);
-    }
-
     if cli.urls.is_empty() {
         eprintln!("info: Interactive mode. Paste comment URLs, blank line to quit.");
         loop {
@@ -73,29 +67,5 @@ fn run_gh_hide_comment(mut cli: Cli) -> Result<i32> {
             cli.urls.len()
         );
         Ok(1)
-    }
-}
-
-fn generate_gh_hide_comment_completions(shell: Shell) {
-    generate_gh_hide_comment_completions_to(shell, &mut std::io::stdout());
-}
-
-fn generate_gh_hide_comment_completions_to(shell: Shell, writer: &mut impl Write) {
-    let mut command = Cli::command();
-    shell.generate(&mut command, writer);
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use clap::ValueEnum;
-
-    #[test]
-    fn generates_all_gh_hide_comment_completion_shells() {
-        for &shell in Shell::value_variants() {
-            let mut output = Vec::new();
-            generate_gh_hide_comment_completions_to(shell, &mut output);
-            assert!(!output.is_empty());
-        }
     }
 }

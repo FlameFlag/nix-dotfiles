@@ -11,12 +11,11 @@ path = "src/main.rs"
 
 [dependencies]
 clap.workspace = true
-clap_complete_command.workspace = true
 directories.workspace = true
 dotfiles-common = { version = "0.1.0", path = "../common" }
 flate2.workspace = true
 fs-err.workspace = true
-miette = { version = "7.6.0", features = ["fancy"] }
+miette = { version = "7.6.0", default-features = false, features = ["derive"] }
 serde.workspace = true
 serde_json.workspace = true
 tar.workspace = true

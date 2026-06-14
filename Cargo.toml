@@ -17,36 +17,28 @@ license = "MIT"
 repository = "https://github.com/euvlok/nix-dotfiles"
 
 [workspace.dependencies]
-camino = { version = "1.2.2", features = ["serde1"] }
-clap = { version = "4.6.1", features = ["derive", "env"] }
-clap_complete_command = { version = "0.6.1", features = ["nushell"] }
-comfy-table = "7.2.2"
+clap = { version = "4.6.1", default-features = false, features = ["derive", "env", "std", "help", "usage", "error-context"] }
 directories = "6.0.0"
+duct = { version = "1.1.1", default-features = false }
 flate2 = "1.1.9"
 fs-err = "3.3.0"
 indexmap = "2.12.1"
 reqwest = { version = "0.13.4", default-features = false, features = ["blocking", "json", "rustls-no-provider"] }
 rmcp = { version = "1.7.0", default-features = false, features = ["macros", "server", "transport-io"] }
 rustls = { version = "0.23.40", default-features = false, features = ["ring"] }
-schemars = { version = "1.2.1", features = ["derive"] }
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.150"
-shell-words = "1.1.1"
-strum = { version = "0.28.0", features = ["derive"] }
-tar = "0.4.46"
+tar = { version = "0.4.46", default-features = false }
 tempfile = "3.27.0"
 thiserror = "2.0.18"
 tokio = { version = "1.52.3", default-features = false, features = ["io-std", "macros", "rt-multi-thread"] }
 tokio-util = "0.7"
-minijinja = "2.20.0"
+minijinja = { version = "2.20.0", default-features = false, features = ["builtins", "serde"] }
 tiny_http = "0.12.0"
-toml = "1.1.2"
+toml = { version = "1.1.2", default-features = false, features = ["parse", "serde", "std"] }
 toml_edit = "0.25.12"
-url = "2.5.8"
 walkdir = "2.5.0"
 which = "8.0.2"
-xz2 = "0.1.7"
-zip = { version = "8.6.0", default-features = false, features = ["deflate"] }
 
 [workspace.lints.rust]
 unsafe_code = "deny"

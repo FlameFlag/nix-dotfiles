@@ -1,5 +1,4 @@
 use toml_edit::DocumentMut;
-use url::Url;
 
 const MCP_CONNECT_TIMEOUT: std::time::Duration = std::time::Duration::from_millis(150);
 
@@ -42,15 +41,45 @@ fn local_mcp_url_is_unreachable(raw: &str) -> bool {
 }
 
 fn local_http_endpoint(raw: &str) -> Option<(String, u16)> {
-    let url = Url::parse(raw).ok()?;
-    if !matches!(url.scheme(), "http" | "https") {
-        return None;
-    }
-    let host = url.host_str()?;
+    let (scheme, rest) = raw.split_once("://")?;
+    let default_port = match scheme {
+        "http" => 80,
+        "https" => 443,
+        _ => return None,
+    };
+    let authority = rest
+        .split(['/', '?', '#'])
+        .next()
+        .filter(|authority| !authority.is_empty())?;
+    let (host, port) = parse_host_port(authority, default_port)?;
     if !host_is_loopback(host) {
         return None;
     }
-    Some((host.to_owned(), url.port_or_known_default()?))
+    Some((host.to_owned(), port))
+}
+
+fn parse_host_port(authority: &str, default_port: u16) -> Option<(&str, u16)> {
+    let host_port = authority.rsplit('@').next().unwrap_or(authority);
+    if let Some(rest) = host_port.strip_prefix('[') {
+        let (host, rest) = rest.split_once(']')?;
+        let port = parse_optional_port(rest, default_port)?;
+        return Some((host, port));
+    }
+
+    match host_port.rsplit_once(':') {
+        Some((host, port)) if port.bytes().all(|byte| byte.is_ascii_digit()) => {
+            Some((host, port.parse().ok()?))
+        }
+        _ => Some((host_port, default_port)),
+    }
+}
+
+fn parse_optional_port(rest: &str, default_port: u16) -> Option<u16> {
+    if rest.is_empty() {
+        Some(default_port)
+    } else {
+        rest.strip_prefix(':')?.parse().ok()
+    }
 }
 
 fn host_is_loopback(host: &str) -> bool {
@@ -84,6 +113,10 @@ mod tests {
         assert_eq!(
             local_http_endpoint("http://localhost:8090/mcp"),
             Some(("localhost".to_owned(), 8090))
+        );
+        assert_eq!(
+            local_http_endpoint("https://[::1]/mcp"),
+            Some(("::1".to_owned(), 443))
         );
         assert_eq!(local_http_endpoint("https://example.com/mcp"), None);
     }

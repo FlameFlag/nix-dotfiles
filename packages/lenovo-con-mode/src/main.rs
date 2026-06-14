@@ -2,8 +2,7 @@
 
 mod platform;
 
-use clap::{CommandFactory, Parser, ValueEnum};
-use clap_complete_command::Shell;
+use clap::{Parser, ValueEnum};
 use thiserror::Error;
 
 use crate::platform::{is_supported_lenovo, read_mode, write_mode};
@@ -20,9 +19,6 @@ const WINDOWS_ENERGY_DRV_PATH: &str = platform::WINDOWS_ENERGY_DRV_PATH;
     version
 )]
 struct Cli {
-    #[arg(long, value_enum)]
-    completions: Option<Shell>,
-
     #[arg(value_enum, default_value_t = Action::Toggle)]
     action: Action,
 }
@@ -74,11 +70,6 @@ fn main() {
 }
 
 fn run_lenovo_con_mode(cli: Cli) -> Result<()> {
-    if let Some(shell) = cli.completions {
-        generate_lenovo_con_mode_completions(shell);
-        return Ok(());
-    }
-
     if !is_supported_lenovo()? {
         eprintln!(
             "info: Lenovo conservation mode is only supported on Lenovo laptops with a known Linux or Windows backend; skipping."
@@ -107,15 +98,6 @@ fn run_lenovo_con_mode(cli: Cli) -> Result<()> {
     Ok(())
 }
 
-fn generate_lenovo_con_mode_completions(shell: Shell) {
-    generate_lenovo_con_mode_completions_to(shell, &mut std::io::stdout());
-}
-
-fn generate_lenovo_con_mode_completions_to(shell: Shell, writer: &mut impl std::io::Write) {
-    let mut command = Cli::command();
-    shell.generate(&mut command, writer);
-}
-
 const fn state_label(enabled: bool) -> &'static str {
     if enabled {
         "ENABLED (60% charge)"
@@ -127,20 +109,10 @@ const fn state_label(enabled: bool) -> &'static str {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use clap::ValueEnum;
 
     #[test]
     fn state_labels_match_old_tool() {
         assert_eq!(state_label(true), "ENABLED (60% charge)");
         assert_eq!(state_label(false), "DISABLED (100% charge)");
-    }
-
-    #[test]
-    fn generates_all_lenovo_con_mode_completion_shells() {
-        for &shell in Shell::value_variants() {
-            let mut output = Vec::new();
-            generate_lenovo_con_mode_completions_to(shell, &mut output);
-            assert!(!output.is_empty());
-        }
     }
 }

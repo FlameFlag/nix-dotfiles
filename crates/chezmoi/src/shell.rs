@@ -22,27 +22,6 @@ const COMPLETION_SPECS: &[CompletionSpec] = &[
         after: &[],
     },
     CompletionSpec {
-        bin: "chezmoi-support",
-        name: "chezmoi-support",
-        argv0: "chezmoi-support",
-        before: &["completions"],
-        after: &[],
-    },
-    CompletionSpec {
-        bin: "gh-hide-comment",
-        name: "gh-hide-comment",
-        argv0: "gh-hide-comment",
-        before: &["--completions"],
-        after: &[],
-    },
-    CompletionSpec {
-        bin: "lenovo-con-mode",
-        name: "lenovo-con-mode",
-        argv0: "lenovo-con-mode",
-        before: &["--completions"],
-        after: &[],
-    },
-    CompletionSpec {
         bin: "chezmoi",
         name: "chezmoi",
         argv0: "chezmoi",

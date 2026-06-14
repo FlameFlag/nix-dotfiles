@@ -16,7 +16,6 @@ serde_json.workspace = true
 thiserror.workspace = true
 tiny_http.workspace = true
 toml.workspace = true
-url.workspace = true
 
 [lints]
 workspace = true

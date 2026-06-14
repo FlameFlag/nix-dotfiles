@@ -1,5 +1,4 @@
 use clap::{Parser, ValueEnum};
-use clap_complete_command::Shell;
 
 #[derive(Debug, Parser)]
 #[command(
@@ -8,9 +7,6 @@ use clap_complete_command::Shell;
     version
 )]
 pub struct Cli {
-    #[arg(long, value_enum)]
-    pub completions: Option<Shell>,
-
     #[arg(long, value_enum, default_value_t = Reason::Outdated)]
     pub reason: Reason,
 

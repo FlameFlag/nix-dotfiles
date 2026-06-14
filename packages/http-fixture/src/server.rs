@@ -1,14 +1,11 @@
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use tiny_http::{Request, Server};
-use url::Url;
 
 use crate::app::App;
 use crate::cli::Cli;
 use crate::error::{Error, Result};
 use crate::response::{internal_error_response, not_found_response};
-
-const REQUEST_URL_BASE: &str = "http://http-fixture.local/";
 
 pub(crate) fn serve(_cli: &Cli, app: &App) -> Result<()> {
     println!("http-fixture listening on http://{}", app.listen);
@@ -65,17 +62,21 @@ fn read_body(request: &mut Request) -> std::io::Result<String> {
 }
 
 fn request_path(url: &str) -> String {
-    if let Ok(parsed) = Url::parse(url) {
-        return parsed.path().to_owned();
+    let path = url.split_once('?').map_or(url, |(path, _)| path);
+    if let Some(path) = absolute_url_path(path) {
+        return path.to_owned();
     }
-
-    if let Ok(base) = Url::parse(REQUEST_URL_BASE)
-        && let Ok(parsed) = base.join(url)
-    {
-        return parsed.path().to_owned();
+    if path.starts_with('/') {
+        path.to_owned()
+    } else {
+        format!("/{path}")
     }
+}
 
-    url.split_once('?').map_or(url, |(path, _)| path).to_owned()
+fn absolute_url_path(url: &str) -> Option<&str> {
+    let authority_start = url.find("://")? + "://".len();
+    let rest = url.get(authority_start..)?;
+    Some(rest.find('/').map_or("/", |path_start| &rest[path_start..]))
 }
 
 fn log_request(method: &str, url: &str, body: &str) {
@@ -113,5 +114,10 @@ mod tests {
             request_path("https://alt-tab.app/website/public/app.js?cache=false"),
             "/website/public/app.js"
         );
+    }
+
+    #[test]
+    fn request_path_handles_absolute_url_without_path() {
+        assert_eq!(request_path("https://alt-tab.app?cache=false"), "/");
     }
 }

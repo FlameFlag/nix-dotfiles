@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 use minijinja::{Environment, UndefinedBehavior};
 use thiserror::Error;
@@ -9,7 +9,7 @@ pub enum TemplateError {
     Render(#[from] minijinja::Error),
 }
 
-pub type Bindings<'a> = HashMap<&'a str, &'a str>;
+pub type Bindings<'a> = BTreeMap<&'a str, &'a str>;
 
 /// Renders MiniJinja placeholders using `bindings`.
 ///
