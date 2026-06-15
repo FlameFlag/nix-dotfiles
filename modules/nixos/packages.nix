@@ -7,6 +7,7 @@ in
     # Hardware and platform tools
     inherit (pkgs.unstable)
       ghostty
+      go
       pciutils
       smartmontools
       wl-clipboard

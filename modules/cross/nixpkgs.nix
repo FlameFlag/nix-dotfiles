@@ -16,44 +16,7 @@
       (
         final: prev:
         let
-          repoRoot = ../..;
-          cargoWorkspacePackage =
-            {
-              package,
-              meta ? { },
-            }:
-            final.rustPlatform.buildRustPackage {
-              pname = package;
-              version = "0.1.0";
-
-              src = final.lib.fileset.toSource {
-                root = repoRoot;
-                fileset = final.lib.fileset.unions [
-                  (repoRoot + /Cargo.lock)
-                  (repoRoot + /Cargo.toml)
-                  (repoRoot + /crates)
-                  (repoRoot + /packages/system-run-mcp)
-                  (repoRoot + /packages/http-fixture)
-                  (repoRoot + /packages/lenovo-con-mode)
-                  (repoRoot + /packages/lsp-diagnostic-filter)
-                  (repoRoot + /packages/zellij-theme-tools)
-                ];
-              };
-
-              cargoLock.lockFile = repoRoot + /Cargo.lock;
-
-              cargoBuildFlags = [
-                "--package"
-                package
-              ];
-
-              cargoTestFlags = [
-                "--package"
-                package
-              ];
-
-              inherit meta;
-            };
+          goWorkspacePackage = final.callPackage ../../packages/go-workspace-package.nix { };
         in
         {
           gh = final.unstable.gh;
@@ -91,35 +54,55 @@
           hyper-window-tiling = final.callPackage ../../packages/hyper-window-tiling.nix { };
           hyper-window-tiling-gnome = final.hyper-window-tiling.gnome;
           hyper-window-tiling-kde = final.hyper-window-tiling.kde;
-          chezmoi-support = cargoWorkspacePackage {
-            package = "chezmoi-support";
+          chezmoi-support = goWorkspacePackage {
+            pname = "chezmoi-support";
+            subPackages = [ "cmd/chezmoi-support" ];
             meta = {
               description = "Dotfiles helper used by chezmoi templates";
               mainProgram = "chezmoi-support";
             };
           };
-          system-run-mcp = cargoWorkspacePackage {
-            package = "system-run-mcp";
+          system-run-mcp = goWorkspacePackage {
+            pname = "system-run-mcp";
+            subPackages = [
+              "cmd/system-run-mcp"
+              "cmd/system-runner"
+            ];
             meta = {
               description = "MCP server that runs commands through the local system runner";
               mainProgram = "system-run-mcp";
               platforms = final.lib.platforms.linux ++ final.lib.platforms.darwin;
             };
           };
+          nd-tools = goWorkspacePackage {
+            pname = "nd-tools";
+            subPackages = [ "cmd/nd-tools" ];
+            meta = {
+              description = "Periodic updater for nix-dotfiles managed developer tools";
+              mainProgram = "nd-tools";
+              platforms =
+                final.lib.platforms.linux
+                ++ final.lib.platforms.darwin
+                ++ final.lib.platforms.windows;
+            };
+          };
           ghidra-mcp-headless = final.eupkgs.ghidra-mcp-headless;
-          lenovo-con-mode = cargoWorkspacePackage {
-            package = "lenovo-con-mode";
+          lenovo-con-mode = goWorkspacePackage {
+            pname = "lenovo-con-mode";
+            subPackages = [ "cmd/lenovo-con-mode" ];
             meta = {
               description = "Toggle or set Lenovo Ideapad conservation mode";
               mainProgram = "lenovo-con-mode";
-              platforms = final.lib.platforms.linux ++ final.lib.platforms.windows;
+              platforms = final.lib.platforms.linux;
             };
           };
           lsp-diagnostic-filter = final.callPackage ../../packages/lsp-diagnostic-filter.nix { };
-          zellij-theme-tools = cargoWorkspacePackage {
-            package = "zellij-theme-tools";
+          zellij-theme-tools = goWorkspacePackage {
+            pname = "zellij-theme-tools";
+            subPackages = [ "cmd/zellij-theme-run" ];
             meta = {
               description = "Theme helpers for Zellij and Codex sessions";
+              mainProgram = "zellij-theme-run";
               platforms = final.lib.platforms.linux ++ final.lib.platforms.darwin;
             };
           };

@@ -67,7 +67,6 @@ attrValues {
     git-filter-repo
     git-lfs
     gitui
-    go
     golangci-lint
     gopls
     gnumake

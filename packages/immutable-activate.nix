@@ -1,4 +1,5 @@
 {
+  callPackage,
   lib,
   pkgs,
 }:
@@ -14,43 +15,19 @@ let
     scaffold
   ];
 in
-pkgs.stdenvNoCC.mkDerivation {
+callPackage ./go-workspace-package.nix { } {
   pname = "immutable-activate";
-  version = "0.1.0";
+  subPackages = [ "cmd/immutable-activate" ];
 
-  src = ./immutable-activate.sh;
-  manifest = ./immutable-distrobox.ini;
-
-  dontUnpack = true;
-
-  nativeBuildInputs = with pkgs; [
-    bash
-    shellcheck-minimal
-    shfmt
+  ldflags = [
+    "-X"
+    "main.runtimePath=${lib.makeBinPath runtimeInputs}"
+    "-X"
+    "main.distroboxManifest=${placeholder "out"}/share/nix-dotfiles/immutable/distrobox.ini"
   ];
 
-  installPhase = ''
-    runHook preInstall
-
-    install -Dm755 "$src" "$out/bin/immutable-activate"
-    install -Dm644 "$manifest" "$out/share/nix-dotfiles/immutable/distrobox.ini"
-    substituteInPlace "$out/bin/immutable-activate" \
-      --replace-fail '#!/bin/bash' '#!${lib.getExe pkgs.bash}' \
-      --replace-fail '@runtimePath@' '${lib.makeBinPath runtimeInputs}' \
-      --replace-fail '@distroboxManifest@' "$out/share/nix-dotfiles/immutable/distrobox.ini"
-
-    runHook postInstall
-  '';
-
-  doCheck = true;
-  checkPhase = ''
-    runHook preCheck
-
-    bash -n "$src"
-    shfmt -d -i 2 -bn "$src"
-    shellcheck "$src"
-
-    runHook postCheck
+  postInstall = ''
+    install -Dm644 ${../internal/immutableactivate/container/distrobox.ini} "$out/share/nix-dotfiles/immutable/distrobox.ini"
   '';
 
   meta = {

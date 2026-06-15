@@ -1,0 +1,177 @@
+package process
+
+import (
+	"bytes"
+	"context"
+	"errors"
+	"fmt"
+	"io"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"runtime"
+	"slices"
+	"strconv"
+	"strings"
+	"time"
+)
+
+const (
+	defaultRunTimeout     = 30 * time.Minute
+	defaultCaptureTimeout = 30 * time.Second
+	runTimeoutEnv         = "DOTFILES_PROCESS_RUN_TIMEOUT_SECS"
+	captureTimeoutEnv     = "DOTFILES_PROCESS_CAPTURE_TIMEOUT_SECS"
+	pathEnvKey            = "PATH"
+)
+
+type Output struct {
+	StatusCode int
+	Success    bool
+	Stdout     []byte
+	Stderr     []byte
+}
+
+func PathOf(bin string) (string, bool) {
+	if IsPathLike(bin) {
+		info, err := os.Stat(bin)
+		return bin, err == nil && IsExecutableFile(info)
+	}
+	path, err := exec.LookPath(ExecutableName(bin))
+	return path, err == nil
+}
+
+func PathOfWithPath(bin, paths string) (string, bool) {
+	if IsPathLike(bin) {
+		info, err := os.Stat(bin)
+		return bin, err == nil && IsExecutableFile(info)
+	}
+	for _, dir := range filepath.SplitList(paths) {
+		candidate := filepath.Join(dir, ExecutableName(bin))
+		info, err := os.Stat(candidate)
+		if err == nil && IsExecutableFile(info) {
+			return candidate, true
+		}
+	}
+	return "", false
+}
+
+func RunInWithEnvAndStdin(cwd string, argv []string, env []string, stdin io.Reader) error {
+	if len(argv) == 0 {
+		return errors.New("empty command")
+	}
+	ctx, cancel := context.WithTimeout(
+		context.Background(),
+		timeoutFromEnv(runTimeoutEnv, defaultRunTimeout),
+	)
+	defer cancel()
+	cmd := command(ctx, cwd, argv, env)
+	cmd.Stdin = stdin
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	err := cmd.Run()
+	if ctx.Err() == context.DeadlineExceeded {
+		return fmt.Errorf("command timed out: %s", argv[0])
+	}
+	if err != nil {
+		return fmt.Errorf("command failed: %s: %w", argv[0], err)
+	}
+	return nil
+}
+
+func CaptureWithEnvAndStdin(argv []string, env []string, stdin []byte) (Output, error) {
+	if len(argv) == 0 {
+		return Output{}, errors.New("empty command")
+	}
+	ctx, cancel := context.WithTimeout(
+		context.Background(),
+		timeoutFromEnv(captureTimeoutEnv, defaultCaptureTimeout),
+	)
+	defer cancel()
+	cmd := command(ctx, "", argv, env)
+	if stdin != nil {
+		cmd.Stdin = bytes.NewReader(stdin)
+	}
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+	err := cmd.Run()
+	statusCode := -1
+	success := false
+	if err == nil {
+		statusCode = 0
+		success = true
+	} else {
+		if exitErr, ok := errors.AsType[*exec.ExitError](err); ok {
+			statusCode = exitErr.ExitCode()
+		}
+	}
+	if ctx.Err() == context.DeadlineExceeded {
+		return Output{
+				StatusCode: statusCode,
+				Success:    false,
+				Stdout:     stdout.Bytes(),
+				Stderr:     stderr.Bytes(),
+			}, fmt.Errorf(
+				"command timed out: %s",
+				argv[0],
+			)
+	}
+	if err != nil {
+		if _, ok := errors.AsType[*exec.ExitError](err); !ok {
+			return Output{}, fmt.Errorf("failed to spawn %s: %w", argv[0], err)
+		}
+	}
+	return Output{
+		StatusCode: statusCode,
+		Success:    success,
+		Stdout:     stdout.Bytes(),
+		Stderr:     stderr.Bytes(),
+	}, nil
+}
+
+func ExecutableName(name string) string {
+	if runtime.GOOS == "windows" && filepath.Ext(name) == "" {
+		return name + ".exe"
+	}
+	return name
+}
+
+func command(ctx context.Context, cwd string, argv []string, env []string) *exec.Cmd {
+	program := argv[0]
+	if !IsPathLike(program) {
+		for i := len(env) - 1; i >= 0; i-- {
+			key, value, ok := strings.Cut(env[i], "=")
+			if ok && key == pathEnvKey {
+				if path, found := PathOfWithPath(program, value); found {
+					program = path
+				}
+				break
+			}
+		}
+	}
+	cmd := exec.CommandContext(ctx, program, argv[1:]...)
+	if cwd != "" {
+		cmd.Dir = cwd
+	}
+	if len(env) > 0 {
+		cmd.Env = slices.Concat(os.Environ(), env)
+	}
+	return cmd
+}
+
+func IsPathLike(name string) bool {
+	return filepath.IsAbs(name) || strings.Contains(name, "/") ||
+		strings.ContainsRune(name, os.PathSeparator)
+}
+
+func IsExecutableFile(info os.FileInfo) bool {
+	return !info.IsDir() && (runtime.GOOS == "windows" || info.Mode()&0o111 != 0)
+}
+
+func timeoutFromEnv(name string, fallback time.Duration) time.Duration {
+	value, err := strconv.ParseUint(os.Getenv(name), 10, 64)
+	if err != nil || value == 0 {
+		return fallback
+	}
+	return time.Duration(value) * time.Second
+}

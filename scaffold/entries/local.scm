@@ -4,7 +4,7 @@
   (import
     (rnrs)
     (scaffold catalog)
-    (entries local cargo)
+    (entries local go)
     (entries local kanata)
     (entries local scaffold))
 
@@ -16,5 +16,4 @@
     (summary "Return tools built from this repo or from personal upstream forks.")
     (returns "List of Scaffold tool objects."))
 
-  (define (local/tools)
-    (append (list (kanata-tool) (scaffold-tool)) (repo-cargo-tools))))
+  (define (local/tools) (append (list (kanata-tool) (scaffold-tool)) (repo-go-tools))))

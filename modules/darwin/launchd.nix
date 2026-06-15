@@ -37,11 +37,11 @@ in
       StandardErrorPath = "/Users/${user}/Library/Logs/atuin-daemon.log";
     };
 
-    nix-dotfiles-tool-update.serviceConfig = {
+    nd-tools-update.serviceConfig = {
       ProgramArguments = [
         "/bin/sh"
         "-lc"
-        "exec /Users/${user}/.local/bin/nix-dotfiles-tool-update"
+        "exec /Users/${user}/.local/bin/nd-tools update"
       ];
       RunAtLoad = true;
       StartInterval = 21600;
@@ -61,8 +61,8 @@ in
         "/usr/sbin"
         "/sbin"
       ];
-      StandardOutPath = "/Users/${user}/Library/Logs/nix-dotfiles-tool-update.log";
-      StandardErrorPath = "/Users/${user}/Library/Logs/nix-dotfiles-tool-update.log";
+      StandardOutPath = "/Users/${user}/Library/Logs/nd-tools-update.log";
+      StandardErrorPath = "/Users/${user}/Library/Logs/nd-tools-update.log";
     };
   };
 }

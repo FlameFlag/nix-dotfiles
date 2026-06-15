@@ -6,6 +6,7 @@
     (scaffold catalog)
     (entries prerequisites bun)
     (entries prerequisites chezmoi)
+    (entries prerequisites go)
     (entries prerequisites git)
     (entries prerequisites git-lfs)
     (entries prerequisites node)
@@ -14,7 +15,7 @@
     (entries prerequisites uv))
 
   (moduledoc
-    (summary "Bootstrap-adjacent prerequisites expressed as Scaffold catalog tools.")
+    (summary "Prerequisite tools expressed as Scaffold catalog tools.")
     (group "Dotfiles tools"))
 
   (doc-next
@@ -25,6 +26,7 @@
   (define (prerequisites/tools)
     (list
       (chezmoi-tool)
+      (go-tool)
       (powershell-tool)
       (git-tool)
       (git-lfs-tool)

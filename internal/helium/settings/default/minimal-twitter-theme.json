@@ -1,0 +1,28 @@
+{
+  "local": [
+    {
+      "id": "pobhoodpcipjmedfenaigbeloiidbflp",
+      "values": {
+        "articles": "off",
+        "bookmarksButton": "off",
+        "exploreButton": "on",
+        "extensionStatus": "on",
+        "grokButton": "off",
+        "homeButton": "on",
+        "interFont": "on",
+        "messagesButton": "off",
+        "navigationButtonsLabels": "hover",
+        "navigationCenter": "on",
+        "notificationsButton": "on",
+        "profileButton": "on",
+        "removeTopicsToFollow": "on",
+        "sidebarLogo": "off",
+        "titleNotifications": "off",
+        "tweetButton": "off",
+        "typefullyGrowTab": "off",
+        "unreadCountBadge": "on"
+      }
+    }
+  ],
+  "sync": []
+}

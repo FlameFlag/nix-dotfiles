@@ -11,7 +11,6 @@ let
 
   desktopEnabled = config.nixOS.gnome.enable || config.nixOS.kde.enable;
   heliumProfileDir = "/home/nyx/.config/net.imput.helium/Default";
-  heliumSettingsFile = ../../scaffold/data/helium-extension-settings.json;
   heliumPrivateSettingsFile = config.sops.secrets."helium-cookie-autodelete-settings".path;
 
   chromiumFeatures = [
@@ -96,9 +95,7 @@ let
     '';
   };
 
-  heliumExtensionSettingsApplier =
-    pkgs.callPackage ../../packages/helium-extension-settings-applier.nix
-      { };
+  heliumBrowserTool = pkgs.callPackage ../../packages/helium-browser.nix { };
 
   externalExtensionFile = id: value: {
     name = "xdg/net.imput.helium/External Extensions/${id}.json";
@@ -154,13 +151,12 @@ in
         chown nyx:users '/home/nyx/.config' '/home/nyx/.config/net.imput.helium' '${heliumProfileDir}' 2>/dev/null || true
 
         if command -v runuser >/dev/null 2>&1; then
-          runuser -u nyx -- ${heliumExtensionSettingsApplier}/bin/apply-helium-extension-settings \
+          runuser -u nyx -- ${heliumBrowserTool}/bin/helium-browser apply-extension-settings \
             --profile-dir '${heliumProfileDir}' \
-            --settings ${heliumSettingsFile} \
             --settings '${heliumPrivateSettingsFile}' \
             --gh-token || true
         else
-          su -s /bin/sh nyx -c '${heliumExtensionSettingsApplier}/bin/apply-helium-extension-settings --profile-dir ${heliumProfileDir} --settings ${heliumSettingsFile} --settings ${heliumPrivateSettingsFile} --gh-token' || true
+          su -s /bin/sh nyx -c '${heliumBrowserTool}/bin/helium-browser apply-extension-settings --profile-dir ${heliumProfileDir} --settings ${heliumPrivateSettingsFile} --gh-token' || true
         fi
       '';
     };

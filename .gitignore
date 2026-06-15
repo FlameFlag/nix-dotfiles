@@ -7,6 +7,7 @@ Thumbs.db
 .devenv/
 .direnv/
 .venv/
+.docker-cache/
 fallow/
 **/fallow/
 .fallow/
@@ -14,7 +15,6 @@ fallow/
 result
 
 # IDEs
-**/.idea/
 **/.vs/
 **/.vscode/
 !/.vscode/
@@ -26,17 +26,8 @@ result
 node_modules/
 **/node_modules/
 
-# Python
-**/__pycache__/
-*.py[cod]
-
 **/target/
 lcov.info
 
-# Zig
-**/.zig-cache/
-**/zig-out/
-
-# Generated Nushell completions are populated by chezmoi-support nushell-init.
-dotfiles/dot_config/nushell/completions/
-dotfiles/Library/Application Support/nushell/completions/
+# Go
+dist/

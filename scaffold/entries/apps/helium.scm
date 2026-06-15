@@ -24,24 +24,33 @@
       "--wayland-text-input-version=3 "
       helium/common-flags))
 
-  (doc-next (hidden) (summary "Absolute path to the Helium installer script."))
-
-  (define helium/install-script
-    (workspace/path "scaffold" "scripts" "install-helium-browser.sh"))
-
   (doc-next (hidden) (summary "Create a Helium installer platform."))
 
   (define (helium/platform predicate-value mode flags requires)
-    (package/platform
-      predicate-value
-      requires
-      (arr
-        "bash"
-        helium/install-script
-        mode
-        (tool-cache-dir "helium-browser")
-        "{{ bin_dir }}"
-        flags)))
+    (let
+      ((root (tool-cache-dir "helium-browser"))
+        (installer-bin
+          (string-append (tool-cache-dir "helium-browser") "/installer-bin")))
+      (package/platform-argvs
+        predicate-value
+        requires
+        (arr
+          (arr "mkdir" "-p" installer-bin)
+          (arr
+            "env"
+            (string-append "GOBIN=" installer-bin)
+            "go"
+            "install"
+            "./cmd/helium-browser")
+          (arr
+            (string-append installer-bin "/helium-browser")
+            "install"
+            "--secrets"
+            (workspace/path "secrets" "secrets.yaml")
+            mode
+            root
+            "{{ bin_dir }}"
+            flags)))))
 
   (doc-next (hidden) (summary "Create the Helium macOS DMG installer platform."))
 
@@ -50,20 +59,7 @@
       (predicate 'macos 'aarch64)
       "macos"
       helium/common-flags
-      (arr
-        "bash"
-        "chmod"
-        "cp"
-        "curl"
-        "ditto"
-        "hdiutil"
-        "ln"
-        "mkdir"
-        "bun"
-        "rm"
-        "sed"
-        "sops"
-        "unzip")))
+      (arr "ditto" "env" "go" "hdiutil" "mkdir" "sops")))
 
   (doc-next (hidden) (summary "Create the Helium non-NixOS Linux tarball installer."))
 
@@ -72,20 +68,7 @@
       'linux
       "linux"
       helium/linux-flags
-      (arr
-        "bash"
-        "chmod"
-        "cp"
-        "curl"
-        "ln"
-        "mkdir"
-        "bun"
-        "rm"
-        "sed"
-        "sops"
-        "tar"
-        "uname"
-        "unzip")))
+      (arr "env" "go" "mkdir" "sops" "tar")))
 
   (doc-next (hidden) (summary "Create the Helium browser tool."))
 

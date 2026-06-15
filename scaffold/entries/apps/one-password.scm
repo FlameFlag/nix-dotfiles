@@ -14,8 +14,7 @@
   (define (one-password/apt-platform)
     (let
       ((root (tool-cache-dir "1password"))
-        (key-path
-          (string-append (tool-cache-dir "1password") "/1password.asc")))
+        (key-path (string-append (tool-cache-dir "1password") "/1password.asc")))
       (package/platform-argvs
         'linux
         (arr "apt-get" "curl" "dpkg" "gpg" "mkdir" "sh" "sudo" "tee")

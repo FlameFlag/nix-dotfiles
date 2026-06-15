@@ -58,7 +58,7 @@
     "**/dot_zshrc.tmpl": true
   },
   "bashIde.shellcheckPath": "",
-  "nushellLanguageServer.nushellExecutablePath": "nushell-lsp-filter",
+  "nushellLanguageServer.nushellExecutablePath": "lsp-diagnostic-filter",
   "[json]": {
     "editor.defaultFormatter": "vscode.json-language-features",
     "editor.formatOnSave": true

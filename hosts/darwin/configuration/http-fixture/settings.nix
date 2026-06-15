@@ -1,6 +1,6 @@
 { config, lib }:
 let
-  configSource = ../../../../fixtures/alt-tab.toml;
+  configSource = ../../../../internal/httpfixture/fixtures/alt-tab.toml;
   parsedConfig = builtins.fromTOML (builtins.readFile configSource);
   upstreamDefault = parsedConfig.listen or "127.0.0.1:18081";
   fixtureHosts =

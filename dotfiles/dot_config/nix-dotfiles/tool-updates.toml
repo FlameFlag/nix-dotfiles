@@ -1,9 +1,6 @@
 # Periodic tool updater registry.
 #
-# Supported providers:
-# - bun-global: installs the given Bun global package spec
-# - uv-tool: upgrades an existing uv tool by name/spec
-# - uv-tool-source: reinstalls a uv tool from the given source
+# Providers are configured in nd-tools.toml.
 
 [[tools]]
 name = "codex"

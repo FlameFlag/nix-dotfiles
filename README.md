@@ -27,18 +27,41 @@
 
 ## Scaffold
 
-The root [`scaffold.scm`](scaffold.scm) is a Scaffold catalog. It includes a
-macOS `scaffold` tool entry so Scaffold can install or refresh itself without
-using Nix profiles:
+The root [`scaffold.scm`](scaffold.scm) is a Scaffold catalog.
+
+On non-NixOS Unix-like hosts where `scaffold` is not installed yet, bootstrap a
+repo-local Scaffold binary from its rolling release and run the catalog with
+it. Run this from the repo root:
 
 ```bash
-scaffold install scaffold
+set -euo pipefail
+
+case "$(uname -s):$(uname -m)" in
+  Darwin:arm64) scaffold_asset="scaffold-rolling-aarch64-apple-darwin" ;;
+  Darwin:x86_64) scaffold_asset="scaffold-rolling-x86_64-apple-darwin" ;;
+  Linux:x86_64) scaffold_asset="scaffold-rolling-x86_64-unknown-linux-gnu" ;;
+  *) echo "unsupported platform: $(uname -s):$(uname -m)" >&2; exit 1 ;;
+esac
+
+mkdir -p .cache/scaffold
+curl -fsSL --retry 3 \
+  "https://github.com/FlameFlag/scaffold/releases/download/rolling/${scaffold_asset}.tar.gz" |
+  tar -xzf - -C .cache/scaffold
+
+"./.cache/scaffold/${scaffold_asset}/scaffold" install
 ```
+
+On macOS, the catalog includes a `scaffold` tool entry so that first bootstrap
+also installs or refreshes the user-local `scaffold` binary without using Nix
+profiles. NixOS does not need this bootstrap step because the system rebuild
+installs Scaffold from the flake.
 
 ## System Builds
 
-- **NixOS:** rebuild first, run Scaffold, then apply `chezmoi`
-- **macOS:** install Nix, switch nix-darwin, then run Scaffold or `chezmoi`
+- **NixOS:** rebuild first, run Scaffold from the rebuilt system, then apply
+  `chezmoi`
+- **Non-NixOS:** bootstrap Scaffold from the rolling release, run Scaffold,
+  then apply `chezmoi`
 
 ### NixOS
 
@@ -73,6 +96,10 @@ nix run nix-darwin -- switch --flake $(readlink -f "/etc/nixos/")
 
 sudo darwin-rebuild switch --flake $(readlink -f "/etc/nixos/")
 
+# If this is the first setup, run the non-NixOS bootstrap command in the Scaffold
+# section first. Later runs can use the installed binary directly.
+scaffold install
+
 chezmoi apply --refresh-externals=always --force
 
 # After initial build, you can use the `rebuild` alias.
@@ -82,7 +109,7 @@ chezmoi apply --refresh-externals=always --force
 
 ```bash
 # Bluefin and other ostree hosts usually cannot create /nix on the host.
-packages/immutable-activate.sh --backend container --reset-containers
+nix run .#immutable-activate -- --backend container --reset-containers
 chezmoi apply --refresh-externals=always --force
 ```
 
@@ -122,15 +149,13 @@ Run the repo formatter with:
 nix fmt
 ```
 
-It formats Nix through `treefmt`, Rust through `cargo fmt`, and Scheme config
+It formats Nix through `treefmt`, Go through `gofumpt`, and Scheme config
 through `scaffold fmt`.
 
 ## Smoke Tests
 
 A Dockerfile boots Alpine or Fedora, builds the repo-local helpers, and applies
-a focused slice of the dotfiles. Bluefin and other immutable hosts are covered
-on real machines instead of Docker because their public images are large and
-unreliable on Apple Silicon Docker.
+a focused slice of the dotfiles
 
 ```bash
 # Build and test Alpine.
@@ -150,8 +175,15 @@ docker compose build --no-cache fedora-44
 After a build, inspect any image:
 
 ```bash
-docker compose run --rm alpine scaffold --help
-docker compose run --rm fedora-44 scaffold --help
+docker compose run --rm alpine
+docker compose run --rm fedora-44
+```
+
+Open an interactive shell inside either smoke image:
+
+```bash
+docker compose --profile shell run --rm alpine-shell
+docker compose --profile shell run --rm fedora-44-shell
 ```
 
 ## License

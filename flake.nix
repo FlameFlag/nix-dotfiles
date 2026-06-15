@@ -49,13 +49,12 @@
         in
         pkgs.writeShellApplication {
           name = "dotfiles-format";
-          runtimeInputs = [
-            pkgs.cargo
-            pkgs.git
-            pkgs.nixfmt-tree
-            pkgs.rustfmt
-            pkgs.scaffold
-            pkgs.shfmt
+          runtimeInputs = with pkgs; [
+            git
+            gofumpt
+            nixfmt-tree
+            scaffold
+            shfmt
           ];
           text = ''
             set -euo pipefail
@@ -64,8 +63,8 @@
             cd "$repo_dir"
 
             find . -path ./.git -prune -o -name '*.sh' -type f -exec shfmt -w -i 2 -bn {} +
+            find . -path ./.git -prune -o -name '*.go' -type f -exec gofumpt -w {} +
             treefmt "$@"
-            cargo fmt --all
             shopt -s globstar nullglob
             scaffold fmt scaffold.scm scaffold/**/*.scm
           '';
@@ -79,7 +78,6 @@
         in
         {
           inherit (pkgs)
-            bootstrap
             chezmoi-support
             dis
             hyper-window-tiling-gnome
@@ -89,14 +87,11 @@
             kanata-with-cmd
             lldb-mcp-launcher
             lsp-diagnostic-filter
+            nd-tools
             scaffold
             system-run-mcp
             zellij-theme-tools
             ;
-
-          ghidra-mcp-headless-bridge = pkgs.ghidra-mcp-headless.bridge;
-          ghidra-mcp-headless-httpd = pkgs.ghidra-mcp-headless.httpd;
-          ghidra-mcp-headless-server = pkgs.ghidra-mcp-headless.server;
 
           default = pkgs.scaffold;
         }

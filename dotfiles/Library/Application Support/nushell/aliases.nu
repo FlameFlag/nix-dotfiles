@@ -52,11 +52,19 @@ def nix-dotfiles-flake []: nothing -> path {
         return ($configured | path expand)
     }
 
-    let candidates = [
-        "/etc/nixos"
-        ([$nu.home-dir "Developer" "nix-dotfiles"] | path join)
-        ([$nu.home-dir "nix-dotfiles"] | path join)
-    ]
+    let os_name = (try { ^uname -s } catch { "" })
+    let candidates = if $os_name == "Darwin" {
+        [
+            ([$nu.home-dir "Developer" "nix-dotfiles"] | path join)
+            ([$nu.home-dir "nix-dotfiles"] | path join)
+            "/etc/nixos"
+        ]
+    } else {
+        [
+            ([$nu.home-dir "nix-dotfiles"] | path join)
+            "/etc/nixos"
+        ]
+    }
 
     for candidate in $candidates {
         if ([$candidate "flake.nix"] | path join | path exists) {

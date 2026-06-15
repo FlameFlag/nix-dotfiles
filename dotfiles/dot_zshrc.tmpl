@@ -47,7 +47,15 @@ _is_immutable_wrapper_command() {
 
 _nix_dotfiles_flake="${NIX_DOTFILES_FLAKE:-}"
 if [[ -z "$_nix_dotfiles_flake" ]]; then
-  for _nix_dotfiles_dir in "/etc/nixos" "$HOME/Developer/nix-dotfiles" "$HOME/nix-dotfiles"; do
+  case "$(uname -s 2>/dev/null)" in
+    Darwin)
+      _nix_dotfiles_candidates=("$HOME/Developer/nix-dotfiles" "$HOME/nix-dotfiles" "/etc/nixos")
+      ;;
+    *)
+      _nix_dotfiles_candidates=("$HOME/nix-dotfiles" "/etc/nixos")
+      ;;
+  esac
+  for _nix_dotfiles_dir in "${_nix_dotfiles_candidates[@]}"; do
     [[ -f "$_nix_dotfiles_dir/flake.nix" ]] || continue
     _nix_dotfiles_flake="$_nix_dotfiles_dir"
     break
@@ -63,7 +71,7 @@ if [[ -d "$_nix_dotfiles_flake" ]]; then
       printf '%s\n' "$_nix_dotfiles_flake"
   )"
 fi
-unset _nix_dotfiles_dir
+unset _nix_dotfiles_dir _nix_dotfiles_candidates
 
 _immutable_nix_host=0
 if _is_immutable_wrapper_command nix; then

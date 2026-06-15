@@ -27,7 +27,7 @@ in
     xserver.xkb.layout = "us";
   };
 
-  systemd.user.services.nix-dotfiles-tool-update = {
+  systemd.user.services.nd-tools-update = {
     description = "Run periodic nix-dotfiles tool updaters";
     path = [
       pkgs.bash
@@ -35,7 +35,7 @@ in
       pkgs.findutils
     ];
     script = ''
-      exec "$HOME/.local/bin/nix-dotfiles-tool-update"
+      exec "$HOME/.local/bin/nd-tools" update
     '';
     serviceConfig = {
       Type = "oneshot";
@@ -64,7 +64,7 @@ in
     };
   };
 
-  systemd.user.timers.nix-dotfiles-tool-update = {
+  systemd.user.timers.nd-tools-update = {
     description = "Run periodic nix-dotfiles tool updaters every six hours";
     wantedBy = [ "timers.target" ];
     timerConfig = {

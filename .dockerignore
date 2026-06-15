@@ -1,15 +1,26 @@
 # Start from an empty build context and add back only what the smoke-test
-# Dockerfile needs for Cargo, Scaffold config, and the focused chezmoi apply.
+# Dockerfile needs for the Go helper, Scaffold config, and the focused
+# chezmoi apply.
 *
 
-!Cargo.lock
-!Cargo.toml
 !Dockerfile
 !.dockerignore
+!go.mod
+!go.sum
 !scaffold.scm
+
+!cmd/
+!cmd/chezmoi-support/
+!cmd/chezmoi-support/**
+
+!internal/
+!internal/**
 
 !.scaffold/
 !.scaffold/**
+
+!scaffold/
+!scaffold/**
 
 !crates/
 !crates/**
@@ -39,4 +50,5 @@ packages/*
 **/__pycache__/
 **/*.pyc
 **/target/
+.docker-cache/
 *.log
