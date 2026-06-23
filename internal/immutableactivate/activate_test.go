@@ -395,32 +395,6 @@ func containsArgvPrefix(commands []Command, prefix []string) bool {
 	})
 }
 
-func linuxToolboxProfileAddCommand(home, flake string) []string {
-	return []string{
-		"distrobox",
-		"enter",
-		"--name",
-		nixContainerName,
-		"--",
-		"env",
-		"PATH=" + activationcontainer.NixPath(home),
-		"nix",
-		"--extra-experimental-features",
-		"nix-command flakes",
-		"profile",
-		"add",
-		"path:" + flake + "#immutable-profile",
-	}
-}
-
-func containsShellArgv(commands []Command, prefix []string, scriptNeedle string) bool {
-	return slices.ContainsFunc(commands, func(command Command) bool {
-		return len(command.Argv) == len(prefix)+1 &&
-			slices.Equal(command.Argv[:len(prefix)], prefix) &&
-			strings.Contains(command.Argv[len(prefix)], scriptNeedle)
-	})
-}
-
 func mustMkdir(t *testing.T, path string) {
 	t.Helper()
 	if err := os.MkdirAll(path, 0o755); err != nil {

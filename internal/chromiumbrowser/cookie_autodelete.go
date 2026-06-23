@@ -233,7 +233,7 @@ func cookieAutoDeleteEntry(
 	expression cookieAutoDeleteExpression,
 ) (map[string]any, error) {
 	if expression.Match == "" {
-		return nil, fmt.Errorf("Cookie AutoDelete %s entry in store %s is missing match", listType, storeID)
+		return nil, fmt.Errorf("cookie AutoDelete %s entry in store %s is missing match", listType, storeID)
 	}
 	id := expression.ID
 	if id == "" {

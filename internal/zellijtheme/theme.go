@@ -6,6 +6,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type Colors struct {
@@ -55,6 +56,9 @@ var systemThemeProbePlans = map[string]themeProbePlan{
 }
 
 func DetectSystemTheme() Theme {
+	if mode, ok := detectTerminalTheme(100 * time.Millisecond); ok {
+		return themeForMode(mode)
+	}
 	plan, ok := systemThemeProbePlans[runtime.GOOS]
 	if !ok {
 		return Frappe
