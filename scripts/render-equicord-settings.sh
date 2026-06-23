@@ -7,17 +7,17 @@ dest=${2:?destination settings.json is required}
 tmp=$(mktemp)
 
 cleanup() {
-	rm -f -- "$tmp"
+  rm -f -- "$tmp"
 }
 trap cleanup EXIT
 
 require_command() {
-	local command_name=${1:?command name is required}
+  local command_name=${1:?command name is required}
 
-	if ! command -v "$command_name" >/dev/null 2>&1; then
-		printf 'error: required command not found: %s\n' "$command_name" >&2
-		exit 127
-	fi
+  if ! command -v "$command_name" >/dev/null 2>&1; then
+    printf 'error: required command not found: %s\n' "$command_name" >&2
+    exit 127
+  fi
 }
 
 require_command jq
@@ -31,8 +31,8 @@ let
   module = import ${nix_source_string} {};
 in
   module.programs.nixcord.config
-" |
-	jq '
+" \
+  | jq '
     def plugin_name:
       ({
         clearUrls: "ClearURLs",
@@ -65,8 +65,8 @@ in
   ' >"$tmp"
 
 if [[ -f $dest ]] && cmp -s "$tmp" "$dest"; then
-	printf '%s\n' unchanged
-	exit 0
+  printf '%s\n' unchanged
+  exit 0
 fi
 
 install -D -m 0644 "$tmp" "$dest"
