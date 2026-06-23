@@ -16,7 +16,7 @@ _: {
       enable = true;
       format = "human";
     };
-    ClearURLs.enable = true;
+    clearUrls.enable = true;
     crashHandler.enable = true;
     disableCallIdle.enable = true;
     dontRoundMyTimestamps.enable = true;
@@ -45,7 +45,7 @@ _: {
       ignoreSelf = true;
       ignoreBots = true;
     };
-    MutualGroupDMs.enable = true;
+    mutualGroupDms.enable = true;
     newGuildSettings.enable = true;
     noBlockedMessages.enable = true;
     noDevtoolsWarning.enable = true;
@@ -56,7 +56,7 @@ _: {
     noProfileThemes.enable = true;
     noTypingAnimation.enable = true;
     noUnblockToJump.enable = true;
-    OnePingPerDM.enable = true;
+    onePingPerDm.enable = true;
     pauseInvitesForever.enable = true;
     pictureInPicture.enable = true;
     platformIndicators.enable = true;

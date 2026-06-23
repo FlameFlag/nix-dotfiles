@@ -39,7 +39,31 @@
         };
     in
     {
-      formatter = forAllSystems (system: inputs.nixpkgs.legacyPackages.${system}.nixfmt-tree);
+      formatter = forAllSystems (
+        system:
+        let
+          pkgs = mkPkgs system;
+        in
+        pkgs.writeShellApplication {
+          name = "dotfiles-format";
+          runtimeInputs = with pkgs; [
+            git
+            gofumpt
+            nixfmt-tree
+            shfmt
+          ];
+          text = ''
+            set -euo pipefail
+
+            repo_dir="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+            cd "$repo_dir"
+
+            find . -path ./.git -prune -o -name '*.sh' -type f -exec shfmt -w -i 2 -bn {} +
+            find . -path ./.git -prune -o -name '*.go' -type f -exec gofumpt -w {} +
+            treefmt "$@"
+          '';
+        }
+      );
 
       packages = forAllSystems (
         system:
@@ -48,27 +72,39 @@
         in
         {
           inherit (pkgs)
-            bootstrap
             chezmoi-support
             dis
-            system-run-mcp
-            gh-hide-comment
+            hyper-window-tiling-gnome
+            hyper-window-tiling-kde
             http-fixture
             kanata
             kanata-with-cmd
             lldb-mcp-launcher
             lsp-diagnostic-filter
+            nd-tools
+            system-run-mcp
+            toshy
             zellij-theme-tools
             ;
 
-          ghidra-mcp-headless-bridge = pkgs.ghidra-mcp-headless.bridge;
-          ghidra-mcp-headless-httpd = pkgs.ghidra-mcp-headless.httpd;
-          ghidra-mcp-headless-server = pkgs.ghidra-mcp-headless.server;
-
-          default = pkgs.bootstrap;
+          default = pkgs.immutable-activate;
         }
         // inputs.nixpkgs.lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux {
-          inherit (pkgs) lenovo-con-mode;
+          portable-linux-profile-without-paid-fonts = pkgs.portable-linux-profile.override {
+            includePaidFonts = false;
+          };
+
+          inherit (pkgs)
+            immutable-activate
+            lenovo-con-mode
+            linux-toolbox-profile
+            logitech-battery-gnome
+            macos-pointer
+            portable-linux-profile
+            sushi-preview
+            ;
+
+          immutable-profile = pkgs.portable-linux-profile;
         }
       );
 
