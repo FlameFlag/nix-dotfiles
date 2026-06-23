@@ -28,6 +28,9 @@ disabled = false
 style = "bold pink"
 
 [os.symbols]
+Arch = " "
+Bluefin = " "
+Fedora = " "
 Linux = " "
 Macos = "󰀵 "
 NixOS = "󱄅 "
@@ -73,7 +76,7 @@ zsh_indicator = "%"
 [sudo]
 disabled = false
 style = "bold pink"
-symbol = " "
+symbol = "# "
 
 [time]
 disabled = false

@@ -58,6 +58,7 @@ G = "goto_file_end"
 g = { g = "goto_file_start", q = ":reflow" }
 Z = { Z = ":write-quit", Q = ":quit!" }
 "space" = { "space" = "file_picker" }
+C-space = "yank_to_clipboard"
 esc = ["collapse_selection", "keep_primary_selection"]
 
 [keys.select]
@@ -66,3 +67,4 @@ esc = ["collapse_selection", "keep_primary_selection"]
 G = "goto_file_end"
 g = { g = "goto_file_start", q = ":reflow" }
 Z = { Z = ":write-quit", Q = ":quit!" }
+C-space = "yank_to_clipboard"

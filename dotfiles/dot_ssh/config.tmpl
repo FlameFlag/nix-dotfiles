@@ -2,17 +2,22 @@ Host github github.com
   Hostname ssh.github.com
   Port 443
   User git
-  IdentityFile {{ .chezmoi.homeDir }}/.ssh/github_key
-  IdentitiesOnly yes
   ForwardAgent no
 
 Host codeberg.org
   Hostname codeberg.org
   Port 22
   User git
-  IdentityFile {{ .chezmoi.homeDir }}/.ssh/github_key
-  IdentitiesOnly yes
   ForwardAgent no
+
+Host ublue
+  HostName ublue
+  ForwardAgent yes
+{{ if eq .chezmoi.os "darwin" -}}
+  IdentityAgent "%d/Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock"
+{{ else -}}
+  IdentityAgent "%d/.1password/agent.sock"
+{{ end }}
 
 Host lenovo-legion lenovo-legion-windows lenovo-legion-windows-raw
   ForwardAgent yes
@@ -32,11 +37,11 @@ Host lenovo-legion-windows-raw
   User admin
 
 {{ if eq .chezmoi.os "darwin" -}}
-Match host * exec "test -z $SSH_TTY"
-  IdentityAgent "{{ .chezmoi.homeDir }}/Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock"
+Match host * exec "test -z \"$SSH_TTY\" && test -z \"$SSH_AUTH_SOCK\""
+  IdentityAgent "%d/Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock"
 {{ else -}}
-Match host * exec "test -z $SSH_TTY"
-  IdentityAgent "{{ .chezmoi.homeDir }}/.1password/agent.sock"
+Match host * exec "test -z \"$SSH_TTY\" && test -z \"$SSH_AUTH_SOCK\""
+  IdentityAgent "%d/.1password/agent.sock"
 {{ end }}
 Host *
   AddKeysToAgent no

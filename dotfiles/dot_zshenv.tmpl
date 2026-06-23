@@ -1,15 +1,29 @@
-# Keep user-local tools visible before the larger interactive shell setup
-# has run. This file must stay small because zsh reads it for every shell.
-if [ -r /etc/zshenv ]; then
-  source /etc/zshenv
-fi
-
-typeset -U path PATH 2>/dev/null || true
-for dir in "$HOME/.yarn/bin" "$HOME/.go/bin" "$HOME/.cargo/bin" "$HOME/.local/bin" "$HOME/.npm/bin" "$HOME/.bun/install/global/node_modules/.bin" "$HOME/.bun/bin" "$HOME/.pi/agent/bin"; do
-  case ":${PATH}:" in *":${dir}:"*) ;; *) PATH="${dir}:${PATH}" ;; esac
-done
-if [ -d /run/wrappers/bin ]; then
-  path=(/run/wrappers/bin $path)
+# Keep user-local tools visible before interactive setup. Zsh reads this file
+# for every invocation, so keep it quiet, small, and free of prompt logic.
+typeset -U path PATH
+path=(
+  {{- if eq .chezmoi.os "linux" }}
+  "/usr/local/bin"
+  "/usr/bin"
+  "/bin"
+  "/usr/sbin"
+  "/sbin"
+  {{- end }}
+  "$HOME/.pi/agent/bin"
+  "$HOME/.bun/bin"
+  "$HOME/.bun/install/global/node_modules/.bin"
+  "$HOME/.cache/.bun/bin"
+  "$HOME/.npm/bin"
+  "$HOME/.local/share/nix-dotfiles/immutable/profile/bin"
+  "$HOME/.local/share/nix-dotfiles/immutable/bin"
+  "$HOME/.local/bin"
+  "$HOME/.cargo/bin"
+  "$HOME/.go/bin"
+  "$HOME/.yarn/bin"
+  "${path[@]}"
+)
+if [[ -d /run/wrappers/bin ]]; then
+  path=(/run/wrappers/bin "${path[@]}")
 fi
 export PATH
 

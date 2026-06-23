@@ -1,16 +1,53 @@
 # Keep user-local tools visible in non-interactive bash.
-for dir in "$HOME/.yarn/bin" "$HOME/.go/bin" "$HOME/.cargo/bin" "$HOME/.local/bin" "$HOME/.npm/bin" "$HOME/.bun/install/global/node_modules/.bin" "$HOME/.bun/bin" "$HOME/.pi/agent/bin"; do
-  case ":$PATH:" in
-    *":$dir:"*) ;;
-    *) PATH="$dir:$PATH" ;;
-  esac
-done
-if [ -d /run/wrappers/bin ]; then
-  case ":$PATH:" in
-    *":/run/wrappers/bin:"*) ;;
-    *) PATH="/run/wrappers/bin:$PATH" ;;
-  esac
+_enable_bash_shopt() {
+  local opt
+
+  for opt; do
+    shopt -s "$opt" 2>/dev/null || true
+  done
+}
+
+_enable_bash_shopt array_expand_once globskipdots
+
+_path_prepend_once() {
+  local dir new_path="" filtered_path="" old_ifs path_value="${PATH:-}"
+
+  for dir; do
+    [[ -n "$dir" && ":$new_path:" != *":$dir:"* ]] && new_path="${new_path:+$new_path:}$dir"
+  done
+
+  old_ifs=$IFS
+  IFS=:
+  for dir in $path_value; do
+    [[ -n "$dir" && ":$new_path:$filtered_path:" != *":$dir:"* ]] && filtered_path="${filtered_path:+$filtered_path:}$dir"
+  done
+  IFS=$old_ifs
+
+  PATH="$new_path${new_path:+${filtered_path:+:}}$filtered_path"
+}
+
+_path_prepend_once \
+  "$HOME/.pi/agent/bin" \
+  "$HOME/.bun/bin" \
+  "$HOME/.bun/install/global/node_modules/.bin" \
+  "$HOME/.cache/.bun/bin" \
+  "$HOME/.npm/bin" \
+  "$HOME/.local/share/nix-dotfiles/immutable/profile/bin" \
+  "$HOME/.local/bin" \
+  "$HOME/.local/share/nix-dotfiles/immutable/bin" \
+  "$HOME/.cargo/bin" \
+  "$HOME/.go/bin" \
+  "$HOME/.yarn/bin"
+
+{{- if eq .chezmoi.os "linux" }}
+_path_prepend_once /usr/local/bin /usr/bin /bin /usr/sbin /sbin
+{{- end }}
+
+if [[ -d /run/wrappers/bin ]]; then
+  _path_prepend_once /run/wrappers/bin
 fi
+
+unset -f _enable_bash_shopt _path_prepend_once
 export PATH
 
 export UV_PYTHON_PREFERENCE="${UV_PYTHON_PREFERENCE:-only-managed}"

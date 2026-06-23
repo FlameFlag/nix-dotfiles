@@ -16,7 +16,7 @@
 {{- $nushellTools := list "bat" "cargo" "claude" "curl" "gh" "git" "jj" "man" "nix" "op" "rg" "ssh" "uv" "vscode" "zellij" "zoxide" -}}
 {{- range $configPath := $nushellConfigPaths }}
 {{- range $tool := $nushellTools }}
-["{{ $configPath }}/completions/{{ $tool }}.nu"]
+["{{ $configPath }}/completions/{{ $tool }}-completions.nu"]
 type = "file"
 url = "https://raw.githubusercontent.com/nushell/nu_scripts/main/custom-completions/{{ $tool }}/{{ $tool }}-completions.nu"
 refreshPeriod = "168h"
@@ -29,6 +29,8 @@ refreshPeriod = "168h"
 type = "git-repo"
 url = "https://github.com/ohmyzsh/ohmyzsh.git"
 refreshPeriod = "168h"
+[".oh-my-zsh".clone]
+args = ["--depth=1"]
 [".oh-my-zsh".pull]
 args = ["--ff-only"]
 
@@ -36,16 +38,28 @@ args = ["--ff-only"]
 type = "git-repo"
 url = "https://github.com/zsh-users/zsh-autosuggestions.git"
 refreshPeriod = "168h"
+[".oh-my-zsh/custom/plugins/zsh-autosuggestions".clone]
+args = ["--depth=1"]
+[".oh-my-zsh/custom/plugins/zsh-autosuggestions".pull]
+args = ["--ff-only"]
 
 [".oh-my-zsh/custom/plugins/zsh-syntax-highlighting"]
 type = "git-repo"
 url = "https://github.com/zsh-users/zsh-syntax-highlighting.git"
 refreshPeriod = "168h"
+[".oh-my-zsh/custom/plugins/zsh-syntax-highlighting".clone]
+args = ["--depth=1"]
+[".oh-my-zsh/custom/plugins/zsh-syntax-highlighting".pull]
+args = ["--ff-only"]
 
 [".oh-my-zsh/custom/plugins/fzf-tab"]
 type = "git-repo"
 url = "https://github.com/Aloxaf/fzf-tab.git"
 refreshPeriod = "168h"
+[".oh-my-zsh/custom/plugins/fzf-tab".clone]
+args = ["--depth=1"]
+[".oh-my-zsh/custom/plugins/fzf-tab".pull]
+args = ["--ff-only"]
 
 # ----- Oh-My-Bash -----
 
@@ -53,6 +67,8 @@ refreshPeriod = "168h"
 type = "git-repo"
 url = "https://github.com/ohmybash/oh-my-bash.git"
 refreshPeriod = "168h"
+[".oh-my-bash".clone]
+args = ["--depth=1"]
 [".oh-my-bash".pull]
 args = ["--ff-only"]
 
@@ -62,14 +78,20 @@ args = ["--ff-only"]
 type = "git-repo"
 url = "https://github.com/lincheney/fzf-tab-completion.git"
 refreshPeriod = "168h"
+[".fzf-tab-completion".clone]
+args = ["--depth=1"]
+[".fzf-tab-completion".pull]
+args = ["--ff-only"]
 
-# ----- Paid Fonts (private repo, auth via gh) -----
+# ----- Paid Fonts (private repo, auth via SSH/1Password) -----
 
-{{- if lookPath "gh" }}
+{{- if eq (env "NIX_DOTFILES_PAID_FONTS") "1" }}
 ["{{ $fontsPath }}/paid-fonts"]
 type = "git-repo"
-url = "https://github.com/FlameFlag/paid-fonts.git"
+url = "git@github.com:FlameFlag/paid-fonts.git"
 refreshPeriod = "168h"
+[{{ printf "%s/paid-fonts" $fontsPath | printf "%q" }}.clone]
+args = ["--depth=1"]
 [{{ printf "%s/paid-fonts" $fontsPath | printf "%q" }}.pull]
 args = ["--ff-only"]
 {{- end }}
@@ -89,6 +111,5 @@ refreshPeriod = "168h"
 [".local/share/zellij/plugins/zjstatus.wasm"]
 type = "file"
 url = "https://github.com/dj95/zjstatus/releases/download/v0.23.0/zjstatus.wasm"
-refreshPeriod = "168h"
 
 {{- end -}}

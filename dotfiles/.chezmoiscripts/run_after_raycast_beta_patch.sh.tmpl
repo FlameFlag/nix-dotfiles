@@ -1,5 +1,4 @@
+{{- if eq .chezmoi.os "darwin" -}}
 #!/usr/bin/env sh
-
-[ "$(uname -s 2>/dev/null)" = "Darwin" ] || exit 0
-
 exec chezmoi-support raycast-beta-patch "$@"
+{{- end -}}

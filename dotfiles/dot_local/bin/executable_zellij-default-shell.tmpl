@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+readonly HOME_DIR={{ .chezmoi.homeDir | quote }}
+PATH="/run/wrappers/bin:/run/current-system/sw/bin:/nix/var/nix/profiles/default/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:${HOME_DIR}/.local/share/nix-dotfiles/immutable/profile/bin:${HOME_DIR}/.local/share/nix-dotfiles/immutable/bin:${HOME_DIR}/.local/bin:${HOME_DIR}/.cargo/bin:${HOME_DIR}/.bun/bin:${HOME_DIR}/.bun/install/global/node_modules/.bin:${HOME_DIR}/.cache/.bun/bin:${HOME_DIR}/.nix-profile/bin"
+export PATH
+
+exec_if_usable() {
+  local candidate="$1"
+  shift
+
+  [[ -n "${candidate}" && -x "${candidate}" ]] || return 1
+  "${candidate}" --version >/dev/null 2>&1 || return 1
+  case "${candidate}" in
+    */zsh | */bash | */sh) export SHELL="${candidate}" ;;
+  esac
+  exec "${candidate}" "$@"
+}
+
+exec_command_if_usable() {
+  local resolved
+
+  resolved="$(command -v "$1" 2>/dev/null)" || return 1
+  shift
+  exec_if_usable "${resolved}" "$@"
+}
+
+for shell in \
+  /usr/bin/zsh \
+  /bin/zsh \
+  "${HOME_DIR}/.local/share/nix-dotfiles/immutable/profile/bin/zsh" \
+  "${HOME_DIR}/.local/share/nix-dotfiles/immutable/bin/zsh" \
+  "${HOME_DIR}/.nix-profile/bin/zsh" \
+  "${SHELL:-}" \
+  /usr/bin/bash \
+  /bin/bash \
+  "${HOME_DIR}/.local/share/nix-dotfiles/immutable/profile/bin/bash" \
+  "${HOME_DIR}/.local/share/nix-dotfiles/immutable/bin/bash" \
+  "${HOME_DIR}/.nix-profile/bin/bash"; do
+  if exec_if_usable "${shell}" "$@"; then
+    exit 0
+  fi
+done
+
+exec /bin/sh "$@"

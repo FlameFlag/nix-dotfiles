@@ -1,9 +1,9 @@
 "{{ .chezmoi.homeDir }}/.local/share/zellij/plugins/zjstatus.wasm" {
     ChangeApplicationState
-    ReadApplicationState
     RunCommands
+    ReadApplicationState
 }
-"file:{{ .chezmoi.homeDir }}/.local/share/zellij/plugins/zjstatus.wasm" {
+"zjstatus" {
     ChangeApplicationState
     FullHdAccess
     InterceptInput
@@ -22,7 +22,7 @@
     WriteToClipboard
     WriteToStdin
 }
-"zjstatus" {
+"file:{{ .chezmoi.homeDir }}/.local/share/zellij/plugins/zjstatus.wasm" {
     ChangeApplicationState
     FullHdAccess
     InterceptInput

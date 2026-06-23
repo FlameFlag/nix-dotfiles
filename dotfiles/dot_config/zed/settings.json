@@ -51,9 +51,9 @@
     "line_height": "standard",
     "shell": {
       "with_arguments": {
-        "program": "/run/current-system/sw/bin/nu",
+        "program": "/run/current-system/sw/bin/zsh",
         "args": [
-          "--login"
+          "-l"
         ]
       }
     },
@@ -74,6 +74,35 @@
     120
   ],
   "helix_mode": true,
+  "file_types": {
+    "JSON": [
+      "*.json.tmpl"
+    ],
+    "KDL": [
+      "*.kdl.tmpl"
+    ],
+    "Nix": [
+      "*.nix.tmpl"
+    ],
+    "Shell Script": [
+      "*.bash.tmpl",
+      "*.sh.tmpl",
+      "*.zsh.tmpl",
+      "dot_bash_profile.tmpl",
+      "dot_bashenv.tmpl",
+      "dot_bashrc.tmpl",
+      "dot_zshenv.tmpl",
+      "dot_zshrc.tmpl"
+    ],
+    "TOML": [
+      ".chezmoiexternal.toml.tmpl",
+      "*.toml.tmpl"
+    ],
+    "YAML": [
+      "*.yaml.tmpl",
+      "*.yml.tmpl"
+    ]
+  },
   "languages": {
     "Nix": {
       "language_servers": [

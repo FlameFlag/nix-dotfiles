@@ -3,8 +3,11 @@
   log-layer-changes yes
   linux-dev (
     "/dev/input/by-id/usb-ITE_Tech._Inc._ITE_Device_8910_-event-kbd"
+    "/dev/input/by-id/bluetooth-Logitech_Pebble_K380s-event-kbd"
     "/dev/input/by-id/usb-Ducky_Ducky_One2_Mini_RGB_DK-V1.09-201006-event-if03"
     "/dev/input/by-id/usb-Ducky_Ducky_One2_Mini_RGB_DK-V1.09-201006-event-kbd"
+    "/dev/input/by-id/usb-Ducky_Ducky_One2_Mini_RGB_DK-V1.10-201231-event-if03"
+    "/dev/input/by-id/usb-Ducky_Ducky_One2_Mini_RGB_DK-V1.10-201231-event-kbd"
     "/dev/input/by-id/usb-Logitech_USB_Receiver-if01-event-mouse"
     "/dev/input/by-id/usb-Logitech_USB_Receiver-event-kbd"
   )
@@ -16,13 +19,17 @@
 )
 
 (defsrc
-  esc caps my_side_button my_extra_button
+  esc caps my_side_button my_extra_button w a s d ret \
 )
 
 (defalias
-  caps-hyper (tap-hold 1500 1500 esc (multi lmet lctl lalt lsft))
+  caps-hyper (tap-hold-press 200 200 esc (multi lmet lctl lalt lsft (layer-while-held hyper)))
 )
 
 (deflayer base
-  caps @caps-hyper vold volu
+  caps @caps-hyper vold volu w a s d ret \
+)
+
+(deflayer hyper
+  _    _           _    _    w a s d ret \
 )

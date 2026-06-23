@@ -2,16 +2,26 @@ model = "gpt-5.5"
 model_reasoning_effort = "high"
 approval_policy = "never"
 sandbox_mode = "danger-full-access"
+web_search = "live"
 suppress_unstable_features_warning = true
 trust_level = "trusted"
 
+{{- if eq .chezmoi.os "darwin" }}
 notify = ["{{ .chezmoi.homeDir }}/.codex/computer-use/Codex Computer Use.app/Contents/SharedSupport/SkyComputerUseClient.app/Contents/MacOS/SkyComputerUseClient", "turn-ended"]
+{{- end }}
 
 [features]
+{{- if eq .chezmoi.os "darwin" }}
 in_app_browser = true
 browser_use = true
 browser_use_external = true
 computer_use = true
+{{- else }}
+in_app_browser = false
+browser_use = false
+browser_use_external = false
+computer_use = false
+{{- end }}
 js_repl = false
 
 [tui]
@@ -21,6 +31,9 @@ theme = "catppuccin-frappe-pink"
 status_line = ["model-with-reasoning", "project-name", "context-remaining", "five-hour-limit", "weekly-limit"]
 status_line_use_colors = true
 
+[tui.keymap.global]
+open_external_editor = "ctrl-x"
+
 [mcp_servers.system-run]
 command = "system-run-mcp"
 startup_timeout_sec = 10
@@ -28,8 +41,10 @@ tool_timeout_sec = 1800
 enabled_tools = ["system-run"]
 default_tools_approval_mode = "approve"
 
+{{- if eq .chezmoi.os "darwin" }}
 [mcp_servers.ghidra]
 url = "http://127.0.0.1:8090/mcp"
+enabled = false
 startup_timeout_sec = 60
 tool_timeout_sec = 1800
 default_tools_approval_mode = "approve"
@@ -122,9 +137,12 @@ enabled_tools = [
   "analyze_call_graph",
   "emulate_function",
 ]
+{{- end }}
 
+{{- if lookPath "lldb-mcp-launcher" }}
 [mcp_servers.lldb]
 command = "lldb-mcp-launcher"
+enabled = false
 startup_timeout_sec = 30
 tool_timeout_sec = 1800
 default_tools_approval_mode = "approve"
@@ -132,17 +150,27 @@ enabled_tools = [
   "command",
   "debugger_list",
 ]
+{{- end }}
 
+{{- if eq .chezmoi.os "darwin" }}
+{{- $codexResourceRoot := "/Applications/Codex.app/Contents/Resources" }}
+{{- $nodeReplCommand := lookPath (joinPath $codexResourceRoot "cua_node/bin/node_repl") }}
+{{- $nodePath := joinPath $codexResourceRoot "cua_node/bin/node" }}
+{{- if not $nodeReplCommand }}
+{{- $nodeReplCommand = lookPath (joinPath $codexResourceRoot "node_repl") }}
+{{- $nodePath = joinPath $codexResourceRoot "node" }}
+{{- end }}
+{{- if $nodeReplCommand }}
 [mcp_servers.node_repl]
 args = []
-command = "/Applications/Codex.app/Contents/Resources/node_repl"
+command = "{{ $nodeReplCommand }}"
 startup_timeout_sec = 120
 default_tools_approval_mode = "approve"
 
 [mcp_servers.node_repl.env]
 NODE_REPL_NATIVE_PIPE_CONNECT_TIMEOUT_MS = "1000"
 NODE_REPL_NODE_MODULE_DIRS = ""
-NODE_REPL_NODE_PATH = "/Applications/Codex.app/Contents/Resources/node"
+NODE_REPL_NODE_PATH = "{{ $nodePath }}"
 NODE_REPL_TRUSTED_CODE_PATHS = "{{ .chezmoi.homeDir }}/.codex"
 CODEX_HOME = "{{ .chezmoi.homeDir }}/.codex"
 NODE_REPL_TRUSTED_BROWSER_CLIENT_SHA256S = "2de792ebdf729e85542c94275f6654821dddce546d9c7374c915f2297529e313"
@@ -159,6 +187,8 @@ source = "{{ .chezmoi.homeDir }}/.codex/.tmp/bundled-marketplaces/openai-bundled
 
 [plugins."browser@openai-bundled"]
 enabled = true
+{{- end }}
+{{- end }}
 
 [apps._default]
 enabled = true

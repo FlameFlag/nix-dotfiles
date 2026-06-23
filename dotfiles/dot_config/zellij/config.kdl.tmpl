@@ -1,7 +1,7 @@
 theme "catppuccin-frappe-pink"
 theme_dark "catppuccin-frappe-pink"
 theme_light "catppuccin-latte-pink"
-default_shell "nu"
+default_shell "{{ .chezmoi.homeDir }}/.local/bin/zellij-default-shell"
 copy_command "{{ if eq .chezmoi.os "darwin" }}pbcopy{{ else }}wl-copy{{ end }}"
 copy_clipboard "system"
 copy_on_select false
@@ -139,7 +139,7 @@ keybinds clear-defaults=true {
         bind "Esc" { SwitchToMode "Normal"; }
     }
     session {
-        bind "d" { Detach; SwitchToMode "Normal"; }
+        bind "d" {}
         bind "w" { LaunchOrFocusPlugin "session-manager"; SwitchToMode "Normal"; }
         bind "t" { NewTab; SwitchToMode "Normal"; }
         bind "1" { GoToTab 1; SwitchToMode "Normal"; }

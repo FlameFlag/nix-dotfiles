@@ -6,7 +6,6 @@
 {{- end -}}
 {{- if or (not (lookPath "sops")) (not (stat $sopsAgeKey)) }}
 .ssh/github_key
-dot_ssh/private_github_key.tmpl
 {{ end }}
 
 {{ if eq .chezmoi.os "windows" }}
@@ -28,32 +27,23 @@ dot_ssh/private_github_key.tmpl
 .config/yazi/
 .config/zed/
 .config/zellij/
-dot_bashrc.tmpl
-dot_zshrc.tmpl
-dot_config/atuin/
-dot_config/Code/
-dot_config/ghostty/
-dot_config/helix/
-dot_config/kanata/
-dot_config/nushell/
-dot_config/raycast/
-dot_config/yazi/
-dot_config/zed/
-dot_config/zellij/
-dot_local/bin/
 .ssh/config
 .ssh/github_key
-dot_ssh/config.tmpl
-dot_ssh/private_github_key.tmpl
 Library/
 {{ end }}
 
 {{ if ne .chezmoi.os "darwin" }}
 Library/
 .config/raycast/
+.local/bin/raycast-beta-write-user.ts
 {{ end }}
+
+.local/bin/package.json
+.local/bin/package-lock.json
+.local/bin/tsconfig.json
 
 {{ if eq .chezmoi.os "darwin" }}
 .config/Code/
 .config/kanata/
+.local/share/applications/
 {{ end }}

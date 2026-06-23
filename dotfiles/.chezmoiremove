@@ -1,7 +1,7 @@
 {{ if eq .chezmoi.os "darwin" -}}
-dot_config/Code
-dot_config/raycast/ai/providers.yaml
+# .config/Code is ignored on macOS; ignored targets are never removed.
+.config/raycast/ai/providers.yaml
 Library/Application Support/nushell/catppuccin_frappe.nu
 {{- else -}}
-dot_config/nushell/catppuccin_frappe.nu
+.config/nushell/catppuccin_frappe.nu
 {{- end }}
