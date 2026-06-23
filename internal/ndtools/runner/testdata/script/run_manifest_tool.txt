@@ -1,0 +1,6 @@
+runmanifest disabled 0
+stdout 'skipping disabled manifest updater: codex'
+
+env PATH=
+runmanifest missing 127
+stdout 'skipping codex: bun not found'

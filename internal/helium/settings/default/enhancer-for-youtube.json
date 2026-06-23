@@ -1,0 +1,50 @@
+{
+  "local": [
+    {
+      "id": "ponfpcnoihfmfllpaingbgckeeldkhle",
+      "values": {
+        "backdropopacity": 85,
+        "controls": [
+          "loop",
+          "volume-booster",
+          "cards-end-screens",
+          "speed",
+          "flip-horizontally",
+          "screenshot"
+        ],
+        "darktheme": false,
+        "disableautoplay": false,
+        "griditemsperrow": {
+          "channel": {
+            "shorts": {
+              "apply": false,
+              "count": 5
+            },
+            "videos": {
+              "apply": false,
+              "count": 4
+            }
+          },
+          "posts": {
+            "apply": false,
+            "count": 4
+          },
+          "shorts": {
+            "apply": false,
+            "count": 8
+          },
+          "videos": {
+            "apply": false,
+            "count": 4
+          }
+        },
+        "qualityplaylists": "highres",
+        "qualityvideos": "highres",
+        "selectquality": false,
+        "theme": "default-dark",
+        "themevariant": "dark-fuchsia.css"
+      }
+    }
+  ],
+  "sync": []
+}

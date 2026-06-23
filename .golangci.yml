@@ -1,0 +1,21 @@
+version: "2"
+
+run:
+  timeout: 30m
+  tests: true
+
+linters:
+  default: standard
+  disable:
+    - errcheck
+  enable:
+    - bodyclose
+    - copyloopvar
+    - durationcheck
+    - errorlint
+    - nilerr
+    - usestdlibvars
+
+formatters:
+  enable:
+    - gofumpt

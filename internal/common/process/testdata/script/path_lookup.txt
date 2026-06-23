@@ -1,0 +1,11 @@
+mkdir bin
+makeexec bin/demo
+pathofwithpath demo bin bin/demo
+stdout 'demo'
+
+rejectpathlikebin not-executable
+stdout 'not-executable'
+
+-- not-executable --
+#!/bin/sh
+exit 0
