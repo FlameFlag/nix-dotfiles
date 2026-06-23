@@ -1,0 +1,40 @@
+---
+- name: Ensure local bin and cache directories exist
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: "0755"
+  loop:
+    - "{{ dotfiles_bin_dir }}"
+    - "{{ dotfiles_cache_dir }}"
+  tags:
+    - common
+
+- name: Detect rpm-ostree
+  ansible.builtin.shell: command -v rpm-ostree
+  args:
+    executable: /bin/bash
+  changed_when: false
+  failed_when: false
+  register: common_rpm_ostree_command
+  tags:
+    - common
+
+- name: Detect operating system
+  ansible.builtin.command:
+    argv:
+      - uname
+      - -s
+  changed_when: false
+  register: common_uname_system
+  tags:
+    - common
+
+- name: Detect package managers
+  ansible.builtin.set_fact:
+    common_has_rpm_ostree: "{{ common_rpm_ostree_command.rc == 0 }}"
+    common_system: "{{ ansible_facts.get('system', common_uname_system.stdout) }}"
+    common_is_macos: "{{ ansible_facts.get('system', common_uname_system.stdout) == 'Darwin' }}"
+    common_is_linux: "{{ ansible_facts.get('system', common_uname_system.stdout) == 'Linux' }}"
+  tags:
+    - common

@@ -1,0 +1,88 @@
+---
+- name: Install Visual Studio Code on apt systems
+  ansible.builtin.import_tasks: vscode-apt.yml
+  when:
+    - ansible_facts.pkg_mgr == 'apt'
+    - common_is_linux
+  tags:
+    - apps
+    - vscode
+
+- name: Install Visual Studio Code on dnf systems
+  ansible.builtin.import_tasks: vscode-rpm.yml
+  when:
+    - ansible_facts.pkg_mgr in ['dnf', 'dnf5']
+    - not common_has_rpm_ostree
+    - common_is_linux
+  tags:
+    - apps
+    - vscode
+
+- name: Install 1Password on apt systems
+  ansible.builtin.import_tasks: one-password-apt.yml
+  when:
+    - ansible_facts.pkg_mgr == 'apt'
+    - common_is_linux
+  tags:
+    - apps
+    - 1password
+
+- name: Install 1Password on rpm systems
+  ansible.builtin.import_tasks: one-password-rpm.yml
+  when:
+    - ansible_facts.pkg_mgr in ['dnf', 'dnf5']
+    - not common_has_rpm_ostree
+    - common_is_linux
+  tags:
+    - apps
+    - 1password
+
+- name: Install Helium on Linux
+  ansible.builtin.command:
+    argv:
+      - bash
+      - "{{ dotfiles_ansible_scripts_dir }}/apps/install-helium-linux.sh"
+      - "{{ dotfiles_cache_dir }}/helium-browser"
+      - "{{ dotfiles_bin_dir }}"
+      - "{{ dotfiles_cache_dir }}/helium-browser/installer-bin"
+      - "{{ dotfiles_repo_root }}/secrets/secrets.yaml"
+      - "{{ helium_linux_flags }}"
+  args:
+    chdir: "{{ dotfiles_repo_root }}"
+  environment:
+    PATH: "{{ dotfiles_bin_dir }}:{{ dotfiles_path }}"
+  changed_when: true
+  vars:
+    helium_enabled_features:
+      - AcceleratedVideoDecoder
+      - AcceleratedVideoDecodeLinuxGL
+      - AcceleratedVideoEncoder
+      - ForceEnableWebGpuInterop
+      - ReduceOpsTaskSplitting
+      - TouchpadOverscrollHistoryNavigation
+      - VaapiOnNvidiaGPUs
+      - VaapiVideoDecoder
+      - VaapiVideoEncoder
+      - BrowsingTopics
+      - InterestGroupStorage
+    helium_common_flags: >-
+      --no-first-run --no-default-browser-check --disable-search-engine-choice-screen
+      --extension-mime-request-handling=always-prompt-for-install
+      --omnibox-autocomplete-filtering=search --set-user-color=244,184,228
+      --set-color-scheme=dark --set-color-variant=tonal_spot
+    helium_linux_flags: >-
+      --enable-features={{ helium_enabled_features | join(',') }}
+      --disable-features=ExtensionManifestV2Unsupported,ExtensionManifestV2Disabled,Vulkan,WaylandWpColorManagerV1
+      --disable-vulkan-surface --ignore-gpu-blocklist --enable-wayland-ime
+      --wayland-text-input-version=3 {{ helium_common_flags }}
+  when: common_is_linux
+  tags:
+    - apps
+    - helium
+
+- name: Install macOS GUI applications
+  ansible.builtin.import_tasks: macos.yml
+  when: common_is_macos
+  tags:
+    - apps
+    - macos

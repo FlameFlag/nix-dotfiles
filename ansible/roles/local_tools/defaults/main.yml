@@ -1,0 +1,57 @@
+---
+local_tools_go_tools:
+  - name: system-run-mcp
+    packages:
+      - ./cmd/system-run-mcp
+      - ./cmd/system-runner
+    bins:
+      - system-run-mcp
+      - system-runner
+    platforms:
+      - Darwin
+      - Linux
+  - name: http-fixture
+    packages:
+      - ./cmd/http-fixture
+    bins:
+      - http-fixture
+    platforms:
+      - Darwin
+  - name: lsp-diagnostic-filter
+    packages:
+      - ./cmd/lsp-diagnostic-filter
+    bins:
+      - lsp-diagnostic-filter
+    platforms:
+      - Darwin
+  - name: zellij-theme-tools
+    packages:
+      - ./cmd/zellij-theme-run
+    bins:
+      - zellij-theme-run
+    platforms:
+      - Darwin
+  - name: chezmoi-support
+    packages:
+      - ./cmd/chezmoi-support
+    bins:
+      - chezmoi-support
+    platforms:
+      - Darwin
+      - Linux
+  - name: nd-tools
+    packages:
+      - ./cmd/nd-tools
+    bins:
+      - nd-tools
+    platforms:
+      - Darwin
+      - Linux
+      - Windows
+  - name: lenovo-con-mode
+    packages:
+      - ./cmd/lenovo-con-mode
+    bins:
+      - lenovo-con-mode
+    platforms:
+      - Linux

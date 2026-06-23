@@ -1,0 +1,57 @@
+---
+- name: Install RustDesk on macOS
+  ansible.builtin.command:
+    argv:
+      - bash
+      - "{{ dotfiles_ansible_scripts_dir }}/apps/install-rustdesk-macos.sh"
+      - "{{ dotfiles_cache_dir }}/rustdesk"
+      - "{{ dotfiles_bin_dir }}"
+      - "{{ 'aarch64' if ansible_facts.architecture == 'arm64' else 'x86_64' }}"
+  args:
+    chdir: "{{ dotfiles_repo_root }}"
+  changed_when: true
+  tags:
+    - rustdesk
+
+- name: Install Helium on macOS
+  ansible.builtin.command:
+    argv:
+      - bash
+      - "{{ dotfiles_ansible_scripts_dir }}/apps/install-helium-macos.sh"
+      - "{{ dotfiles_cache_dir }}/helium-browser"
+      - "{{ dotfiles_bin_dir }}"
+      - "{{ dotfiles_cache_dir }}/helium-browser/installer-bin"
+      - "{{ dotfiles_repo_root }}/secrets/secrets.yaml"
+      - >-
+        --no-first-run --no-default-browser-check --disable-search-engine-choice-screen
+        --extension-mime-request-handling=always-prompt-for-install
+        --omnibox-autocomplete-filtering=search --set-user-color=244,184,228
+        --set-color-scheme=dark --set-color-variant=tonal_spot
+  args:
+    chdir: "{{ dotfiles_repo_root }}"
+  changed_when: true
+  tags:
+    - helium
+
+- name: Install Raycast Beta on macOS
+  ansible.builtin.shell: |
+    set -euo pipefail
+    root="{{ dotfiles_cache_dir }}/raycast-beta"
+    dmg="${root}/Raycast_Beta.dmg"
+    mount_dir="${root}/mount"
+    app_dst="/Applications/Raycast Beta.app"
+    url=$(curl -fsSL --retry 3 'https://www.raycast.com/new' | sed -n 's|.*href="\(https://x-r2\.raycast-releases\.com/[^"]*\.dmg\)".*|\1|p' | head -n 1)
+    test -n "$url"
+    mkdir -p "$root"
+    curl -fsSL --retry 3 -o "$dmg" "$url"
+    rm -rf "$mount_dir"
+    mkdir -p "$mount_dir"
+    hdiutil attach "$dmg" -nobrowse -readonly -mountpoint "$mount_dir"
+    trap 'hdiutil detach "$mount_dir" >/dev/null 2>&1 || true' EXIT
+    rm -rf "$app_dst"
+    ditto "$mount_dir/Raycast Beta.app" "$app_dst"
+  args:
+    executable: /bin/bash
+    creates: /Applications/Raycast Beta.app
+  tags:
+    - raycast

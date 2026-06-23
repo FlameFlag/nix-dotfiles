@@ -1,0 +1,12 @@
+---
+- name: Build repo-local Go commands
+  ansible.builtin.import_tasks: go-tools.yml
+  tags:
+    - local
+    - go
+
+- name: Verify repo-local commands
+  ansible.builtin.import_tasks: verify.yml
+  tags:
+    - local
+    - verify

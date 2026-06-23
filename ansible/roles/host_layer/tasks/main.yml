@@ -1,0 +1,14 @@
+---
+- name: Configure host applications and desktop integration
+  ansible.builtin.import_tasks: scripts.yml
+  when: common_is_linux
+  tags:
+    - host
+    - scripts
+
+- name: Configure host fonts
+  ansible.builtin.import_tasks: fonts.yml
+  when: common_is_linux
+  tags:
+    - host
+    - fonts

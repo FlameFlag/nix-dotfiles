@@ -1,0 +1,8 @@
+/usr/bin/tailscaled                         -- gen_context(system_u:object_r:tailscaled_exec_t,s0)
+/usr/sbin/tailscaled                        -- gen_context(system_u:object_r:tailscaled_exec_t,s0)
+/usr/lib/systemd/system/tailscaled[.]service -- gen_context(system_u:object_r:tailscaled_unit_file_t,s0)
+/etc/systemd/system/tailscaled[.]service     -- gen_context(system_u:object_r:tailscaled_unit_file_t,s0)
+/var/lib/tailscale(/.*)?                       gen_context(system_u:object_r:tailscale_var_lib_t,s0)
+/var/cache/tailscale(/.*)?                     gen_context(system_u:object_r:tailscale_var_cache_t,s0)
+/run/tailscale(/.*)?                           gen_context(system_u:object_r:tailscale_var_run_t,s0)
+/var/run/tailscale(/.*)?                       gen_context(system_u:object_r:tailscale_var_run_t,s0)

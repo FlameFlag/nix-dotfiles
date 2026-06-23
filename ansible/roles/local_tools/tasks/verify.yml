@@ -1,0 +1,12 @@
+---
+- name: Verify repo-local Go command binaries
+  ansible.builtin.command:
+    argv:
+      - "{{ dotfiles_bin_dir }}/{{ item.1 }}"
+      - "--version"
+  changed_when: false
+  loop: "{{ local_tools_go_tools | subelements('bins') }}"
+  when: common_system in item.0.platforms
+  tags:
+    - local
+    - verify

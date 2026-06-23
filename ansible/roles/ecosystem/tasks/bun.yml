@@ -1,0 +1,14 @@
+---
+- name: Install Bun global tools
+  ansible.builtin.command:
+    argv:
+      - "{{ dotfiles_home_dir }}/.cache/.bun/bin/bun"
+      - add
+      - --global
+      - "{{ item.package }}"
+  args:
+    creates: "{{ dotfiles_home_dir }}/.cache/.bun/bin/{{ item.bin }}"
+  loop: "{{ ecosystem_bun_global_packages }}"
+  tags:
+    - ecosystem
+    - bun

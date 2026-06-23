@@ -1,0 +1,24 @@
+---
+- name: Add Visual Studio Code apt repository
+  ansible.builtin.deb822_repository:
+    name: vscode
+    uris:
+      - https://packages.microsoft.com/repos/code
+    suites:
+      - stable
+    components:
+      - main
+    signed_by: https://packages.microsoft.com/keys/microsoft.asc
+    install_python_debian: true
+  become: true
+  register: applications_vscode_apt_repository
+  notify: Refresh apt cache
+
+- name: Apply pending apt repository cache refresh
+  ansible.builtin.meta: flush_handlers
+
+- name: Install Visual Studio Code with apt
+  ansible.builtin.apt:
+    name: code
+    state: present
+  become: true

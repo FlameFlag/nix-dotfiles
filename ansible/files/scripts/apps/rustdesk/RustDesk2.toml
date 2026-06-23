@@ -1,0 +1,3 @@
+[options]
+direct-server = "Y"
+direct-access-port = "21118"

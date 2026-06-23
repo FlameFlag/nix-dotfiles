@@ -1,0 +1,153 @@
+policy_module(tailscaled, 1.1.1)
+
+# Adapted from https://github.com/abhiseksanyal/tailscale-selinux-policy
+# under the BSD-3-Clause license in this directory.
+
+gen_require(`
+	type bin_t;
+	type binfmt_misc_fs_t;
+	type devpts_t;
+	type login_exec_t;
+	type net_conf_t;
+	type sshd_key_t;
+	type sysctl_net_t;
+	type tpm_device_t;
+')
+
+########################################
+#
+# Declarations
+#
+
+type tailscaled_t;
+type tailscaled_exec_t;
+init_daemon_domain(tailscaled_t, tailscaled_exec_t)
+domain_entry_file(tailscaled_t, tailscaled_exec_t)
+
+type tailscaled_unit_file_t;
+systemd_unit_file(tailscaled_unit_file_t)
+
+type tailscale_var_lib_t;
+files_type(tailscale_var_lib_t)
+
+type tailscale_var_cache_t;
+files_type(tailscale_var_cache_t)
+
+type tailscale_var_run_t;
+files_pid_file(tailscale_var_run_t)
+
+########################################
+#
+# Process and private state
+#
+
+allow tailscaled_t tailscaled_exec_t:file execute_no_trans;
+# Immutable live roots can keep /usr/bin/tailscaled labeled bin_t because
+# immutable /usr does not accept restorecon relabels. The systemd drop-in still
+# starts only tailscaled in this domain.
+allow tailscaled_t bin_t:file entrypoint;
+allow tailscaled_t self:process { setexec setpgid setsched transition };
+allow tailscaled_t self:capability {
+	chown
+	dac_override
+	dac_read_search
+	fowner
+	fsetid
+	net_admin
+	net_raw
+	setgid
+	setuid
+	sys_tty_config
+};
+
+manage_dirs_pattern(tailscaled_t, tailscale_var_lib_t, tailscale_var_lib_t)
+manage_files_pattern(tailscaled_t, tailscale_var_lib_t, tailscale_var_lib_t)
+
+manage_dirs_pattern(tailscaled_t, tailscale_var_cache_t, tailscale_var_cache_t)
+manage_files_pattern(tailscaled_t, tailscale_var_cache_t, tailscale_var_cache_t)
+
+manage_dirs_pattern(tailscaled_t, tailscale_var_run_t, tailscale_var_run_t)
+manage_files_pattern(tailscaled_t, tailscale_var_run_t, tailscale_var_run_t)
+manage_lnk_files_pattern(tailscaled_t, tailscale_var_run_t, tailscale_var_run_t)
+manage_sock_files_pattern(tailscaled_t, tailscale_var_run_t, tailscale_var_run_t)
+files_pid_filetrans(tailscaled_t, tailscale_var_run_t, dir, "tailscale")
+
+########################################
+#
+# Networking and system integration
+#
+
+iptables_domtrans(tailscaled_t)
+sysnet_domtrans_ifconfig(tailscaled_t)
+modutils_domtrans_kmod(tailscaled_t)
+kernel_request_load_module(tailscaled_t)
+
+ps_process_pattern(tailscaled_t, domain)
+corecmd_exec_bin(tailscaled_t)
+kernel_dgram_send(tailscaled_t)
+kernel_read_net_sysctls(tailscaled_t)
+kernel_read_network_state(tailscaled_t)
+dev_read_sysfs(tailscaled_t)
+miscfiles_read_generic_certs(tailscaled_t)
+files_search_kernel_modules(tailscaled_t)
+modutils_read_module_config(tailscaled_t)
+modutils_read_module_deps_files(tailscaled_t)
+
+dbus_read_pid_files(tailscaled_t)
+dbus_send_system_bus(tailscaled_t)
+dbus_stream_connect_system_dbusd(tailscaled_t)
+networkmanager_dbus_chat(tailscaled_t)
+
+allow tailscaled_t self:netlink_generic_socket create_socket_perms;
+allow tailscaled_t self:netlink_netfilter_socket create_socket_perms;
+allow tailscaled_t self:netlink_route_socket create_netlink_socket_perms;
+allow tailscaled_t self:rawip_socket create_socket_perms;
+allow tailscaled_t self:tcp_socket create_stream_socket_perms;
+allow tailscaled_t self:tun_socket create;
+allow tailscaled_t self:udp_socket create_socket_perms;
+allow tailscaled_t self:unix_dgram_socket create_socket_perms;
+
+corenet_rw_tun_tap_dev(tailscaled_t)
+corenet_tcp_bind_generic_port(tailscaled_t)
+corenet_tcp_connect_all_ports(tailscaled_t)
+corenet_tcp_connect_http_port(tailscaled_t)
+allow tailscaled_t sysctl_net_t:file rw_file_perms;
+allow tailscaled_t binfmt_misc_fs_t:dir search;
+dev_rw_tpm(tailscaled_t)
+
+########################################
+#
+# DNS file handling
+#
+
+allow tailscaled_t net_conf_t:dir manage_dir_perms;
+allow tailscaled_t net_conf_t:file manage_file_perms;
+files_search_etc(tailscaled_t)
+
+########################################
+#
+# Tailscale SSH
+#
+
+can_exec(tailscaled_t, login_exec_t)
+auth_login_entry_type(tailscaled_t)
+auth_login_pgm_domain(tailscaled_t)
+auth_read_passwd_file(tailscaled_t)
+auth_read_shadow(tailscaled_t)
+
+userdom_getattr_user_home_dirs(tailscaled_t)
+userdom_search_user_home_dirs(tailscaled_t)
+
+allow tailscaled_t sshd_key_t:file read_file_perms;
+term_login_pty(tailscaled_t)
+term_use_ptmx(tailscaled_t)
+allow tailscaled_t devpts_t:chr_file {
+	read
+	relabel_chr_file_perms
+	setattr
+	write_chr_file_perms
+};
+
+optional_policy(`
+	unconfined_shell_domtrans(tailscaled_t)
+')

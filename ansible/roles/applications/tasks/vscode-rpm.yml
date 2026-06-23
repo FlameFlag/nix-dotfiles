@@ -1,0 +1,17 @@
+---
+- name: Add Visual Studio Code rpm repository
+  ansible.builtin.yum_repository:
+    name: code
+    file: vscode
+    description: Visual Studio Code
+    baseurl: https://packages.microsoft.com/yumrepos/vscode
+    enabled: true
+    gpgcheck: true
+    gpgkey: https://packages.microsoft.com/keys/microsoft.asc
+  become: true
+
+- name: Install Visual Studio Code with dnf
+  ansible.builtin.dnf:
+    name: code
+    state: present
+  become: true

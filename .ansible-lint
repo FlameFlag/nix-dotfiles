@@ -1,0 +1,10 @@
+---
+exclude_paths:
+  - .goreleaser.yaml
+  - compose.yaml
+  - secrets/
+
+skip_list:
+  # ansible-lint 26.4.0 raises an internal ArgsRule exception while loading
+  # community.general.pacman from the current Ansible collection bundle.
+  - args

@@ -1,0 +1,30 @@
+---
+- name: Remove stale legacy-managed bootstrap symlinks
+  ansible.builtin.shell: |
+    set -euo pipefail
+    removed=0
+    for bin in go gofmt scaf"fold"; do
+      path="{{ dotfiles_bin_dir }}/${bin}"
+      if [ "$bin" = scaf"fold" ] && [ -e "$path" ]; then
+        rm -f "$path"
+        removed=1
+      elif [ -L "$path" ]; then
+        target=$(readlink -f "$path")
+        case "$target" in
+          "{{ dotfiles_home_dir }}"/.local/share/*/tools/* | "{{ dotfiles_home_dir }}"/.local/share/*/cache/*)
+            rm -f "$path"
+            removed=1
+            ;;
+        esac
+      fi
+    done
+    if [ "$removed" -eq 1 ]; then
+      printf '%s\n' removed
+    fi
+  args:
+    executable: /bin/bash
+  changed_when: "'removed' in prerequisites_legacy_symlink_migration.stdout"
+  register: prerequisites_legacy_symlink_migration
+  tags:
+    - bootstrap
+    - migration

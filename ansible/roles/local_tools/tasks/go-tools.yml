@@ -1,0 +1,13 @@
+---
+- name: Build repo-local Go commands
+  ansible.builtin.command:
+    argv: "{{ ['go', 'install'] + item.packages }}"
+    chdir: "{{ dotfiles_repo_root }}"
+  environment:
+    GOBIN: "{{ dotfiles_bin_dir }}"
+  changed_when: true
+  loop: "{{ local_tools_go_tools }}"
+  when: common_system in item.platforms
+  tags:
+    - local
+    - go

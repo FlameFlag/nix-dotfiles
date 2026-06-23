@@ -1,0 +1,92 @@
+---
+prerequisites_bootstrap_packages:
+  apt:
+    - distrobox
+    - git
+    - git-lfs
+    - podman
+    - podman-compose
+    - rustup
+    - yamllint
+  apk:
+    - distrobox
+    - git
+    - git-lfs
+    - go
+    - podman
+    - podman-compose
+    - rustup
+    - yamllint
+  dnf:
+    - distrobox
+    - git
+    - git-lfs
+    - golang
+    - podman
+    - podman-compose
+    - rustup
+    - yamllint
+  pacman:
+    - distrobox
+    - git
+    - git-lfs
+    - go
+    - podman
+    - podman-compose
+    - rustup
+    - yamllint
+
+prerequisites_build_toolchain_packages:
+  apt:
+    - binutils
+    - build-essential
+    - clang
+    - cmake
+    - libclang-dev
+    - libssl-dev
+    - lld
+    - lldb
+    - patch
+    - perl
+    - pkg-config
+    - zlib1g-dev
+  apk:
+    - binutils
+    - build-base
+    - clang
+    - cmake
+    - linux-headers
+    - lld
+    - lldb
+    - openssl-dev
+    - patch
+    - perl
+    - pkgconf
+    - zlib-dev
+  dnf:
+    - binutils
+    - clang
+    - cmake
+    - gcc
+    - gcc-c++
+    - glibc-devel
+    - lld
+    - lldb
+    - make
+    - openssl-devel
+    - patch
+    - perl
+    - pkgconf-pkg-config
+    - zlib-devel
+  pacman:
+    - base-devel
+    - binutils
+    - clang
+    - cmake
+    - lld
+    - lldb
+    - openssl
+    - patch
+    - perl
+    - pkgconf
+    - zlib
