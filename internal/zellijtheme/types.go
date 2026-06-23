@@ -26,9 +26,6 @@ type configSpec struct {
 	OutputArgs        []string           `toml:"output_args"`
 	CacheSubdir       string             `toml:"cache_subdir"`
 	TempPattern       string             `toml:"temp_pattern"`
-	SourceBase        bool               `toml:"source_base"`
-	DarkStatement     string             `toml:"dark_statement"`
-	LightStatement    string             `toml:"light_statement"`
 	Updates           []configUpdateSpec `toml:"update"`
 }
 

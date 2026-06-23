@@ -25,7 +25,6 @@ func main() {
 		name  string
 		short string
 	}{
-		{"nushell-init", "Generate Nushell initialization files"},
 		{"shell-init", "Generate shell initialization files"},
 		{"install-vs-extensions", "Install VS Code extensions"},
 		{"install-hyper-window-tiling", "Install hyper window tiling integration"},

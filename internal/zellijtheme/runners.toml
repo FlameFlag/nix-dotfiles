@@ -61,24 +61,6 @@ dark = "--theme=catppuccin-frappe-pink.conf"
 light = "--theme=catppuccin-latte-pink.conf"
 
 [[runner]]
-name = "nu"
-aliases = ["nushell"]
-programs = ["nu", "nushell"]
-skip_env = ["ZELLIJ_THEME_RUN_WRAPPER", "NUSHELL_AUTO_THEME_WRAPPER"]
-
-[runner.config]
-format = "nushell"
-default_path = "~/.config/nushell/config.nu"
-default_path_darwin = "~/Library/Application Support/nushell/config.nu"
-arg_names = ["--config"]
-output_args = ["--config"]
-cache_subdir = "zellij-theme-run/nushell"
-temp_pattern = "zellij-theme-run-nushell-*.nu"
-source_base = true
-dark_statement = 'use std/config "dark-theme"; $env.config.color_config = (dark-theme)'
-light_statement = 'use std/config "light-theme"; $env.config.color_config = (light-theme)'
-
-[[runner]]
 name = "zellij"
 programs = ["zellij"]
 default_args = [

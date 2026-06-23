@@ -1,7 +1,6 @@
 package zellijtheme
 
 import (
-	"os"
 	"strings"
 	"testing"
 )
@@ -46,28 +45,9 @@ func TestKDLThemeReplacement(t *testing.T) {
 	}
 }
 
-func TestNushellOverlaySourcesBaseConfig(t *testing.T) {
-	dir := t.TempDir()
-	base := dir + "/config.nu"
-	t.Setenv("HOME", dir)
-	if err := os.WriteFile(base, []byte("$env.config = {}\n"), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	spec := configSpec{
-		Format:        "nushell",
-		SourceBase:    true,
-		DarkStatement: "$env.config.color_config = {}",
-	}
-	got := spec.patchNushell(base)
-	if !strings.Contains(got, `source "`+base+`"`) ||
-		!strings.Contains(got, "$env.config.color_config = {}") {
-		t.Fatalf("nushell overlay missing source or statement:\n%s", got)
-	}
-}
-
 func TestConfiguredProgramNames(t *testing.T) {
 	got := strings.Join(ConfiguredProgramNames(), ",")
-	for _, want := range []string{"btop", "codex", "ghostty", "helix", "nu", "nushell", "zellij"} {
+	for _, want := range []string{"btop", "codex", "ghostty", "helix", "zellij"} {
 		if !strings.Contains(got, want) {
 			t.Fatalf("program names %q missing %q", got, want)
 		}

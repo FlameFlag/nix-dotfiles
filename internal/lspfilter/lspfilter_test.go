@@ -11,7 +11,7 @@ import (
 )
 
 func TestClearsTemplateDiagnostics(t *testing.T) {
-	output := runFilter(t, diagnosticMessage("file:///repo/config.nu.tmpl"))
+	output := runFilter(t, diagnosticMessage("file:///repo/config.toml.tmpl"))
 	diagnostics := diagnosticsFrom(t, output[0])
 	if len(diagnostics) != 0 {
 		t.Fatalf("diagnostics length = %d; want 0", len(diagnostics))
@@ -19,7 +19,7 @@ func TestClearsTemplateDiagnostics(t *testing.T) {
 }
 
 func TestKeepsRegularDiagnostics(t *testing.T) {
-	output := runFilter(t, diagnosticMessage("file:///repo/config.nu"))
+	output := runFilter(t, diagnosticMessage("file:///repo/config.toml"))
 	diagnostics := diagnosticsFrom(t, output[0])
 	if len(diagnostics) != 1 {
 		t.Fatalf("diagnostics length = %d; want 1", len(diagnostics))
@@ -31,7 +31,7 @@ func TestKeepsRegularDiagnostics(t *testing.T) {
 }
 
 func TestHandlesChunkedFrames(t *testing.T) {
-	input := framedMessages(t, diagnosticMessage("file:///repo/.chezmoitemplates/x.nu"))
+	input := framedMessages(t, diagnosticMessage("file:///repo/.chezmoitemplates/x.toml"))
 	var output bytes.Buffer
 	if err := filterStdout(
 		chunkedReader{reader: bytes.NewReader(input), size: 10},

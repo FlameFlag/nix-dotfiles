@@ -2,7 +2,6 @@ package zellijtheme
 
 import (
 	"bytes"
-	"os"
 	"strconv"
 	"strings"
 
@@ -81,30 +80,6 @@ func patchKDL(configText string, updates []configUpdateSpec, themes ...Theme) (s
 		return "", err
 	}
 	return out.String(), nil
-}
-
-func (c configSpec) patchNushell(basePath string, themes ...Theme) string {
-	theme := currentTheme(themes)
-	var out strings.Builder
-	info, err := os.Stat(basePath)
-	hasSourceBase := c.SourceBase && basePath != ""
-	sourceBaseExists := err == nil && !info.IsDir()
-	if hasSourceBase && sourceBaseExists {
-		out.WriteString("source ")
-		out.WriteString(strconv.Quote(basePath))
-		out.WriteByte('\n')
-	}
-	statement := c.DarkStatement
-	if theme.Name == Latte.Name && c.LightStatement != "" {
-		statement = c.LightStatement
-	}
-	if statement != "" {
-		out.WriteString(statement)
-		if !strings.HasSuffix(statement, "\n") {
-			out.WriteByte('\n')
-		}
-	}
-	return out.String()
 }
 
 func currentTheme(themes []Theme) Theme {

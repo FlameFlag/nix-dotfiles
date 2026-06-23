@@ -1,5 +1,0 @@
-{{- $starship := lookPath "starship" -}}
-{{- if $starship -}}
-{{- $nixStarship := printf "%s/.nix-profile/bin/starship" .chezmoi.homeDir -}}
-{{ output "starship" "init" "nu" | replace $nixStarship "starship" | replace $starship "starship" -}}
-{{- end -}}

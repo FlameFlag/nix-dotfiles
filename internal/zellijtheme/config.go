@@ -77,8 +77,6 @@ func (c configSpec) args(extraArgs []string, theme Theme) ([]string, func(), err
 		if err != nil {
 			return nil, nil, err
 		}
-	case "nushell":
-		patched = c.patchNushell(basePath, theme)
 	default:
 		return nil, nil, fmt.Errorf("unsupported config format %q", c.Format)
 	}

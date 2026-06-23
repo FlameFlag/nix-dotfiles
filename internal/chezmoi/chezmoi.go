@@ -5,7 +5,6 @@ import "fmt"
 type commandHandler func(Options) error
 
 var commandHandlers = map[string]commandHandler{
-	"nushell-init":                 withoutOptions(NushellInit),
 	"shell-init":                   withoutOptions(ShellInit),
 	"install-vs-extensions":        InstallVSExtensions,
 	"install-hyper-window-tiling":  InstallHyperWindowTiling,
