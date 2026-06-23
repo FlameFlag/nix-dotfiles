@@ -18,7 +18,16 @@
     "*.toml.tmpl": "toml",
     "*.yaml.tmpl": "yaml",
     "*.yml.tmpl": "yaml",
-    "*.zsh.tmpl": "shellscript"
+    "*.zsh.tmpl": "shellscript",
+    "**/.chezmoiscripts/*.sh.tmpl": "shellscript",
+    "**/.chezmoitemplates/*.conf.tmpl": "properties",
+    "**/dot_bash_profile.tmpl": "shellscript",
+    "**/dot_bashenv.tmpl": "shellscript",
+    "**/dot_bashrc.tmpl": "shellscript",
+    "**/dot_gitconfig.tmpl": "gitconfig",
+    "**/dot_ssh/config.tmpl": "ssh_config",
+    "**/dot_zshenv.tmpl": "shellscript",
+    "**/dot_zshrc.tmpl": "shellscript"
   },
   "shellcheck.ignorePatterns": {
     "**/*.csh": true,
@@ -49,7 +58,7 @@
     "**/dot_zshrc.tmpl": true
   },
   "bashIde.shellcheckPath": "",
-  "nushellLanguageServer.nushellExecutablePath": "nushell-lsp-filter",
+  "nushellLanguageServer.nushellExecutablePath": "lsp-diagnostic-filter",
   "[json]": {
     "editor.defaultFormatter": "vscode.json-language-features",
     "editor.formatOnSave": true

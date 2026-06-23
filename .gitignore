@@ -7,12 +7,15 @@ Thumbs.db
 .devenv/
 .direnv/
 .venv/
+.cache/
+.docker-cache/
+fallow/
+**/fallow/
 .fallow/
 **/.fallow/
 result
 
 # IDEs
-**/.idea/
 **/.vs/
 **/.vscode/
 !/.vscode/
@@ -22,14 +25,10 @@ result
 !/packages/**
 /packages/**/.DS_Store
 node_modules/
-
-# Python
-**/__pycache__/
-*.py[cod]
+**/node_modules/
 
 **/target/
 lcov.info
 
-# Zig
-**/.zig-cache/
-**/zig-out/
+# Go
+dist/
