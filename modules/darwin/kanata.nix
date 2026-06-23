@@ -12,11 +12,15 @@ let
   plist = pkgs.formats.plist { };
 
   kanataLabel = "org.nixos.kanata";
+  kanataPebbleLabel = "org.nixos.kanata-pebble";
   kanataApp = "/Applications/Kanata.app";
   kanataStableBinary = "${kanataApp}/Contents/MacOS/kanata";
   kanataConfig = ../../dotfiles/dot_config/kanata/kanata-macos.kbd;
+  kanataPebbleConfig = ../../dotfiles/dot_config/kanata/kanata-macos-pebble.kbd;
   kanataLaunchdPlist = "/Library/LaunchDaemons/${kanataLabel}.plist";
+  kanataPebbleLaunchdPlist = "/Library/LaunchDaemons/${kanataPebbleLabel}.plist";
   kanataLog = "/var/log/kanata.log";
+  kanataPebbleLog = "/var/log/kanata-pebble.log";
 
   karabinerVirtualHidLabel = "org.pqrs.service.daemon.Karabiner-VirtualHIDDevice-Daemon";
   karabinerDriverSupportStore = "${karabinerDriver}/Library/Application Support/org.pqrs/Karabiner-DriverKit-VirtualHIDDevice";
@@ -99,14 +103,22 @@ in
       launchctl kickstart -k system/${karabinerVirtualHidLabel} 2>/dev/null || true
     fi
 
-    if [ -f ${kanataLaunchdPlist} ]; then
-      launchctl bootstrap system ${kanataLaunchdPlist} 2>/dev/null || true
-      launchctl enable system/${kanataLabel} 2>/dev/null || true
-      launchctl kickstart -k system/${kanataLabel} 2>/dev/null || true
-    fi
+    for service in \
+      "${kanataLabel}:${kanataLaunchdPlist}" \
+      "${kanataPebbleLabel}:${kanataPebbleLaunchdPlist}"
+    do
+      label="''${service%%:*}"
+      plist="''${service#*:}"
+      if [ -f "$plist" ]; then
+        launchctl bootstrap system "$plist" 2>/dev/null || true
+        launchctl enable "system/$label" 2>/dev/null || true
+        launchctl kickstart -k "system/$label" 2>/dev/null || true
+      fi
+    done
   '';
 
   launchd.daemons.kanata.serviceConfig = {
+    Label = kanataLabel;
     ProgramArguments = [
       kanataStableBinary
       "--cfg"
@@ -117,6 +129,20 @@ in
     ProcessType = "Interactive";
     StandardOutPath = kanataLog;
     StandardErrorPath = kanataLog;
+  };
+
+  launchd.daemons."kanata-pebble".serviceConfig = {
+    Label = kanataPebbleLabel;
+    ProgramArguments = [
+      kanataStableBinary
+      "--cfg"
+      (toString kanataPebbleConfig)
+    ];
+    RunAtLoad = true;
+    KeepAlive = keepAliveUnlessStopped;
+    ProcessType = "Interactive";
+    StandardOutPath = kanataPebbleLog;
+    StandardErrorPath = kanataPebbleLog;
   };
 
   launchd.daemons.karabiner-virtualhiddevice-daemon.serviceConfig = {
