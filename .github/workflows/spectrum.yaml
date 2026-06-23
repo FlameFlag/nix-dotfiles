@@ -1,0 +1,97 @@
+name: Spectrum
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/spectrum.yaml
+      - spectrum/**
+  schedule:
+    - cron: "42 4 * * *"
+  workflow_dispatch: null
+
+concurrency:
+  group: "${{ github.workflow }}-${{ github.ref }}"
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  IMAGE_NAME: nix-dotfiles-bluefin
+
+jobs:
+  build:
+    name: Build and Push
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Free Runner Space
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+          sudo docker system prune --all --force || true
+
+      - name: Install Build Tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y podman skopeo
+
+      - name: Prepare Image Tags
+        id: tags
+        env:
+          IMAGE_REGISTRY: "ghcr.io/${{ github.repository_owner }}"
+        run: |
+          set -euo pipefail
+          image_registry="${IMAGE_REGISTRY,,}"
+          image_name="${IMAGE_NAME,,}"
+          short_sha="$(git rev-parse --short HEAD)"
+          date_tag="$(date -u +%Y%m%d)"
+
+          {
+            echo "image_ref=${image_registry}/${image_name}"
+            echo "local_ref=${image_name}:latest"
+            echo "tags<<EOF"
+            echo "latest"
+            echo "${date_tag}"
+            echo "${date_tag}-${short_sha}"
+            echo "EOF"
+          } >>"$GITHUB_OUTPUT"
+
+      - name: Build Image
+        env:
+          LOCAL_REF: "${{ steps.tags.outputs.local_ref }}"
+        run: |
+          sudo podman build \
+            --pull=newer \
+            --tag "${LOCAL_REF}" \
+            --file spectrum/Containerfile \
+            .
+
+      - name: Login to GitHub Container Registry
+        run: |
+          printf '%s' "${{ secrets.GITHUB_TOKEN }}" \
+            | sudo podman login ghcr.io \
+                --username "${{ github.actor }}" \
+                --password-stdin
+
+      - name: Push Image
+        env:
+          IMAGE_REF: "${{ steps.tags.outputs.image_ref }}"
+          LOCAL_REF: "${{ steps.tags.outputs.local_ref }}"
+          TAGS: "${{ steps.tags.outputs.tags }}"
+        run: |
+          set -euo pipefail
+          while IFS= read -r tag; do
+            [ -n "$tag" ] || continue
+            sudo podman tag "${LOCAL_REF}" "${IMAGE_REF}:${tag}"
+            sudo podman push "${IMAGE_REF}:${tag}"
+          done <<<"${TAGS}"
