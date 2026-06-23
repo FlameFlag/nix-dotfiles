@@ -10,7 +10,7 @@
     program = {{- if eq .chezmoi.os "darwin" -}}
 /Applications/1Password.app/Contents/MacOS/op-ssh-sign
 {{- else -}}
-op-ssh-sign
+/opt/1Password/op-ssh-sign
 {{- end }}
     allowedSignersFile = "{{ .chezmoi.homeDir }}/.ssh/allowed_signers"
 
