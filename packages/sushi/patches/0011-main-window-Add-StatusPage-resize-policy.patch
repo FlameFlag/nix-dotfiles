@@ -1,0 +1,48 @@
+From 9d372866543bd1909ef4dbd1a1a52b49ff68ed3a Mon Sep 17 00:00:00 2001
+From: Peter Eisenmann <p3732@getgoogleoff.me>
+Date: Fri, 12 Jun 2026 19:03:06 +0200
+Subject: [PATCH 11/17] main-window: Add StatusPage resize policy
+
+Meant to give a decent default for renderers that use AdwStatusPage.
+
+diff --git a/src/core/mainWindow.js b/src/core/mainWindow.js
+index 39ee1a079e120430eb4d01937a82e51933e74611..0978e54e14b6ad2a2f26313a7d616470e39519bf 100644
+--- a/src/core/mainWindow.js
++++ b/src/core/mainWindow.js
+@@ -183,6 +183,9 @@ export class MainWindow extends Adw.ApplicationWindow {
+                     const ratio = Math.min(maxSize[0] / natSize[0], maxSize[1] / natSize[1]);
+                     return natSize.map(size => Math.floor(size * ratio));
+                 }
++            case ResizePolicy.STATUS_PAGE:
++                return [ Math.min(400, maxSize[0]),
++                         Math.min(420, maxSize[1]) ];
+             default:
+                 console.warn(`Renderer uses unknown resize policy '${this._renderer.resizePolicy}'`)
+                 return maxSize;
+diff --git a/src/core/renderer.js b/src/core/renderer.js
+index d295d7fb80a5463c5f6670ee7aeed882c015b3f6..0e1a425f44433ce7542d6086f8acc0725a796ed2 100644
+--- a/src/core/renderer.js
++++ b/src/core/renderer.js
+@@ -10,6 +10,7 @@ export const ResizePolicy = {
+     MAX_SIZE: 0,
+     NAT_SIZE: 1,
+     SCALED: 2,
++    STATUS_PAGE: 3,
+ };
+ 
+ export class Renderer extends GObject.Interface {
+diff --git a/src/viewers/error.js b/src/viewers/error.js
+index e130c0ee7f0d923f899715a7491e1bf78420f93a..611752730b0b42ae9a780a1c1868b30ac1542edb 100644
+--- a/src/viewers/error.js
++++ b/src/viewers/error.js
+@@ -64,6 +64,6 @@ export class ErrorRenderer extends Adw.Bin {
+     }
+ 
+     get resizePolicy() {
+-        return ResizePolicy.NAT_SIZE;
++        return ResizePolicy.STATUS_PAGE;
+     }
+ }
+-- 
+2.54.0
+

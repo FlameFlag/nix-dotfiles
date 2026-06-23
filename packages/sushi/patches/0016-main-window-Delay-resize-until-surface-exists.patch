@@ -1,0 +1,31 @@
+From 57a0421d2aca553b72db01ce4197c43013597d97 Mon Sep 17 00:00:00 2001
+From: FlameFlag <git@ps1.sh>
+Date: Sun, 21 Jun 2026 02:30:29 +0300
+Subject: [PATCH 16/17] main-window: Delay resize until surface exists
+
+
+diff --git a/src/core/mainWindow.js b/src/core/mainWindow.js
+index 42eaa1f39f50d78ebd2a22fc3323f2dc5516e097..217e0247de5795a23ff5cc08512269409cae466d 100644
+--- a/src/core/mainWindow.js
++++ b/src/core/mainWindow.js
+@@ -201,6 +201,17 @@ export class MainWindow extends Adw.ApplicationWindow {
+         if (this._renderer.fullscreen)
+             return;
+ 
++        if (!this.get_surface()) {
++            if (!this._resizeRetryId) {
++                this._resizeRetryId = GLib.idle_add(GLib.PRIORITY_DEFAULT, () => {
++                    this._resizeRetryId = 0;
++                    this._resizeWindow();
++                    return GLib.SOURCE_REMOVE;
++                });
++            }
++            return;
++        }
++
+         const contentSize = this._getContentSize()
+         const naturalTitlebarSize = this._titlebar.get_preferred_size()[1];
+         const windowSize = [ contentSize[0],
+-- 
+2.54.0
+

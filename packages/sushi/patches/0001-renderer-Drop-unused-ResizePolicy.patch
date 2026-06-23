@@ -1,0 +1,34 @@
+From f7d86db2aff54c91fb865c5e928ee3845fbdc7b7 Mon Sep 17 00:00:00 2001
+From: Peter Eisenmann <p3732@getgoogleoff.me>
+Date: Fri, 12 Jun 2026 00:03:57 +0200
+Subject: [PATCH 01/17] renderer: Drop unused ResizePolicy
+
+
+diff --git a/src/core/mainWindow.js b/src/core/mainWindow.js
+index 9636d8ab7013dde401d501f3528243eeb7286495..f7d038d9901f5b0703ff0c17b41408e06059e2b3 100644
+--- a/src/core/mainWindow.js
++++ b/src/core/mainWindow.js
+@@ -203,8 +203,6 @@ export class MainWindow extends Adw.ApplicationWindow {
+             windowSize = natSize;
+         else if (resizePolicy == ResizePolicy.SCALED)
+             windowSize = _getScaledSize(natSize, maxSize, false);
+-        else if (resizePolicy == ResizePolicy.STRETCHED)
+-            windowSize = _getScaledSize(natSize, maxSize, true);
+ 
+         const naturalTitlebarSize = this._titlebar.get_preferred_size()[1];
+         windowSize[1] += naturalTitlebarSize.height;
+diff --git a/src/core/renderer.js b/src/core/renderer.js
+index 9ac675bccff42619b5e9f3eacbba31b8ed10faf3..d295d7fb80a5463c5f6670ee7aeed882c015b3f6 100644
+--- a/src/core/renderer.js
++++ b/src/core/renderer.js
+@@ -10,7 +10,6 @@ export const ResizePolicy = {
+     MAX_SIZE: 0,
+     NAT_SIZE: 1,
+     SCALED: 2,
+-    STRETCHED: 3
+ };
+ 
+ export class Renderer extends GObject.Interface {
+-- 
+2.54.0
+

@@ -1,0 +1,35 @@
+From 9dd2d5becb4a056d30bf4e04b063c66690b1423f Mon Sep 17 00:00:00 2001
+From: Peter Eisenmann <p3732@getgoogleoff.me>
+Date: Fri, 12 Jun 2026 21:30:49 +0200
+Subject: [PATCH 06/17] general: Drop unused constants file
+
+
+diff --git a/src/org.gnome.NautilusPreviewer.src.gresource.xml.in b/src/org.gnome.NautilusPreviewer.src.gresource.xml.in
+index 3202c916ead4007441ada2912ed6df9268703a36..c4c8a7880f9c5effe31750e9119b56db180a08c6 100644
+--- a/src/org.gnome.NautilusPreviewer.src.gresource.xml.in
++++ b/src/org.gnome.NautilusPreviewer.src.gresource.xml.in
+@@ -7,7 +7,6 @@
+     <file>core/mainWindow.js</file>
+     <file>core/mimeHandler.js</file>
+     <file>core/renderer.js</file>
+-    <file>util/constants.js</file>
+     <file>util/customIcon.js</file>
+     <file>util/totemMimeTypes.js</file>
+     <file>viewers/audio.js</file>
+diff --git a/src/util/constants.js b/src/util/constants.js
+deleted file mode 100644
+index 782ccd3456600fc8df0fb3d816360c6b25bed704..0000000000000000000000000000000000000000
+--- a/src/util/constants.js
++++ /dev/null
+@@ -1,8 +0,0 @@
+-/* SPDX-License-Identifier: GPL-2.0-or-later WITH GStreamer-exception-2008
+- * SPDX-FileCopyrightText: 2011 Red Hat, Inc.
+- *
+- * Authors: Cosimo Cecchi <cosimoc@redhat.com>
+- */
+-
+-export const VIEW_MIN = 340;
+-export const TOOLBAR_SPACING = 32;
+-- 
+2.54.0
+
