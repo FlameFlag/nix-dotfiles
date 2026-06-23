@@ -59,6 +59,7 @@ attrValues {
 
   # Development
   inherit (pkgs.unstable)
+    ansible
     ansible-lint
     biome
     gcc
