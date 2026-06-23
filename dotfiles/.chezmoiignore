@@ -19,6 +19,7 @@
 .fzf-tab-completion/
 .local/bin/
 .config/atuin/
+.config/autostart/
 .config/ghostty/
 .config/helix/
 .config/kanata/
@@ -44,6 +45,7 @@ Library/
 
 {{ if eq .chezmoi.os "darwin" }}
 .config/Code/
+.config/autostart/
 .config/kanata/
 .local/share/applications/
 {{ end }}

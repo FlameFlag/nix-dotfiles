@@ -1,5 +1,14 @@
 { lib, pkgs, ... }:
 let
+  onePasswordDesktopEntry = ''
+    [Desktop Entry]
+    Type=Application
+    Name=1Password
+    Exec=${lib.getExe pkgs._1password-gui} --silent
+    Terminal=false
+    X-GNOME-Autostart-enabled=true
+    NoDisplay=true
+  '';
   muslCxxRuntime = pkgs.pkgsMusl.stdenv.cc.cc.lib;
   muslDynamicLinker =
     {
@@ -57,6 +66,8 @@ in
       polkitPolicyOwners = [ "nyx" ];
     };
   };
+
+  environment.etc."xdg/autostart/1password.desktop".text = onePasswordDesktopEntry;
 
   systemd.tmpfiles.rules = lib.lists.optionals (muslDynamicLinker != null) [
     "d /lib 0755 root root - -"
