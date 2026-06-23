@@ -1,0 +1,7 @@
+---
+- name: Install Discord with dnf
+  ansible.builtin.dnf:
+    name: https://discord.com/api/download?platform=linux&format=rpm
+    state: present
+    disable_gpg_check: true
+  become: true

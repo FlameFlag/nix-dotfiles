@@ -37,6 +37,34 @@
     - apps
     - 1password
 
+- name: Install Discord on apt systems
+  ansible.builtin.import_tasks: discord-apt.yml
+  when:
+    - ansible_facts.pkg_mgr == 'apt'
+    - common_is_linux
+  tags:
+    - apps
+    - discord
+
+- name: Install Discord on dnf systems
+  ansible.builtin.import_tasks: discord-rpm.yml
+  when:
+    - ansible_facts.pkg_mgr in ['dnf', 'dnf5']
+    - not common_has_rpm_ostree
+    - common_is_linux
+  tags:
+    - apps
+    - discord
+
+- name: Install Equicord for Discord on Linux
+  ansible.builtin.import_tasks: equicord.yml
+  when:
+    - common_is_linux
+  tags:
+    - apps
+    - discord
+    - equicord
+
 - name: Install Helium on Linux
   ansible.builtin.command:
     argv:

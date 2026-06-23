@@ -27,6 +27,14 @@
 !dotfiles/
 !dotfiles/**
 
+!modules/
+!modules/cross/
+!modules/cross/nixcord/
+!modules/cross/nixcord/default.nix
+
+!scripts/
+!scripts/render-equicord-settings.sh
+
 !spectrum/
 !spectrum/**
 

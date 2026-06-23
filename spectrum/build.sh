@@ -24,6 +24,8 @@ source -p "$SPECTRUM_SCRIPTS_DIR" repositories.sh
 source -p "$SPECTRUM_SCRIPTS_DIR" release-rpms.sh
 # shellcheck source=scripts/release-binaries.sh
 source -p "$SPECTRUM_SCRIPTS_DIR" release-binaries.sh
+# shellcheck source=scripts/discord.sh
+source -p "$SPECTRUM_SCRIPTS_DIR" discord.sh
 # shellcheck source=scripts/system.sh
 source -p "$SPECTRUM_SCRIPTS_DIR" system.sh
 
@@ -41,6 +43,7 @@ dnf_install_no_weak_deps "${SPECTRUM_FEDORA_REQUIRED_PACKAGES[@]}"
 dnf_install_optional_no_weak_deps "${SPECTRUM_FEDORA_OPTIONAL_PACKAGES[@]}"
 install_spectrum_release_rpms
 install_spectrum_release_binaries
+install_spectrum_discord
 
 configure_spectrum_system
 clean_dnf_metadata
