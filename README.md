@@ -3,6 +3,7 @@
 Personal NixOS, nix-darwin, Ansible, chezmoi, and Bluefin setup
 
 <p>
+  <a href="https://github.com/FlameFlag/nix-dotfiles/pkgs/container/nix-dotfiles-bluefin"><img alt="GHCR Bluefin image" src="https://img.shields.io/badge/GHCR-nix--dotfiles--bluefin-f4b8e4?style=flat-square&logo=github&logoColor=f4b8e4&labelColor=232634"></a>
   <a href="https://projectbluefin.io"><img alt="Bluefin" src="https://img.shields.io/badge/Bluefin-f4b8e4?style=flat-square&logo=fedora&logoColor=f4b8e4&labelColor=232634"></a>
   <a href="https://nixos.org"><img alt="NixOS" src="https://img.shields.io/badge/NixOS-f4b8e4?style=flat-square&logo=nixos&logoColor=f4b8e4&labelColor=232634"></a>
   <a href="https://github.com/nix-darwin/nix-darwin"><img alt="nix-darwin" src="https://img.shields.io/badge/nix--darwin-f4b8e4?style=flat-square&logo=apple&logoColor=f4b8e4&labelColor=232634"></a>
@@ -66,6 +67,8 @@ ansible-playbook ansible/playbooks/host.yml
 Spectrum is the Bluefin host path: bootc image first, userland after reboot.
 
 Published image:
+
+<https://github.com/FlameFlag/nix-dotfiles/pkgs/container/nix-dotfiles-bluefin>
 
 ```bash
 sudo bootc switch ghcr.io/flameflag/nix-dotfiles-bluefin:latest
