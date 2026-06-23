@@ -1,0 +1,23 @@
+FROM scratch AS ctx
+COPY spectrum /image
+
+FROM ghcr.io/ublue-os/bluefin:stable
+
+ARG IMAGE_TITLE="nix-dotfiles-bluefin"
+ARG IMAGE_DESCRIPTION="Spectrum Bluefin image for nix-dotfiles"
+ARG IMAGE_SOURCE="https://github.com/FlameFlag/nix-dotfiles"
+
+LABEL org.opencontainers.image.title="${IMAGE_TITLE}" \
+      org.opencontainers.image.description="${IMAGE_DESCRIPTION}" \
+      org.opencontainers.image.source="${IMAGE_SOURCE}"
+
+RUN rm -rf /opt && mkdir /opt
+
+RUN --mount=type=bind,from=ctx,source=/image,target=/ctx \
+    --mount=type=cache,target=/var/cache/libdnf5 \
+    --mount=type=cache,target=/var/cache/dnf \
+    --mount=type=cache,target=/var/log \
+    --mount=type=tmpfs,target=/tmp \
+    bash /ctx/build.sh
+
+RUN bootc container lint

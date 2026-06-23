@@ -1,14 +1,25 @@
-# Start from an empty build context and add back only what the smoke-test
-# Dockerfile needs for Cargo, bootstrap, and the focused chezmoi apply.
+# Start from an empty build context and add back only the paths used by the
+# smoke-test Dockerfile and Spectrum image builds.
 *
 
-!Cargo.lock
-!Cargo.toml
 !Dockerfile
 !.dockerignore
+!go.mod
+!go.sum
+!scaffold.scm
 
-!bootstrap/
-!bootstrap/**
+!cmd/
+!cmd/chezmoi-support/
+!cmd/chezmoi-support/**
+
+!internal/
+!internal/**
+
+!.scaffold/
+!.scaffold/**
+
+!scaffold/
+!scaffold/**
 
 !crates/
 !crates/**
@@ -16,22 +27,30 @@
 !dotfiles/
 !dotfiles/**
 
-!pkgs/
-pkgs/*
-!pkgs/gh-hide-comment/
-!pkgs/gh-hide-comment/**
-!pkgs/http-fixture/
-!pkgs/http-fixture/**
-!pkgs/lenovo-con-mode/
-!pkgs/lenovo-con-mode/**
-!pkgs/lsp-diagnostic-filter/
-!pkgs/lsp-diagnostic-filter/**
-!pkgs/zellij-theme-tools/
-!pkgs/zellij-theme-tools/**
+!spectrum/
+!spectrum/**
+
+!packages/
+packages/*
+!packages/gh-hide-comment/
+!packages/gh-hide-comment/**
+!packages/http-fixture/
+!packages/http-fixture/**
+!packages/lenovo-con-mode/
+!packages/lenovo-con-mode/**
+!packages/lsp-diagnostic-filter/
+!packages/lsp-diagnostic-filter/**
+!packages/scm-fmt/
+!packages/scm-fmt/**
+!packages/system-run-mcp/
+!packages/system-run-mcp/**
+!packages/zellij-theme-tools/
+!packages/zellij-theme-tools/**
 
 # Never send local generated state if it appears under an included path.
 **/.DS_Store
 **/__pycache__/
 **/*.pyc
 **/target/
+.docker-cache/
 *.log
