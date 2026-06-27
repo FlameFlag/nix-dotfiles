@@ -2,6 +2,7 @@ package extensions
 
 import (
 	"encoding/json"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -107,7 +108,7 @@ func TestChromeStoreCRXDownloadURL(t *testing.T) {
 	}
 }
 
-func TestInstallUsesUpdateURLForChromeStoreExtensions(t *testing.T) {
+func TestInstallPinsChromeStoreExtensionsToCRXFiles(t *testing.T) {
 	root := t.TempDir()
 	home := filepath.Join(root, "home")
 	t.Setenv("HOME", home)
@@ -123,8 +124,17 @@ func TestInstallUsesUpdateURLForChromeStoreExtensions(t *testing.T) {
 			return os.WriteFile(path, []byte(url), 0o644)
 		},
 		Resolve: func(rawURL string) (string, error) {
-			t.Fatalf("Chrome Store extensions should use external_update_url, not resolve %s", rawURL)
-			return "", nil
+			parsed, err := url.Parse(rawURL)
+			if err != nil {
+				return "", err
+			}
+			rawX := parsed.Query().Get("x")
+			id, _, ok := strings.Cut(strings.TrimPrefix(rawX, "id="), "&")
+			if !ok {
+				t.Fatalf("unexpected Chrome Store x query = %q", rawX)
+			}
+			return "https://clients2.googleusercontent.com/crx/blobs/example/" +
+				strings.ToUpper(id) + "_8_12_24_34.crx", nil
 		},
 		Unzip: func(zipPath, dst string) error {
 			bundles := filepath.Join(dst, "bundles")
@@ -150,14 +160,14 @@ func TestInstallUsesUpdateURLForChromeStoreExtensions(t *testing.T) {
 		t,
 		filepath.Join(externalDir, "aeblfdkhhhdcdjpifhhbdiojplfjncoa.json"),
 	)
-	if got := store["external_update_url"]; got != "https://clients2.google.com/service/update2/crx" {
-		t.Fatalf("Chrome Store update URL = %q, want Chrome Store update endpoint", got)
+	if got := store["external_crx"]; got == "" {
+		t.Fatalf("external_crx is empty: %#v", store)
 	}
-	if _, ok := store["external_crx"]; ok {
-		t.Fatalf("Chrome Store extension should use update URL instead of pinned CRX: %#v", store)
+	if got := store["external_version"]; got != "8.12.24.34" {
+		t.Fatalf("external_version = %q, want resolved Chrome Store CRX version", got)
 	}
-	if _, ok := store["external_version"]; ok {
-		t.Fatalf("Chrome Store extension should not include external_version: %#v", store)
+	if _, ok := store["external_update_url"]; ok {
+		t.Fatalf("Chrome Store extension should be pinned to external_crx: %#v", store)
 	}
 
 	crx := readExternalJSONTest(

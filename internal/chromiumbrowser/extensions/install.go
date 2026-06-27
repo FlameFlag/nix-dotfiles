@@ -49,7 +49,37 @@ func Install(options Options) (Result, error) {
 		return Result{}, err
 	}
 
-	crxExtensions := make([]installedCRXExtension, 0, len(catalog.CRX))
+	crxExtensions := make([]installedCRXExtension, 0, len(catalog.CRX)+len(catalog.ChromeStore))
+	for _, extension := range catalog.ChromeStore {
+		crxURL, err := chromeStoreCRXDownloadURL(catalog.ChromeStoreUpdateURL, extension.ID)
+		if err != nil {
+			return Result{}, err
+		}
+		resolvedURL := crxURL
+		if options.Resolve != nil {
+			resolvedURL, err = options.Resolve(crxURL)
+			if err != nil {
+				return Result{}, err
+			}
+		}
+		version, err := chromeStoreVersionFromCRXURL(extension.ID, resolvedURL)
+		if err != nil {
+			return Result{}, err
+		}
+		crxPath := filepath.Join(crxDir, extension.ID+".crx")
+		if err := options.Download(crxPath, crxURL); err != nil {
+			return Result{}, err
+		}
+		crxExtensions = append(crxExtensions, installedCRXExtension{
+			DownloadedExtension: DownloadedExtension{
+				ID:      extension.ID,
+				Name:    extension.Name,
+				Version: version,
+				URL:     crxURL,
+			},
+			Path: crxPath,
+		})
+	}
 	for _, extension := range catalog.CRX {
 		crxPath := filepath.Join(crxDir, extension.ID+".crx")
 		if err := options.Download(crxPath, extension.URL); err != nil {
@@ -97,16 +127,6 @@ func Install(options Options) (Result, error) {
 				map[string]string{
 					"external_crx":     extension.Path,
 					"external_version": extension.Version,
-				},
-			); err != nil {
-				return Result{}, err
-			}
-		}
-		for _, extension := range catalog.ChromeStore {
-			if err := writeExternalJSON(
-				filepath.Join(externalDir, extension.ID+".json"),
-				map[string]string{
-					"external_update_url": catalog.ChromeStoreUpdateURL,
 				},
 			); err != nil {
 				return Result{}, err
