@@ -1,12 +1,15 @@
-From 7e055e54db5e6c33052873c43be4c17d22a52406 Mon Sep 17 00:00:00 2001
+From 0e93cc35aded4a0a8c194189d3c1497ecf37a3e5 Mon Sep 17 00:00:00 2001
 From: Peter Eisenmann <p3732@getgoogleoff.me>
 Date: Wed, 10 Jun 2026 01:48:47 +0200
-Subject: [PATCH 02/17] main-window: Simplify full window size
+Subject: [PATCH 02/16] main-window: Simplify full window size
 
 Use half of the display size for "ResizePolicy.MAX_SIZE"
+---
+ src/core/mainWindow.js | 17 +++++++++--------
+ 1 file changed, 9 insertions(+), 8 deletions(-)
 
 diff --git a/src/core/mainWindow.js b/src/core/mainWindow.js
-index f7d038d9901f5b0703ff0c17b41408e06059e2b3..b30fd86713179cccff6eca301c4abf1d053db662 100644
+index f7d038d..b30fd86 100644
 --- a/src/core/mainWindow.js
 +++ b/src/core/mainWindow.js
 @@ -18,10 +18,8 @@ import * as MimeHandler from './mimeHandler.js';

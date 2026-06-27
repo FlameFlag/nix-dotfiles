@@ -1,11 +1,16 @@
-From 9dd2d5becb4a056d30bf4e04b063c66690b1423f Mon Sep 17 00:00:00 2001
+From fd2c8e5b836d1ce9e88e066503f53e2c7cd0f0bb Mon Sep 17 00:00:00 2001
 From: Peter Eisenmann <p3732@getgoogleoff.me>
 Date: Fri, 12 Jun 2026 21:30:49 +0200
-Subject: [PATCH 06/17] general: Drop unused constants file
+Subject: [PATCH 06/16] general: Drop unused constants file
 
+---
+ src/org.gnome.NautilusPreviewer.src.gresource.xml.in | 1 -
+ src/util/constants.js                                | 8 --------
+ 2 files changed, 9 deletions(-)
+ delete mode 100644 src/util/constants.js
 
 diff --git a/src/org.gnome.NautilusPreviewer.src.gresource.xml.in b/src/org.gnome.NautilusPreviewer.src.gresource.xml.in
-index 3202c916ead4007441ada2912ed6df9268703a36..c4c8a7880f9c5effe31750e9119b56db180a08c6 100644
+index 3202c91..c4c8a78 100644
 --- a/src/org.gnome.NautilusPreviewer.src.gresource.xml.in
 +++ b/src/org.gnome.NautilusPreviewer.src.gresource.xml.in
 @@ -7,7 +7,6 @@
@@ -18,7 +23,7 @@ index 3202c916ead4007441ada2912ed6df9268703a36..c4c8a7880f9c5effe31750e9119b56db
      <file>viewers/audio.js</file>
 diff --git a/src/util/constants.js b/src/util/constants.js
 deleted file mode 100644
-index 782ccd3456600fc8df0fb3d816360c6b25bed704..0000000000000000000000000000000000000000
+index 782ccd3..0000000
 --- a/src/util/constants.js
 +++ /dev/null
 @@ -1,8 +0,0 @@

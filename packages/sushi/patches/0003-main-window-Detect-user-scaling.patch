@@ -1,12 +1,15 @@
-From 2e3dc0a74e54ee5c335905855f0b4c011b3bd54d Mon Sep 17 00:00:00 2001
+From bf1fa78b1326c1aaa52af57d925c13a493961890 Mon Sep 17 00:00:00 2001
 From: Peter Eisenmann <p3732@getgoogleoff.me>
 Date: Fri, 12 Jun 2026 16:02:35 +0200
-Subject: [PATCH 03/17] main-window: Detect user scaling
+Subject: [PATCH 03/16] main-window: Detect user scaling
 
 Fixes https://gitlab.gnome.org/GNOME/sushi/-/work_items/141
+---
+ src/core/mainWindow.js | 29 ++++++++++++++++++++++++++++-
+ 1 file changed, 28 insertions(+), 1 deletion(-)
 
 diff --git a/src/core/mainWindow.js b/src/core/mainWindow.js
-index b30fd86713179cccff6eca301c4abf1d053db662..aa3ec61e16a0d8013c36a833cd2341c5ab83c822 100644
+index b30fd86..970a66d 100644
 --- a/src/core/mainWindow.js
 +++ b/src/core/mainWindow.js
 @@ -80,6 +80,10 @@ export class MainWindow extends Adw.ApplicationWindow {
@@ -20,16 +23,17 @@ index b30fd86713179cccff6eca301c4abf1d053db662..aa3ec61e16a0d8013c36a833cd2341c5
          super._init({ application: application });
  
          this._toolbar_view = new Adw.ToolbarView({ top_bar_style: Adw.ToolbarStyle.RAISED_BORDER});
-@@ -96,6 +100,8 @@ export class MainWindow extends Adw.ApplicationWindow {
+@@ -96,6 +100,9 @@ export class MainWindow extends Adw.ApplicationWindow {
          this._titlebar.pack_start(this._openButton);
  
          this._defineActions();
 +
-+        this.connect('notify::default-width', this._checkScaledByUser.bind(this));
++        this._checkScaledByUser = this._checkScaledByUser.bind(this)
++        this.connect('notify::default-width', this._checkScaledByUser);
      }
  
      vfunc_unrealize() {
-@@ -183,7 +189,7 @@ export class MainWindow extends Adw.ApplicationWindow {
+@@ -183,7 +190,7 @@ export class MainWindow extends Adw.ApplicationWindow {
      }
  
      _resizeWindow() {
@@ -38,11 +42,10 @@ index b30fd86713179cccff6eca301c4abf1d053db662..aa3ec61e16a0d8013c36a833cd2341c5
              return;
  
          if (this._renderer.fullscreen)
-@@ -208,7 +214,25 @@ export class MainWindow extends Adw.ApplicationWindow {
+@@ -208,7 +215,24 @@ export class MainWindow extends Adw.ApplicationWindow {
          const naturalTitlebarSize = this._titlebar.get_preferred_size()[1];
          windowSize[1] += naturalTitlebarSize.height;
  
-+        this._skip_next_size_adjustment = true;
 +        GObject.signal_handlers_block_by_func(this, this._checkScaledByUser);
          this._setDefaultSize(windowSize);
 +        GObject.signal_handlers_unblock_by_func(this, this._checkScaledByUser);
@@ -52,7 +55,7 @@ index b30fd86713179cccff6eca301c4abf1d053db662..aa3ec61e16a0d8013c36a833cd2341c5
 +        if (this._skip_next_size_adjustment)
 +            this._skip_next_size_adjustment = false;
 +        else if (this._animating === 0) {
-+            print('Window scaled by user, keeping size');
++            console.debug('Window scaled by user, keeping size');
 +            this._scaled_by_user = true;
 +        }
 +    }

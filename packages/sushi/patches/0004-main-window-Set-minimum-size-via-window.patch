@@ -1,16 +1,19 @@
-From 2870a7d03487ce9d461d1b6b884d917a39890e01 Mon Sep 17 00:00:00 2001
+From eb1e206ffd6e24d657873eff267258e2a34ce7ab Mon Sep 17 00:00:00 2001
 From: Peter Eisenmann <p3732@getgoogleoff.me>
 Date: Fri, 12 Jun 2026 16:30:00 +0200
-Subject: [PATCH 04/17] main-window: Set minimum size via window
+Subject: [PATCH 04/16] main-window: Set minimum size via window
 
 This is the minimum size recommended by the HIG, see [1].
 
 Also, use this minimum as default for smooth scaling on delayed load.
 
 [1] https://developer.gnome.org/hig/guidelines/adaptive.html#small-size-handling
+---
+ src/core/mainWindow.js | 16 +++++++++++-----
+ 1 file changed, 11 insertions(+), 5 deletions(-)
 
 diff --git a/src/core/mainWindow.js b/src/core/mainWindow.js
-index aa3ec61e16a0d8013c36a833cd2341c5ab83c822..217275b483796619be36de372bfb382fadd09d37 100644
+index 970a66d..31ca910 100644
 --- a/src/core/mainWindow.js
 +++ b/src/core/mainWindow.js
 @@ -12,7 +12,6 @@ import GLib from 'gi://GLib';
@@ -35,12 +38,12 @@ index aa3ec61e16a0d8013c36a833cd2341c5ab83c822..217275b483796619be36de372bfb382f
 +            width_request: min_width,
 +        });
 +
-+        this._lastWindowSize=[min_width, min_height];
++        this._lastWindowSize = [min_width, min_height];
 +        this.set_default_size(min_width, min_height);
  
          this._toolbar_view = new Adw.ToolbarView({ top_bar_style: Adw.ToolbarStyle.RAISED_BORDER});
          this.set_content(this._toolbar_view)
-@@ -198,9 +207,6 @@ export class MainWindow extends Adw.ApplicationWindow {
+@@ -199,9 +208,6 @@ export class MainWindow extends Adw.ApplicationWindow {
          let maxSize = this._getMaxSize();
          let rendererSize = this._renderer.get_preferred_size();
          let natSize = [rendererSize[1].width, rendererSize[1].height];

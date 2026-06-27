@@ -1,14 +1,17 @@
-From d5b4eebd3bb75286e9b7ea41d91bee884a32a964 Mon Sep 17 00:00:00 2001
+From d77063a2e9e802934186852c584912a2390cd540 Mon Sep 17 00:00:00 2001
 From: Peter Eisenmann <p3732@getgoogleoff.me>
 Date: Fri, 12 Jun 2026 18:13:45 +0200
-Subject: [PATCH 07/17] main-window: Cap natural size by max size
+Subject: [PATCH 07/16] main-window: Cap natural size by max size
 
+---
+ src/core/mainWindow.js | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
 
 diff --git a/src/core/mainWindow.js b/src/core/mainWindow.js
-index b5800ff75d91cf96b99bc3501ca495cdbbb6d3a0..8921b5fa5c8af3bf97bc96cbefa65e8c3fb469a7 100644
+index 277150d..a57b5b9 100644
 --- a/src/core/mainWindow.js
 +++ b/src/core/mainWindow.js
-@@ -212,7 +212,8 @@ export class MainWindow extends Adw.ApplicationWindow {
+@@ -213,7 +213,8 @@ export class MainWindow extends Adw.ApplicationWindow {
          if (resizePolicy == ResizePolicy.MAX_SIZE)
              windowSize = maxSize;
          else if (resizePolicy == ResizePolicy.NAT_SIZE)

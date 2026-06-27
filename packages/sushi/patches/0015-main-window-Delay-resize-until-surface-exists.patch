@@ -1,14 +1,17 @@
-From 57a0421d2aca553b72db01ce4197c43013597d97 Mon Sep 17 00:00:00 2001
+From 492851cca4c2023a767ae43a86c69b4d5be69ab0 Mon Sep 17 00:00:00 2001
 From: FlameFlag <git@ps1.sh>
 Date: Sun, 21 Jun 2026 02:30:29 +0300
-Subject: [PATCH 16/17] main-window: Delay resize until surface exists
+Subject: [PATCH 15/16] main-window: Delay resize until surface exists
 
+---
+ src/core/mainWindow.js | 11 +++++++++++
+ 1 file changed, 11 insertions(+)
 
 diff --git a/src/core/mainWindow.js b/src/core/mainWindow.js
-index 42eaa1f39f50d78ebd2a22fc3323f2dc5516e097..217e0247de5795a23ff5cc08512269409cae466d 100644
+index 6708f75..8fe1ed9 100644
 --- a/src/core/mainWindow.js
 +++ b/src/core/mainWindow.js
-@@ -201,6 +201,17 @@ export class MainWindow extends Adw.ApplicationWindow {
+@@ -202,6 +202,17 @@ export class MainWindow extends Adw.ApplicationWindow {
          if (this._renderer.fullscreen)
              return;
  

@@ -1,11 +1,14 @@
-From 36f084d97c450cd017d27c452565d0dbc6ea72ed Mon Sep 17 00:00:00 2001
+From e7bae6fff8469d7f9f5f5885933f44c057a3021e Mon Sep 17 00:00:00 2001
 From: Peter Eisenmann <p3732@getgoogleoff.me>
 Date: Fri, 12 Jun 2026 18:26:36 +0200
-Subject: [PATCH 09/17] main-window: Inline content scaling
+Subject: [PATCH 09/16] main-window: Inline content scaling
 
+---
+ src/core/mainWindow.js | 42 ++++++++----------------------------------
+ 1 file changed, 8 insertions(+), 34 deletions(-)
 
 diff --git a/src/core/mainWindow.js b/src/core/mainWindow.js
-index d5035c1350b02806e79e5adf3033001ad76ea98f..39ee1a079e120430eb4d01937a82e51933e74611 100644
+index 2f4c6c1..62d7b3e 100644
 --- a/src/core/mainWindow.js
 +++ b/src/core/mainWindow.js
 @@ -36,39 +36,6 @@ function _getDecorationLayout() {
@@ -48,7 +51,7 @@ index d5035c1350b02806e79e5adf3033001ad76ea98f..39ee1a079e120430eb4d01937a82e519
  export class MainWindow extends Adw.ApplicationWindow {
      static {
          GObject.registerClass(this);
-@@ -208,7 +175,14 @@ export class MainWindow extends Adw.ApplicationWindow {
+@@ -209,7 +176,14 @@ export class MainWindow extends Adw.ApplicationWindow {
                  return [ Math.min(natSize[0], maxSize[0]),
                           Math.min(natSize[1], maxSize[1]) ];
              case ResizePolicy.SCALED:

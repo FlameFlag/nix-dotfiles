@@ -1,14 +1,17 @@
-From c04e1eea0f3bf615bb44c39fc78fc915b1e24a64 Mon Sep 17 00:00:00 2001
+From c5c55141622da4fde2dc125bba82855f4974f08d Mon Sep 17 00:00:00 2001
 From: Peter Eisenmann <p3732@getgoogleoff.me>
 Date: Fri, 12 Jun 2026 18:18:57 +0200
-Subject: [PATCH 08/17] main-window: Move content size to helper function
+Subject: [PATCH 08/16] main-window: Move content size to helper function
 
+---
+ src/core/mainWindow.js | 37 ++++++++++++++++++++++---------------
+ 1 file changed, 22 insertions(+), 15 deletions(-)
 
 diff --git a/src/core/mainWindow.js b/src/core/mainWindow.js
-index 8921b5fa5c8af3bf97bc96cbefa65e8c3fb469a7..d5035c1350b02806e79e5adf3033001ad76ea98f 100644
+index a57b5b9..2f4c6c1 100644
 --- a/src/core/mainWindow.js
 +++ b/src/core/mainWindow.js
-@@ -196,6 +196,25 @@ export class MainWindow extends Adw.ApplicationWindow {
+@@ -197,6 +197,25 @@ export class MainWindow extends Adw.ApplicationWindow {
                  Math.floor(geometry.height * WINDOW_MAX_PERCENT_H)];
      }
  
@@ -34,7 +37,7 @@ index 8921b5fa5c8af3bf97bc96cbefa65e8c3fb469a7..d5035c1350b02806e79e5adf3033001a
      _resizeWindow() {
          if (!this._renderer || this._scaled_by_user)
              return;
-@@ -203,22 +222,10 @@ export class MainWindow extends Adw.ApplicationWindow {
+@@ -204,22 +223,10 @@ export class MainWindow extends Adw.ApplicationWindow {
          if (this._renderer.fullscreen)
              return;
  
@@ -58,8 +61,8 @@ index 8921b5fa5c8af3bf97bc96cbefa65e8c3fb469a7..d5035c1350b02806e79e5adf3033001a
 +        const windowSize = [ contentSize[0],
 +                             contentSize[1] + naturalTitlebarSize.height ];
  
-         this._skip_next_size_adjustment = true;
          GObject.signal_handlers_block_by_func(this, this._checkScaledByUser);
+         this._setDefaultSize(windowSize);
 -- 
 2.54.0
 

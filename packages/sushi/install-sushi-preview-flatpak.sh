@@ -2,7 +2,7 @@
 set -euo pipefail
 
 app_id=${SUSHI_PREVIEW_APP_ID:-org.gnome.NautilusPreviewer}
-source_rev=${SUSHI_PREVIEW_REV:-d367b6d5f538cd33e53743847a34e5be94e2b22b}
+source_rev=${SUSHI_PREVIEW_REV:-db55853ec62bc1393bfd455d82ddbc8d7b877f90}
 source_url=${SUSHI_PREVIEW_REPO:-https://github.com/GNOME/sushi.git}
 
 if [[ -n ${NIX_DOTFILES_SUSHI_PATCH_DIR:-} ]]; then

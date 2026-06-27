@@ -29,17 +29,17 @@ stdenv.mkDerivation (finalAttrs: {
   pname = "sushi-preview";
   version = "51.alpha-${builtins.substring 0 8 finalAttrs.sushiRev}";
 
-  sushiRev = "d367b6d5f538cd33e53743847a34e5be94e2b22b";
+  sushiRev = "db55853ec62bc1393bfd455d82ddbc8d7b877f90";
 
   src = fetchFromGitLab {
     domain = "gitlab.gnome.org";
     owner = "GNOME";
     repo = "sushi";
     rev = finalAttrs.sushiRev;
-    hash = "sha256-s7au+ZE5nz7nVIDEFNva39nODO/UinNLmETnTjYSLa4=";
+    hash = "sha256-AWh8hjq4b1jisW2KrplePFX32Y+B1Vhiyp3CvXmISYA=";
   };
 
-  # 0001-0013 are GNOME/sushi!96, exported with git format-patch from:
+  # 0001-0012 are GNOME/sushi!96, exported with git format-patch from:
   # https://gitlab.gnome.org/GNOME/sushi/-/merge_requests/96
   mr96Patches = [
     ./sushi/patches/0001-renderer-Drop-unused-ResizePolicy.patch
@@ -53,16 +53,15 @@ stdenv.mkDerivation (finalAttrs: {
     ./sushi/patches/0009-main-window-Inline-content-scaling.patch
     ./sushi/patches/0010-video-Use-scaled-resize-policy.patch
     ./sushi/patches/0011-main-window-Add-StatusPage-resize-policy.patch
-    ./sushi/patches/0012-main-window-Resize-when-renderer-is-ready.patch
-    ./sushi/patches/0013-main-window-Fix-error-renderer-resizing.patch
+    ./sushi/patches/0012-main-window-Fix-error-renderer-resizing.patch
   ];
 
   # Local source fixes on top of MR !96. The Flatpak app-id patch is intentionally
   # not included in this native Nix package.
   localPatches = [
-    ./sushi/patches/0015-main-Use-synchronous-GApplication-run.patch
-    ./sushi/patches/0016-main-window-Delay-resize-until-surface-exists.patch
-    ./sushi/patches/0017-image-Use-Gdk.Texture-fallback-before-glycin.patch
+    ./sushi/patches/0014-main-Use-synchronous-GApplication-run.patch
+    ./sushi/patches/0015-main-window-Delay-resize-until-surface-exists.patch
+    ./sushi/patches/0016-image-Use-Gdk.Texture-fallback-before-glycin.patch
   ];
 
   patches = finalAttrs.mr96Patches ++ finalAttrs.localPatches;

@@ -1,11 +1,16 @@
-From b585fdc6092b462454ea4af4ae2a29e863044595 Mon Sep 17 00:00:00 2001
+From b1c6304051cbcc7daca293d2f3bae6278f2d9e76 Mon Sep 17 00:00:00 2001
 From: Peter Eisenmann <p3732@getgoogleoff.me>
 Date: Fri, 12 Jun 2026 21:30:06 +0200
-Subject: [PATCH 05/17] general: Propagate natural size when scrollable
+Subject: [PATCH 05/16] general: Propagate natural size when scrollable
 
+---
+ src/core/mainWindow.js     | 1 -
+ src/viewers/evince.js      | 5 ++---
+ src/viewers/libreoffice.js | 6 +++---
+ 3 files changed, 5 insertions(+), 7 deletions(-)
 
 diff --git a/src/core/mainWindow.js b/src/core/mainWindow.js
-index 217275b483796619be36de372bfb382fadd09d37..b5800ff75d91cf96b99bc3501ca495cdbbb6d3a0 100644
+index 31ca910..277150d 100644
 --- a/src/core/mainWindow.js
 +++ b/src/core/mainWindow.js
 @@ -76,7 +76,6 @@ export class MainWindow extends Adw.ApplicationWindow {
@@ -17,7 +22,7 @@ index 217275b483796619be36de372bfb382fadd09d37..b5800ff75d91cf96b99bc3501ca495cd
  
          this._animating = 0;
 diff --git a/src/viewers/evince.js b/src/viewers/evince.js
-index 7564331d11c70ee1530b210ec4f3214c8a0b97b7..95d04093609690f24397167ae5dc9745f5239d35 100644
+index 7564331..95d0409 100644
 --- a/src/viewers/evince.js
 +++ b/src/viewers/evince.js
 @@ -12,7 +12,6 @@ import PapersDocument from 'gi://PapersDocument';
@@ -40,7 +45,7 @@ index 7564331d11c70ee1530b210ec4f3214c8a0b97b7..95d04093609690f24397167ae5dc9745
          this.set_child(scrolledWindow);
  
 diff --git a/src/viewers/libreoffice.js b/src/viewers/libreoffice.js
-index 5b62fe22e28226550b282a7cbd7760ec4c62c151..eef1348c782c123f5088a38bb106ed252e11bfbb 100644
+index 5b62fe2..eef1348 100644
 --- a/src/viewers/libreoffice.js
 +++ b/src/viewers/libreoffice.js
 @@ -12,7 +12,6 @@ export const isAvailable = function() {
