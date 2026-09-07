@@ -2,6 +2,8 @@
   "$schema": "https://opencode.ai/config.json",
   "share": "disabled",
   "autoupdate": false,
+  "username": "Evy",
+  "snapshot": true,
   "plugin": ["@slkiser/opencode-quota@4.8.2"],
   "references": {
     "opencode": {
@@ -40,6 +42,9 @@
     "max_lines": 600,
     "max_bytes": 32768
   },
+  "compaction": {
+    "prune": true
+  },
   "mcp": {
     "ghidra": {
       "type": "remote",
@@ -66,7 +71,7 @@
       "~/.config/opencode/auth.json": "deny"
     },
     "external_directory": {
-      "*": "ask"
+      "*": "allow"
     },
     "bash": {
       "*": "allow",
