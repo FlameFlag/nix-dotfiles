@@ -39,6 +39,7 @@ module CodexPlugins
     deep-research
     user-writing
     visualize
+    latex
   ].freeze
 
   module_function

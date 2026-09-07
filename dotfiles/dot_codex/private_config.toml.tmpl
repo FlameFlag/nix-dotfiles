@@ -2,10 +2,14 @@
 {{- $light := index $t3 "light" -}}
 {{- $dark := index $t3 "dark" -}}
 model = "gpt-6-astra"
-model_reasoning_effort = "high"
+model_reasoning_effort = "low"
+plan_mode_reasoning_effort = "low"
 approval_policy = "never"
 default_permissions = "unrestricted"
 web_search = "live"
+check_for_update_on_startup = false
+suppress_unstable_features_warning = true
+tool_output_token_limit = 32768
 
 {{- if eq .chezmoi.os "darwin" }}
 {{- $notifyClient := joinPath .chezmoi.homeDir ".codex/computer-use/Codex Computer Use.app/Contents/SharedSupport/SkyComputerUseClient.app/Contents/MacOS/SkyComputerUseClient" }}
@@ -261,7 +265,13 @@ enabled = true
 
 [plugins."visualize@dotfiles-chatgpt-bundled"]
 enabled = true
+
+[plugins."latex@dotfiles-chatgpt-bundled"]
+enabled = true
 {{- end }}
+
+[features]
+prevent_idle_sleep = true
 
 [apps._default]
 enabled = true
