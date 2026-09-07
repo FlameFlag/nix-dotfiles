@@ -17,7 +17,7 @@ if command -v bun >/dev/null 2>&1; then
 			installed=$(jq -r '.version // empty' \
 				"$bun_global_dir/node_modules/$package/package.json")
 		fi
-		available=$(bun pm view "$requested" version)
+		available=$(bun pm --global view "$requested" version)
 		if [[ $installed != "$available" ]]; then
 			bun_packages+=("$requested")
 		fi
