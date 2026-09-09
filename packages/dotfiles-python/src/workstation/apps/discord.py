@@ -191,6 +191,9 @@ def _repair_macos(package_bin: Path) -> None:
             )
         if result.returncode != 0 or not _macos_equicord_is_patched(resources):
             raise DotfilesError("discord-equicord: failed to patch Discord on macOS")
+        # Allow the locally patched bundle to launch without replacing Discord's
+        # signing identity: Krisp crashes when the host has an ad-hoc signature.
+        run(("/usr/bin/xattr", "-dr", "com.apple.quarantine", app))
     finally:
         _set_macos_asar_lock(resources, locked=True)
 
