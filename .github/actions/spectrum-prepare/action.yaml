@@ -36,10 +36,7 @@ runs:
       run: |
         set -euo pipefail
         locked_ref=$(tr -d '\n' <"$BASE_LOCK")
-        tagged_ref=${locked_ref%@*}
-        locked_digest=${locked_ref##*@}
-        resolved_digest=$(skopeo inspect "docker://$tagged_ref" | jq -r .Digest)
-        test "$resolved_digest" = "$locked_digest"
+        # Verify the pinned image even when the upstream tag has moved.
         cosign verify \
           --certificate-oidc-issuer=https://token.actions.githubusercontent.com \
           --certificate-identity-regexp='^https://github.com/projectbluefin/(bluefin|actions)/\.github/workflows/.*' \
